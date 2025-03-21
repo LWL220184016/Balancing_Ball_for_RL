@@ -24,12 +24,8 @@ class Circle(Shape):
             shape_mass: Mass of the circle
             shape_friction: Friction coefficient for the circle
         """
-        # Create body if not provided
-        if body is None:
-            body = pymunk.Body()
-            
+
         super().__init__(position, velocity, body)
-        
         self.shape_radio = shape_radio
         self.shape = pymunk.Circle(self.body, shape_radio)
         self.shape.mass = shape_mass

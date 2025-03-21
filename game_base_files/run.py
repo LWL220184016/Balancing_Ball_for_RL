@@ -1,7 +1,6 @@
 import pymunk
 import random
 import time
-import argparse
 
 from shapes.circle import Circle
 from display import display_show_window, display_hide_window
@@ -56,36 +55,20 @@ def reset_game():
     return time.time()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Run Balancing Ball game with optional AI agent')
-    parser.add_argument('--train', action='store_true', help='Train an agent on the game')
-    parser.add_argument('--ai', action='store_true', help='Let the AI play the game')
-    parser.add_argument('--model', type=str, default='models/best_model.pt', help='Model path for AI mode')
-    parser.add_argument('--hide', action='store_true', help='Run in hidden mode')
-    args = parser.parse_args()
-    
-    if args.train:
-        from train import train
-        train()
-    elif args.ai:
-        from evaluate import evaluate
-        evaluate(args.model, num_episodes=10, render=not args.hide)
-    else:
-        # Normal gameplay
-        if args.hide:
-            display_hide_window(
-                window_size=(WINDOW_X, WINDOW_Y), 
-                space=space, 
-                bodies=bodies, 
-                reset_game=reset_game, 
-                bg_color=BACKGROUND_COLOR, 
-            )
-        else:
-            display_show_window(
-                window_size=(WINDOW_X, WINDOW_Y), 
-                space=space, 
-                bodies=bodies, 
-                reset_game=reset_game, 
-                bg_color=BACKGROUND_COLOR, 
-            )
+    # display_show_window(
+    #     window_size=(WINDOW_X, WINDOW_Y), 
+    #     space=space, 
+    #     bodies=bodies, 
+    #     reset_game=reset_game, 
+    #     bg_color=BACKGROUND_COLOR, 
+    # )
+
+    display_hide_window(
+        window_size=(WINDOW_X, WINDOW_Y), 
+        space=space, 
+        bodies=bodies, 
+        reset_game=reset_game, 
+        bg_color=BACKGROUND_COLOR, 
+    )
 
 
