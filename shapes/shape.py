@@ -1,27 +1,23 @@
 import pymunk
+from typing import Tuple, Optional
 
 class Shape:
     
     def __init__(
                 self, 
-                position: tuple = (300, 100), # 设置身体的位置
-                velocity: tuple = (0, 0), # 賦予物體向 XY 的初速度
-                body = None, 
-                shape = None,
+                position: Tuple[float, float] = (300, 100), 
+                velocity: Tuple[float, float] = (0, 0), 
+                body: Optional[pymunk.Body] = None, 
+                shape: Optional[pymunk.Shape] = None,
             ):
         """
-        position: tuple = (300, 100) # 设置身体的位置
-
-        velocity: tuple = (0, 0) # 賦予物體向右的初速度
-
-        body:
-            pymunk.Body(shape_type)
-
-            shape_type:
-                pymunk.Body.STATIC, pymunk.Body.DYNAMIC, pymunk.Body.KINEMATIC
-
-        shape: 
-            pymunk.Circle, pymunk.Segment
+        Initialize a physical shape with associated body.
+        
+        Args:
+            position: Initial position (x, y) of the body
+            velocity: Initial velocity (vx, vy) of the body
+            body: The pymunk Body to attach to this shape
+            shape: The pymunk Shape for collision detection
         """
         
         self.body = body
@@ -29,10 +25,13 @@ class Shape:
         self.default_velocity = velocity 
         self.body.position = position 
         self.body.velocity = velocity 
+        self.default_angular_velocity = 0
 
         self.shape = shape
         
     def reset(self):
+        """Reset the body to its default position, velocity and angular velocity."""
         self.body.position = self.default_position 
-        self.body.velocity = self.default_velocity 
+        self.body.velocity = self.default_velocity
+        self.body.angular_velocity = self.default_angular_velocity
 
