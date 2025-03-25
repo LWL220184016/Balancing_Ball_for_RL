@@ -7,7 +7,6 @@ import os
 from typing import Dict, Tuple, Optional
 
 from shapes.circle import Circle
-from display import display_show_window, display_hide_window
 from record import Recorder
 
 class BalancingBallGame:
@@ -55,27 +54,19 @@ class BalancingBallGame:
         """
         # Game parameters
         self.max_step = max_step 
-        self.reward_staying_alive = reward_staying_alive
-        self.reward_ball_centered = reward_ball_centered
-        self.penalty_falling = penalty_falling
-        self.fps = fps
-        self.window_x = window_x
-        self.window_y = window_y
+        self.reward_staying_alive = reward_staying_alive 
+        self.reward_ball_centered = reward_ball_centered 
+        self.penalty_falling = penalty_falling 
+        self.fps = fps 
+        self.window_x = window_x 
+        self.window_y = window_y 
 
-        self.recorder = Recorder("game_history_record")
-        self.render_mode = render_mode
-        self.sound_enabled = sound_enabled
-        self.difficulty = difficulty
+        self.recorder = Recorder("game_history_record") 
+        self.render_mode = render_mode 
+        self.sound_enabled = sound_enabled 
+        self.difficulty = difficulty 
 
-        """
-        ((self.platform_length / 2) - 5) for calculate the distance to the 
-        center of game window coordinates. The closer you are, the higher the reward.
-
-        When the ball is to be 10 points away from the center coordinates, 
-        it should be 1 - ((self.platform_length - 10) * self.x_axis_max_reward_rate)
-        """
-        self.reward_width = (platform_length / 2) - 5
-        self.x_axis_max_reward_rate = 0.5 / self.reward_width
+        self._get_x_axis_max_reward_rate(platform_length)
         
         # Initialize physics space
         self.space = pymunk.Space()
@@ -128,19 +119,21 @@ class BalancingBallGame:
         else:
             self.screen = pygame.Surface((self.window_x, self.window_y))
             
-        self.draw_options = pymunk.pygame_util.DrawOptions(self.screen)
         self.clock = pygame.time.Clock()
         self.font = pygame.font.Font(None, 30)
         
         # Create custom draw options for indie style
-        self.draw_options.shape_outline_color = (0, 0, 0, 0)
     
     def _load_sounds(self):
         """Load game sound effects"""
-        pygame.mixer.init()
-        self.sound_bounce = pygame.mixer.Sound("assets/bounce.wav") if os.path.exists("assets/bounce.wav") else None
-        self.sound_fall = pygame.mixer.Sound("assets/fall.wav") if os.path.exists("assets/fall.wav") else None
-    
+        try:
+            pygame.mixer.init()
+            self.sound_bounce = pygame.mixer.Sound("assets/bounce.wav") if os.path.exists("assets/bounce.wav") else None
+            self.sound_fall = pygame.mixer.Sound("assets/fall.wav") if os.path.exists("assets/fall.wav") else None
+        except Exception:
+            print("Sound loading error")
+            self.sound_enabled = False
+            pass
     def _create_ball(self):
         """Create the ball with physics properties"""
         self.ball_radius = 15
@@ -213,7 +206,7 @@ class BalancingBallGame:
         
         # Return initial observation
         return self._get_observation()
-    
+
     def step(self, action: float) -> Tuple[np.ndarray, float, bool, Dict]:
         """
         Take a step in the game using the given action.
@@ -264,20 +257,10 @@ class BalancingBallGame:
             if self.sound_enabled and self.sound_fall:
                 self.sound_fall.play()
 
-        # score & reward
-        if self.steps < 2000:
-            self.steps *= 0.01
-        elif self.steps < 5000:
-            self.steps *= 0.03
-        else:
-            self.steps *= 0.05
-        x_axis_reward_rate = 1 - ((self.reward_width - abs(ball_x - self.window_x)) * self.x_axis_max_reward_rate)
-        s = x_axis_reward_rate
-        problem in s: 越往左边越大, 越往右边越小
-        print(s)
-        self.score += s
-
-        return self._get_observation(), self.steps, ball_x, terminated
+        step_reward = self._reward_calculator(ball_x)
+        self.score += step_reward
+        print("ball_x: ", ball_x, ", self.score: ", self.score)
+        return self._get_observation(), step_reward, terminated
     
     def _get_observation(self) -> np.ndarray:
         """Convert game state to observation for RL agent"""
@@ -338,9 +321,6 @@ class BalancingBallGame:
         # Custom drawing (for indie style)
         self._draw_indie_style()
         
-        # Draw physics objects
-        # self.space.debug_draw(self.draw_options)
-        
         # Draw game information
         self._draw_game_info()
         
@@ -355,7 +335,7 @@ class BalancingBallGame:
     
     def _draw_indie_style(self):
         """Draw game objects with indie game aesthetic"""
-        # Draw platform with gradient and glow
+        # # Draw platform with gradient and glow
         # platform_points = []
         # for v in self.platform.get_vertices():
         #     x, y = v.rotated(self.kinematic_body.angle) + self.kinematic_body.position
@@ -369,7 +349,7 @@ class BalancingBallGame:
         pygame.draw.circle(self.screen, (255, 255, 255), platform_pos, self.platform_length, 2)
         
         # Draw rotation direction indicator
-        # self._draw_rotation_indicator(platform_pos, self.platform_length, self.kinematic_body.angular_velocity)
+        self._draw_rotation_indicator(platform_pos, self.platform_length, self.kinematic_body.angular_velocity)
 
         # Draw ball with gradient and glow
         ball_pos = (int(self.dynamic_body.position[0]), int(self.dynamic_body.position[1]))
@@ -460,6 +440,35 @@ class BalancingBallGame:
                            (self.window_x/2 - game_over_surface.get_width()/2, 
                             self.window_y/2 - game_over_surface.get_height()/2))
     
+    def _get_x_axis_max_reward_rate(self, platform_length):
+        """
+        ((self.platform_length / 2) - 5) for calculate the distance to the 
+        center of game window coordinates. The closer you are, the higher the reward.
+
+        When the ball is to be 10 points away from the center coordinates, 
+        it should be 1 - ((self.platform_length - 10) * self.x_axis_max_reward_rate)
+        """
+        self.reward_width = (platform_length / 2) - 5 
+        self.x_axis_max_reward_rate = 2 / self.reward_width 
+        print("self.x_axis_max_reward_rate: ", self.x_axis_max_reward_rate) 
+
+    def _reward_calculator(self, ball_x):
+        # score & reward
+        if self.steps < 2000:
+            step_reward = self.steps * 0.01
+        elif self.steps < 5000:
+            step_reward = self.steps * 0.03
+        else:
+            step_reward = self.steps * 0.05
+
+        rw = abs(ball_x - self.window_x/2)
+        if rw < self.reward_width:
+            x_axis_reward_rate = 1 + ((self.reward_width - abs(ball_x - self.window_x/2)) * self.x_axis_max_reward_rate)
+            step_reward = self.steps * 0.01 * x_axis_reward_rate  # Simplified reward calculation
+            return step_reward
+        else: 
+            return 0
+
     def close(self):
         """Close the game and clean up resources"""
         if self.render_mode in ["human", "rgb_array"]:
@@ -467,8 +476,8 @@ class BalancingBallGame:
     
     def run_standalone(self):
         """Run the game in standalone mode with keyboard controls"""
-        if self.render_mode not in ["human"]:
-            raise ValueError("Standalone mode requires render_mode='human'")
+        # if self.render_mode not in ["human"]:
+        #     raise ValueError("Standalone mode requires render_mode='human'")
             
         running = True
         while running:

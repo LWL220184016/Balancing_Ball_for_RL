@@ -10,25 +10,13 @@ class BalancingBallEnv(gym.Env):
     """
     metadata = {'render.modes': ['human', 'rgb_array']}
     
-    def __init__(self, render_mode="rgb_array", difficulty="medium"):
+    def __init__(self, render_mode="rgb_array", difficulty="medium", fps=30):
         super(BalancingBallEnv, self).__init__()
         
-        # Action space: platform movement (-1.0 to 1.0)
-        self.action_space = spaces.Box(
-            low=-1.0, 
-            high=1.0, 
-            shape=(1,), 
-            dtype=np.float32
-        )
+        # Action space: discrete - 0: left, 1: right
+        self.action_space = spaces.Discrete(2)
         
-        # Observation space: [ball_x, ball_y, ball_vx, ball_vy, platform_angle, platform_angular_velocity]
-        self.observation_space = spaces.Box(
-            low=np.array([0, 0, -1, -1, 0, -1], dtype=np.float32),
-            high=np.array([1, 1, 1, 1, 1, 1], dtype=np.float32),
-            dtype=np.float32
-        )
-        
-        # Create the game instance
+        # Initialize game
         self.window_x = 1000
         self.window_y = 600
         self.platform_shape = "circle"
@@ -42,8 +30,16 @@ class BalancingBallEnv(gym.Env):
             window_y = self.window_y, 
             platform_shape = self.platform_shape, 
             platform_length = self.platform_length, 
-            fps = 30, 
+            fps = fps, 
         )
+        
+        # Image observation space (RGB)
+        self.observation_space = spaces.Box(
+            low=0, high=255, 
+            shape=(self.window_y, self.window_x, 3), 
+            dtype=np.uint8
+        )
+        
         # Platform_length /= 2 when for calculate the distance to the 
         # center of game window coordinates. The closer you are, the higher the reward.
         self.platform_length = (self.platform_length / 2) - 5
@@ -54,23 +50,14 @@ class BalancingBallEnv(gym.Env):
     
     def step(self, action):
         """Take a step in the environment"""
-        # Convert from Box action to the game's expected format
-        action_value = float(action[0]) if hasattr(action, "__len__") else float(action)
+        # Convert from discrete action to the game's expected format
+        action_value = -1.0 if action == 0 else 1.0
         
         # Take step in the game
-        obs, step, ball_x, done = self.game.step(action_value)
-
-        if step < 2000:
-            step *= 0.01
-        elif step < 5000:
-            step *= 0.03
-        else:
-            step *= 0.05
-        x_axis_reward_rate = 1 - ((self.platform_length - ball_x) * self.x_axis_max_reward_rate)
-        reward = step * x_axis_reward_rate
+        obs, step_reward, terminated = self.game.step(action_value)
         
-        # OpenAI Gym expects a different format for info
-        return obs, reward, done, False
+        # OpenAI Gym expects (observation, reward, terminated, truncated, info)
+        return obs, step_reward, terminated, False
     
     def reset(self, seed=None, options=None):
         """Reset the environment"""
