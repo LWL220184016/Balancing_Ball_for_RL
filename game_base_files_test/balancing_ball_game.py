@@ -280,7 +280,7 @@ class BalancingBallGame:
 
         
         screen_data = pygame.surfarray.array3d(self.screen)  # 获取数据
-        # screen_data = np.transpose(screen_data, (1, 0, 2))  # 转置以符合 (height, width, channels)
+        screen_data = np.transpose(screen_data, (1, 0, 2))  # 转置以符合 (height, width, channels)
 
         return screen_data
     

@@ -43,7 +43,7 @@ def test_gym_env(episodes=3, difficulty="medium"):
             action = env.action_space.sample()
             
             # Take step
-            observation, reward, terminated, truncated = env.step(action)
+            observation, reward, terminated, truncated, _ = env.step(action)
 
             done = terminated or truncated
             total_reward += reward

@@ -57,7 +57,7 @@ class BalancingBallEnv(gym.Env):
         obs, step_reward, terminated = self.game.step(action_value)
         
         # OpenAI Gym expects (observation, reward, terminated, truncated, info)
-        return obs, step_reward, terminated, False
+        return obs, step_reward, terminated, False, {}
     
     def reset(self, seed=None, options=None):
         """Reset the environment"""
