@@ -238,12 +238,12 @@ class BalancingBallGame:
         ball_x = self.dynamic_body.position[0]
         
         # Check if ball falls off screen
-        if (self.dynamic_body.position[1] > self.window_y or
+        if (self.dynamic_body.position[1] > self.kinematic_body.position[1] or
             self.dynamic_body.position[0] < 0 or
             self.dynamic_body.position[0] > self.window_x or
             self.steps >= self.max_step
             ):
-
+            print("Score: ", self.score)
             terminated = True
             reward = self.penalty_falling if self.steps < self.max_step else 0
             self.game_over = True
@@ -259,7 +259,7 @@ class BalancingBallGame:
 
         step_reward = self._reward_calculator(ball_x)
         self.score += step_reward
-        print("ball_x: ", ball_x, ", self.score: ", self.score)
+        # print("ball_x: ", ball_x, ", self.score: ", self.score)
         return self._get_observation(), step_reward, terminated
     
     def _get_observation(self) -> np.ndarray:
