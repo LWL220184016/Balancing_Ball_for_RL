@@ -31,7 +31,7 @@ class Recorder:
         print("Getting the json memory")
         return self.memory
 
-    def add_no_limit(self, data: float, ):
+    def add_no_limit(self, dataset: dict, ):
         """
         Add a records.
         
@@ -39,10 +39,22 @@ class Recorder:
             role: The role of the sender (e.g., 'user', 'assistant')
             message: The message content
         """
-        self.memory["game_records"].append({
-            "game_total_duration": data, 
-            "timestamp": str(datetime.datetime.now())
-        })
+
+            # self.memory["game_records"].append({
+            #     "game_total_duration": data, 
+            #     "timestamp": str(datetime.datetime.now())
+            # })
+
+        new_record = {
+            "timestamp": str(datetime.datetime.now()),
+        }
+            
+        # Add each key-value pair to the data dictionary
+        for key, value in dataset.items():
+            new_record[key] = value
+
+        # Append the complete record to game_records
+        self.memory["game_records"].append(new_record)
         
         self.save(self.json_file_path)
 
