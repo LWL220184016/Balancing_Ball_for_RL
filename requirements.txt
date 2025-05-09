@@ -1,0 +1,11 @@
+# stable-baselines3[extra]
+# torch
+# tensorboard
+gymnasium
+pygame
+numpy
+jax[tpu] # For TPU support in Colab
+flax
+optax
+cleanrl
+tensorboardX # CleanRL often uses tensorboardX
