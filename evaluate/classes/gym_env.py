@@ -1,14 +1,14 @@
-import gym
+import gymnasium as gym
 import numpy as np
-from gym import spaces
+from gymnasium import spaces
 
-from classes.game import BalancingBallGame
+from classes.balancing_ball_game import BalancingBallGame
 
 class BalancingBallEnv(gym.Env):
     """
-    OpenAI Gym environment for the Balancing Ball game
+    Gymnasium environment for the Balancing Ball game
     """
-    metadata = {'render.modes': ['human', 'rgb_array']}
+    metadata = {'render_modes': ['human', 'rgb_array']}
 
     def __init__(self, render_mode="rgb_array", difficulty="medium", fps=30):
         super(BalancingBallEnv, self).__init__()
@@ -22,6 +22,10 @@ class BalancingBallEnv(gym.Env):
         self.platform_shape = "circle"
         self.platform_length = 200
 
+        self.stack_size = 3  # Number of frames to stack
+        self.observation_stack = []  # Initialize the stack
+        self.render_mode = render_mode
+
         self.game = BalancingBallGame(
             render_mode=render_mode,
             sound_enabled=(render_mode == "human"),
@@ -33,10 +37,10 @@ class BalancingBallEnv(gym.Env):
             fps = fps,
         )
 
-        # Image observation space (RGB)
+        # Image observation space (RGB) with stacked frames
         self.observation_space = spaces.Box(
             low=0, high=255,
-            shape=(self.window_y, self.window_x, 3),
+            shape=(self.window_y, self.window_x, 3 * self.stack_size),  # For stacked frames
             dtype=np.uint8
         )
 
@@ -59,19 +63,40 @@ class BalancingBallEnv(gym.Env):
         # 比如一次循环为6祯，那麼模型一次动作将持续六祯，同时堆叠该6祯给模型预测下一次动作
         obs, step_reward, terminated = self.game.step(action_value)
 
-        # OpenAI Gym expects (observation, reward, terminated, truncated, info)
-        return obs, step_reward, terminated, False, {}
+        # Stack the frames
+        self.observation_stack.append(obs)
+        if len(self.observation_stack) > self.stack_size:
+            self.observation_stack.pop(0)  # Remove the oldest frame
+
+        # If the stack isn't full yet, pad it with the current frame
+        while len(self.observation_stack) < self.stack_size:
+            self.observation_stack.insert(0, obs)  # Pad with current frame at the beginning
+
+        stacked_obs = np.concatenate(self.observation_stack, axis=-1)
+
+        # Gymnasium expects (observation, reward, terminated, truncated, info)
+        return stacked_obs, step_reward, terminated, False, {}
 
     def reset(self, seed=None, options=None):
         """Reset the environment"""
-        if seed is not None:
-            np.random.seed(seed)
+        super().reset(seed=seed)  # This properly seeds the environment in Gymnasium
 
         observation = self.game.reset()
-        info = {}
-        return observation, info
 
-    def render(self, mode='human'):
+        # Reset the observation stack
+        self.observation_stack = []
+
+        # Fill the stack with the initial observation
+        for _ in range(self.stack_size):
+            self.observation_stack.append(observation)
+
+        # Create stacked observation
+        stacked_obs = np.concatenate(self.observation_stack, axis=-1)
+
+        info = {}
+        return stacked_obs, info
+
+    def render(self):
         """Render the environment"""
         return self.game.render()
 
