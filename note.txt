@@ -1,0 +1,11 @@
+Default size:
+
+window size:
+    width: 1000
+    height: 600
+
+font size: 30
+    
+shape size:
+    player: 15
+    platform: 200
