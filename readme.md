@@ -53,3 +53,9 @@ V4.2:
         ```
 
     2. Fixed the size of in-game objects changed to size base on the game window size
+
+V4.3:
+    1. Add frame skipping to make the frame data input to the model change more obvious
+    
+    2. The model performs an action once and then continues the action for a certain number of frames, while collecting and stacking frames to predict the next action for the model. 
+    For example, if a cycle is 6 frames, then the model will perform an action for 6 frames, and stack the 6 frames to predict the next action for the model.
