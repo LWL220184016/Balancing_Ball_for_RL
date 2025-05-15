@@ -4,14 +4,16 @@ import random
 import time
 import numpy as np
 import os
-
 from typing import Dict, Tuple, Optional
-from classes.shapes.circle import Circle
-from classes.recorder import Recorder
 
 import numpy as np
+# from IPython.display import display, Image, clear_output
+import matplotlib.pyplot as plt
 from io import BytesIO
 import base64
+# import IPython.display as ipd
+from classes.shapes.circle import Circle
+from classes.recorder import Recorder
 
 class BalancingBallGame:
     """
@@ -36,12 +38,13 @@ class BalancingBallGame:
                  window_x: int = 1000,
                  window_y: int = 600,
                  max_step: int = 30000,
+                 player_ball_speed: int = 5,
                  reward_staying_alive: float = 0.1,
                  reward_ball_centered: float = 0.2,
                  penalty_falling: float = -10.0,
                  fps: int = 120,
                  platform_shape: str = "circle",
-                 platform_length: int = 200,
+                 platform_proportion: int = 0.4,
                  capture_per_second: int = None,
                 ):
         """
@@ -56,6 +59,7 @@ class BalancingBallGame:
             reward_ball_centered: float = 0.2,
             penalty_falling: float = -10.0,
             fps: frame per second
+            platform_proportion: platform_length = window_x * platform_proportion
             capture_per_second: save game screen as a image every second, None means no capture
         """
         # Game parameters
@@ -66,12 +70,14 @@ class BalancingBallGame:
         self.fps = fps
         self.window_x = window_x
         self.window_y = window_y
+        self.player_ball_speed = player_ball_speed
 
         self.recorder = Recorder("game_history_record")
         self.render_mode = render_mode
         self.sound_enabled = sound_enabled
         self.difficulty = difficulty
 
+        platform_length = int(window_x * platform_proportion)
         self._get_x_axis_max_reward_rate(platform_length)
 
         # Initialize physics space
@@ -82,7 +88,7 @@ class BalancingBallGame:
         # Create game bodies
         self.dynamic_body = pymunk.Body()  # Ball body
         self.kinematic_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)  # Platform body
-        self.kinematic_body.position = (self.window_x / 2, 400)
+        self.kinematic_body.position = (self.window_x / 2, (self.window_y / 3) * 2)
         self.default_kinematic_position = self.kinematic_body.position
 
         # Create game objects
@@ -127,6 +133,7 @@ class BalancingBallGame:
         if self.render_mode == "human":
             self.screen = pygame.display.set_mode((self.window_x, self.window_y))
             pygame.display.set_caption("Balancing Ball - Indie Game")
+            self.font = pygame.font.Font(None, int(self.window_x / 34))
 
         elif self.render_mode == "rgb_array":
             self.screen = pygame.Surface((self.window_x, self.window_y))
@@ -135,10 +142,7 @@ class BalancingBallGame:
             print("rgb_array_and_human mode is not supported yet.")
 
         elif self.render_mode == "rgb_array_and_human_in_colab": # todo
-            import matplotlib.pyplot as plt
-            import IPython.display as ipd
             from pymunk.pygame_util import DrawOptions
-            from IPython.display import display, Image, clear_output
 
             self.screen = pygame.Surface((self.window_x, self.window_y))  # Create hidden surface
 
@@ -153,13 +157,13 @@ class BalancingBallGame:
 
             self.last_update_time = time.time()
             self.update_interval = 1.0 / 15  # Update display at 15 FPS to avoid overwhelming Colab
+            self.font = pygame.font.Font(None, int(self.window_x / 34))
 
 
         else:
             print("Invalid render mode. Using headless mode.")
 
         self.clock = pygame.time.Clock()
-        self.font = pygame.font.Font(None, 30)
 
         # Create custom draw options for indie style
 
@@ -176,9 +180,9 @@ class BalancingBallGame:
 
     def _create_ball(self):
         """Create the ball with physics properties"""
-        self.ball_radius = 15
+        self.ball_radius = int(self.window_x / 67)
         self.circle = Circle(
-            position=(self.window_x / 2, 200),
+            position=(self.window_x / 2, self.window_y / 3),
             velocity=(0, 0),
             body=self.dynamic_body,
             shape_radio=self.ball_radius,
@@ -202,7 +206,7 @@ class BalancingBallGame:
             self.platform.mass = 1  # 质量对 Kinematic 物体无意义，但需要避免除以零错误
             self.platform.friction = 0.7
         elif platform_shape == "rectangle":
-            self.platform_length = 200
+            self.platform_length = platform_length
             vs = [(-self.platform_length/2, -10),
                 (self.platform_length/2, -10),
                 (self.platform_length/2, 10),
@@ -261,7 +265,9 @@ class BalancingBallGame:
             info: Additional information
         """
         # Apply action to platform rotation
-        self.dynamic_body.angular_velocity += action
+        action_value = (0 - self.player_ball_speed) if action == 0 else self.player_ball_speed
+
+        self.dynamic_body.angular_velocity += action_value
 
         # Step the physics simulation
         self.space.step(1/self.fps)
@@ -305,50 +311,15 @@ class BalancingBallGame:
 
     def _get_observation(self) -> np.ndarray:
         """Convert game state to observation for RL agent"""
-        # # Normalize values to suitable ranges
-        # ball_x = self.dynamic_body.position[0] / self.window_x
-        # ball_y = self.dynamic_body.position[1] / self.window_y
-        # ball_vx = self.dynamic_body.velocity[0] / 1000
-        # ball_vy = self.dynamic_body.velocity[1] / 1000
-
-        # platform_angle = (self.kinematic_body.angle % (2*np.pi)) / (2*np.pi)
-        # platform_angular_velocity = self.kinematic_body.angular_velocity / self.max_platform_speed
-
-        # return np.array([
-        #     ball_x, ball_y, ball_vx, ball_vy,
-        #     platform_angle, platform_angular_velocity
-        # ], dtype=np.float32)
-
         # update particles and draw them
-        self.render()
-
-        if self.render_mode == "rgb_array_and_human_in_colab":
-            # Update the image in Colab output at a reasonable interval
-            current_time = time.time()
-            if current_time - self.last_update_time >= self.update_interval:
-                # Convert Pygame surface to an image that can be displayed in Colab
-                buffer = BytesIO()
-                pygame.image.save(self.screen, buffer, 'PNG') # todo screen 的畫面是全黑的，給模型進行預測的圖片也應該是全黑的，以及添加顯示模型正在執行什麽 action 的輸出
-                buffer.seek(0)
-                img_data = base64.b64encode(buffer.read()).decode('utf-8')
-
-                # Update the HTML image
-                self.display_handle.update(ipd.HTML(f'''
-                    <div id="pygame-output" style="width:100%;">
-                        <img id="pygame-img" src="data:image/png;base64,{img_data}" style="width:100%;">
-                    </div>
-                '''))
-
-                self.last_update_time = current_time
+        screen_data = self.render() # 获取数据
 
         if self.capture_per_second is not None and self.frame_count % self.capture_per_second == 0:  # Every second at 60 FPS
             pygame.image.save(self.screen, f"capture/frame_{self.frame_count/60}.png")
 
         self.frame_count += 1
-        screen_data = pygame.surfarray.array3d(self.screen)  # 获取数据
-        screen_data = np.transpose(screen_data, (1, 0, 2))  # 转置以符合 (height, width, channels)
-
         return screen_data
+
 
     def _update_particles(self):
         """Update particle effects for indie visual style"""
@@ -387,11 +358,11 @@ class BalancingBallGame:
         # Custom drawing (for indie style)
         self._draw_indie_style()
 
-        # Draw game information
-        self._draw_game_info()
 
         # Update display if in human mode
         if self.render_mode == "human":
+            # Draw game information
+            self._draw_game_info()
             pygame.display.flip()
             self.clock.tick(self.fps)
             return None
@@ -405,6 +376,22 @@ class BalancingBallGame:
 
         elif self.render_mode == "rgb_array_and_human_in_colab":
             self.space.debug_draw(self.draw_options)
+            current_time = time.time()
+            if current_time - self.last_update_time >= self.update_interval:
+                # Convert Pygame surface to an image that can be displayed in Colab
+                buffer = BytesIO()
+                pygame.image.save(self.screen, buffer, 'PNG')
+                buffer.seek(0)
+                img_data = base64.b64encode(buffer.read()).decode('utf-8')
+
+                # Update the HTML image
+                self.display_handle.update(ipd.HTML(f'''
+                    <div id="pygame-output" style="width:100%;">
+                        <img id="pygame-img" src="data:image/png;base64,{img_data}" style="width:100%;">
+                    </div>
+                '''))
+
+                self.last_update_time = current_time
             return pygame.surfarray.array3d(self.screen)
         else:
             pass
@@ -530,20 +517,44 @@ class BalancingBallGame:
 
     def _reward_calculator(self, ball_x):
         # score & reward
-        if self.steps < 2000:
-            step_reward = self.steps * 0.01
-        elif self.steps < 5000:
-            step_reward = self.steps * 0.03
-        else:
-            step_reward = self.steps * 0.05
+        step_reward = 1/100
 
         rw = abs(ball_x - self.window_x/2)
         if rw < self.reward_width:
             x_axis_reward_rate = 1 + ((self.reward_width - abs(ball_x - self.window_x/2)) * self.x_axis_max_reward_rate)
             step_reward = self.steps * 0.01 * x_axis_reward_rate  # Simplified reward calculation
+
+            if self.steps % 500 == 0:
+                step_reward += self.steps/100
+                print("check point: ", self.steps/500)
+
             return step_reward
         else:
             return 0
+
+    def _reward_calculator2(self, ball_x):
+        # Base reward for staying alive
+        step_reward = 0.1
+
+        # Distance from center (normalized)
+        distance_from_center = abs(ball_x - self.window_x/2) / (self.window_x/2)
+
+        # Smooth reward based on position (highest at center)
+        position_reward = max(0, 1.0 - distance_from_center)
+
+        # Apply position reward (with higher weight for better position)
+        step_reward += position_reward * 0.3
+
+        # Small bonus for surviving longer (but not dominant)
+        survival_bonus = min(0.2, self.steps / 10000)
+        step_reward += survival_bonus
+
+        # Checkpoint bonuses remain meaningful but don't explode
+        if self.steps % 1000 == 0 and self.steps > 0:
+            step_reward += 1.0
+            print(f"Checkpoint reached: {self.steps}")
+
+        return step_reward
 
     def close(self):
         """Close the game and clean up resources"""
@@ -552,8 +563,8 @@ class BalancingBallGame:
 
     def run_standalone(self):
         """Run the game in standalone mode with keyboard controls"""
-        # if self.render_mode not in ["human"]:
-        #     raise ValueError("Standalone mode requires render_mode='human'")
+        if self.render_mode not in ["human"]:
+            raise ValueError("Standalone mode requires render_mode='human'")
 
         running = True
         while running:
@@ -569,9 +580,9 @@ class BalancingBallGame:
             keys = pygame.key.get_pressed()
             action = 0
             if keys[pygame.K_LEFT]:
-                action = -1.0
+                action = 0 - self.player_ball_speed
             if keys[pygame.K_RIGHT]:
-                action = 1.0
+                action = self.player_ball_speed
 
             # Take game step
             if not self.game_over:

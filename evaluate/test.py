@@ -1,7 +1,12 @@
-from func import evaluate
+from func import Train
 
-evaluate(
-    model_path="./best_model1", 
+train = Train( 
+    load_model="./best_model_V4.4", 
+    obs_type="state_based", 
+    n_envs=1
+)
+
+train.evaluate(
     n_episodes=3, 
     difficulty="medium"
 )
