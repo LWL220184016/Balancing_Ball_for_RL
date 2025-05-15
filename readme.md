@@ -83,3 +83,9 @@ V4.3:
             print(f"Checkpoint reached: {self.steps}")
             
         return step_reward
+
+V4.4:
+    Add state base observation and training output
+
+V4.5:
+    add grayscale and resize the game screen image, improve code format
