@@ -92,7 +92,7 @@ class BalancingBallGame:
         self.default_kinematic_position = self.kinematic_body.position
 
         # Create game objects
-        self._create_ball()
+        self._create_player()
         self._create_platform(platform_shape=platform_shape, platform_length=platform_length)
         # self._create_platform("rectangle")
 
@@ -178,7 +178,7 @@ class BalancingBallGame:
             self.sound_enabled = False
             pass
 
-    def _create_ball(self):
+    def _create_player(self):
         """Create the ball with physics properties"""
         self.ball_radius = int(self.window_x / 67)
         self.circle = Circle(
