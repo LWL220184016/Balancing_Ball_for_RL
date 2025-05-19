@@ -4,16 +4,16 @@ import random
 import time
 import numpy as np
 import os
-from typing import Dict, Tuple, Optional
-
 import numpy as np
-# from IPython.display import display, Image, clear_output
-import matplotlib.pyplot as plt
-from io import BytesIO
 import base64
+import matplotlib.pyplot as plt
 # import IPython.display as ipd
-from classes.shapes.circle import Circle
-from classes.recorder import Recorder
+
+from typing import Dict, Tuple, Optional
+# from IPython.display import display, Image, clear_output
+from io import BytesIO
+from record import Recorder
+from levels.levels import get_level
 
 class BalancingBallGame:
     """
@@ -42,6 +42,7 @@ class BalancingBallGame:
                  reward_staying_alive: float = 0.1,
                  reward_ball_centered: float = 0.2,
                  penalty_falling: float = -10.0,
+                 level: int = 2,
                  fps: int = 120,
                  platform_shape: str = "circle",
                  platform_proportion: int = 0.4,
@@ -85,20 +86,27 @@ class BalancingBallGame:
         self.space.gravity = (0, 1000)
         self.space.damping = 0.9
 
-        # Create game bodies
-        self.dynamic_body = pymunk.Body()  # Ball body
-        self.kinematic_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)  # Platform body
-        self.kinematic_body.position = (self.window_x / 2, (self.window_y / 3) * 2)
-        self.default_kinematic_position = self.kinematic_body.position
+        # # Create game bodies
+        # self.dynamic_body = pymunk.Body()  # Ball body
+        # self.kinematic_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)  # Platform body
+        # self.kinematic_body.position = (self.window_x / 2, (self.window_y / 3) * 2)
+        # self.default_kinematic_position = self.kinematic_body.position
 
-        # Create game objects
-        self._create_player()
-        self._create_platform(platform_shape=platform_shape, platform_length=platform_length)
-        # self._create_platform("rectangle")
+        # # Create game objects
+        # self._create_player()
+        # self._create_platform(platform_shape=platform_shape, platform_length=platform_length)
+        # # self._create_platform("rectangle")
 
-        # Add all objects to space
-        self.space.add(self.dynamic_body, self.kinematic_body,
-                       self.circle.shape, self.platform)
+        # # Add all objects to space
+        # self.space.add(self.dynamic_body, self.kinematic_body,
+        #                self.circle.shape, self.platform)
+
+        self.level = get_level(level, self.space)
+        player, platform = self.level.setup(self.window_x, self.window_y)
+        self.dynamic_body = player["body"]
+        self.kinematic_body = platform["body"]
+        self.ball_radius = player["ball_radius"]
+        self.platform_length = platform["platform_length"]
 
         # Game state tracking
         self.steps = 0
@@ -178,45 +186,6 @@ class BalancingBallGame:
             self.sound_enabled = False
             pass
 
-    def _create_player(self):
-        """Create the ball with physics properties"""
-        self.ball_radius = int(self.window_x / 67)
-        self.circle = Circle(
-            position=(self.window_x / 2, self.window_y / 3),
-            velocity=(0, 0),
-            body=self.dynamic_body,
-            shape_radio=self.ball_radius,
-            shape_friction=100,
-        )
-        # Store initial values for reset
-        self.default_ball_position = self.dynamic_body.position
-
-    def _create_platform(self,
-                         platform_shape: str = "circle",
-                         platform_length: int = 200
-                        ):
-        """
-        Create the platform with physics properties
-        platform_shape: circle, rectangle
-        platform_length: Length of a rectangle or Diameter of a circle
-        """
-        if platform_shape == "circle":
-            self.platform_length = platform_length / 2 # radius
-            self.platform = pymunk.Circle(self.kinematic_body, self.platform_length)
-            self.platform.mass = 1  # 质量对 Kinematic 物体无意义，但需要避免除以零错误
-            self.platform.friction = 0.7
-        elif platform_shape == "rectangle":
-            self.platform_length = platform_length
-            vs = [(-self.platform_length/2, -10),
-                (self.platform_length/2, -10),
-                (self.platform_length/2, 10),
-                (-self.platform_length/2, 10)]
-
-            self.platform = pymunk.Poly(self.kinematic_body, vs)
-        self.platform.friction = 0.7
-        self.platform_rotation = 0
-        self.kinematic_body.angular_velocity = random.randrange(-1, 2, 2)
-
     def _apply_difficulty(self):
         """Apply difficulty settings to the game"""
         if self.difficulty == "easy":
@@ -229,17 +198,18 @@ class BalancingBallGame:
             self.max_platform_speed = 3.5
             self.ball_elasticity = 0.9
 
-        self.circle.shape.elasticity = self.ball_elasticity
+        # self.circle.shape.elasticity = self.ball_elasticity
 
     def reset(self) -> np.ndarray:
         """Reset the game state and return the initial observation"""
         # Reset physics objects
-        self.dynamic_body.position = self.default_ball_position
-        self.dynamic_body.velocity = (0, 0)
-        self.dynamic_body.angular_velocity = 0
+        # self.dynamic_body.position = self.default_ball_position
+        # self.dynamic_body.velocity = (0, 0)
+        # self.dynamic_body.angular_velocity = 0
 
-        self.kinematic_body.position = self.default_kinematic_position
-        self.kinematic_body.angular_velocity = random.randrange(-1, 2, 2)
+        # self.kinematic_body.position = self.default_kinematic_position
+        # self.kinematic_body.angular_velocity = random.randrange(-1, 2, 2)
+        self.level.reset()
 
         # Reset game state
         self.steps = 0
@@ -265,9 +235,15 @@ class BalancingBallGame:
             info: Additional information
         """
         # Apply action to platform rotation
-        action_value = (0 - self.player_ball_speed) if action == 0 else self.player_ball_speed
+        if action == 0:
+            action_value = (0 - self.player_ball_speed)
+        elif action == 1:
+            action_value = self.player_ball_speed
+        elif action == 2:
+            action_value = 0
 
         self.dynamic_body.angular_velocity += action_value
+        self.level.action()
 
         # Step the physics simulation
         self.space.step(1/self.fps)
@@ -278,15 +254,13 @@ class BalancingBallGame:
         # Check game state
         self.steps += 1
         terminated = False
-        reward = self.reward_staying_alive
-
-        # Calculate reward for keeping ball centered on platform
-        ball_x = self.dynamic_body.position[0]
 
         # Check if ball falls off screen
+        ball_x = self.dynamic_body.position[0]
+        # ball_y = self.dynamic_body.position[1]
         if (self.dynamic_body.position[1] > self.kinematic_body.position[1] or
-            self.dynamic_body.position[0] < 0 or
-            self.dynamic_body.position[0] > self.window_x or
+            ball_x < 0 or
+            ball_x > self.window_x or
             self.steps >= self.max_step
             ):
 
@@ -563,8 +537,8 @@ class BalancingBallGame:
 
     def run_standalone(self):
         """Run the game in standalone mode with keyboard controls"""
-        if self.render_mode not in ["human"]:
-            raise ValueError("Standalone mode requires render_mode='human'")
+        if self.render_mode not in ["human", "rgb_array_and_human_in_colab"]:
+            raise ValueError("Standalone mode requires render_mode='human' or 'rgb_array_and_human_in_colab'")
 
         running = True
         while running:
@@ -578,11 +552,12 @@ class BalancingBallGame:
 
             # Process keyboard controls
             keys = pygame.key.get_pressed()
-            action = 0
+            # In order to fit the model action space, the model can currently only output 0 and 1, so 2 is no action
+            action = 2
             if keys[pygame.K_LEFT]:
-                action = 0 - self.player_ball_speed
+                action = 0
             if keys[pygame.K_RIGHT]:
-                action = self.player_ball_speed
+                action = 1
 
             # Take game step
             if not self.game_over:

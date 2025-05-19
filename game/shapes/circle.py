@@ -1,21 +1,22 @@
 import pymunk
+
 from shapes.shape import Shape
 from typing import Tuple, Optional
 
 class Circle(Shape):
-    
+
     def __init__(
-                self, 
-                position: Tuple[float, float] = (300, 100), 
-                velocity: Tuple[float, float] = (0, 0), 
-                body: Optional[pymunk.Body] = None, 
-                shape_radio: float = 20, 
-                shape_mass: float = 1, 
-                shape_friction: float = 0.1, 
+                self,
+                position: Tuple[float, float] = (300, 100),
+                velocity: Tuple[float, float] = (0, 0),
+                body: Optional[pymunk.Body] = None,
+                shape_radio: float = 20,
+                shape_mass: float = 1,
+                shape_friction: float = 0.1,
             ):
         """
         Initialize a circular physics object.
-        
+
         Args:
             position: Initial position (x, y) of the circle
             velocity: Initial velocity (vx, vy) of the circle

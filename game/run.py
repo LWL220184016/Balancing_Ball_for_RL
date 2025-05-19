@@ -1,6 +1,6 @@
 import argparse
 
-from balancing_ball_game import BalancingBallGame
+from game_base_files.balancing_ball_game import BalancingBallGame
 
 def run_standalone_game(difficulty="medium"):
     """Run the game in standalone mode with visual display"""
