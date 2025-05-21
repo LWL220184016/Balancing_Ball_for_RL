@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv, VecTransposeImage
+from stable_baselines3.common.env_util import make_vec_env
 
 # Add the game directory to the system path
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "game_base_files_test"))
@@ -13,7 +14,7 @@ from gym_env import BalancingBallEnv
 def make_env(render_mode="human", difficulty="medium"):
     """Create an environment function"""
     def _init():
-        env = BalancingBallEnv(render_mode=render_mode, difficulty=difficulty)
+        env = BalancingBallEnv(render_mode=render_mode, difficulty=difficulty, obs_type="state_based")
         return env
     return _init
 
@@ -31,8 +32,6 @@ def play_game(model_path, difficulty="medium", episodes=5):
         make_env(render_mode="human", difficulty=difficulty),
         n_envs=1
     )
-    env = VecTransposeImage(env)
-    
     # Load the model
     model = PPO.load(model_path)
     
@@ -63,21 +62,8 @@ def play_game(model_path, difficulty="medium", episodes=5):
     env.close()
 
 if __name__ == "__main__":
-    import argparse
-    
-    parser = argparse.ArgumentParser(description="Play Balancing Ball with a trained model")
-    parser.add_argument("--model", type=str, required=True,
-                        help="Path to the saved model")
-    parser.add_argument("--difficulty", type=str, default="medium", 
-                        choices=["easy", "medium", "hard"],
-                        help="Game difficulty")
-    parser.add_argument("--episodes", type=int, default=5,
-                        help="Number of episodes to play")
-    
-    args = parser.parse_args()
-    
     play_game(
-        model_path=args.model,
-        difficulty=args.difficulty,
-        episodes=args.episodes
+        model_path="./best_model_V4.4",
+        difficulty="medium",
+        episodes=3
     )

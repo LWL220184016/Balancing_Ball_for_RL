@@ -3,7 +3,7 @@ import numpy as np
 from gymnasium import spaces
 # import cv2
 
-from game_base_files.balancing_ball_game import BalancingBallGame
+from balancing_ball_game import BalancingBallGame
 
 class BalancingBallEnv(gym.Env):
     """

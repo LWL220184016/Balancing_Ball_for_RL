@@ -1,7 +1,7 @@
-from game_base_files.balancing_ball_game import BalancingBallGame
+from balancing_ball_game import BalancingBallGame
 from gym_env import BalancingBallEnv
 
-def run_standalone_game(render_mode="human", difficulty="medium", capture_per_second=3, window_x=1000, window_y=600, level=2):
+def run_standalone_game(render_mode="human", difficulty="medium", capture_per_second=None, window_x=1000, window_y=600, level=2):
     """Run the game in standalone mode with visual display"""
 
     platform_shape = "circle"
@@ -16,14 +16,13 @@ def run_standalone_game(render_mode="human", difficulty="medium", capture_per_se
         platform_proportion = platform_proportion,
         level = level,
         fps = 120,
-        capture_per_second = 3,
+        capture_per_second = capture_per_second,
     )
 
     game.run_standalone()
 
 def test_gym_env(episodes=3, difficulty="medium"):
     """Test the OpenAI Gym environment"""
-    import time
     # from gym_env import BalancingBallEnv
 
     fps = 30
@@ -62,6 +61,7 @@ run_standalone_game(render_mode="human",
                     difficulty="medium", 
                     window_x=1000, 
                     window_y=600, 
-                    level=1, 
+                    level=3, 
+                    capture_per_second = None
                     )
 # test_gym_env(difficulty="medium")
