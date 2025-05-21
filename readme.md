@@ -94,4 +94,7 @@ V5:
     Add Level system
 
 V6: 
-    Add Level3 and new env for Two-player confrontation
+    Add Level3 for Two-player confrontation
+
+V6: 
+    training env for Two-player confrontation
