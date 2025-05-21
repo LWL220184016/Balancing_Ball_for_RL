@@ -202,7 +202,7 @@ class BalancingBallGame:
         # Return initial observation
         return self._get_observation()
 
-    def step(self, p1action: float, p2action: float) -> Tuple[np.ndarray, float, bool, Dict]:
+    def step(self, paction: list = []) -> Tuple[np.ndarray, float, bool, Dict]:
         """
         Take a step in the game using the given action.
 
@@ -216,26 +216,12 @@ class BalancingBallGame:
             info: Additional information
         """
         # Apply action to platform rotation
-        paction = []
-        if p1action == 0:
-            paction.append(0 - self.player_ball_speed)
-        elif p1action == 1:
-            paction.append(self.player_ball_speed)
-        elif p1action == 2:
-            paction.append(0)
-
-        if p2action == 0:
-            paction.append(0 - self.player_ball_speed)
-        elif p2action == 1:
-            paction.append(self.player_ball_speed)
-        elif p2action == 2:
-            paction.append(0)
 
         # self.dynamic_body_players[0].angular_velocity += p1action
         # self.dynamic_body_players[1].angular_velocity += p1action
         # 施加力在平台的當前位置 (質心)
         for i in range(len(self.dynamic_body_players)):
-            force_vector = pymunk.Vec2d(paction[i] * 10000, 0)
+            force_vector = pymunk.Vec2d(paction[i], 0)
             self.dynamic_body_players[i].apply_force_at_world_point(force_vector, self.dynamic_body_players[0].position)
 
 
@@ -339,30 +325,6 @@ class BalancingBallGame:
             return pygame.surfarray.array3d(self.screen)
         else:
             pass
-
-# TODO: delete
-    def _draw_indie_style_old(self):
-        """Draw game objects with indie game aesthetic"""
-        # # Draw platform with gradient and glow
-        # platform_points = []
-        # for v in self.platform.get_vertices():
-        #     x, y = v.rotated(self.kinematic_body.angle) + self.kinematic_body.position
-        #     platform_points.append((int(x), int(y)))
-
-        # pygame.draw.polygon(self.screen, self.PLATFORM_COLOR, platform_points)
-        # pygame.draw.polygon(self.screen, (255, 255, 255), platform_points, 2)
-
-        platform_pos = (int(self.kinematic_body.position[0]), int(self.kinematic_body.position[1]))
-        pygame.draw.circle(self.screen, self.PLATFORM_COLOR, platform_pos, self.platform_length)
-        pygame.draw.circle(self.screen, (255, 255, 255), platform_pos, self.platform_length, 2)
-
-        # Draw rotation direction indicator
-        self._draw_rotation_indicator(platform_pos, self.platform_length, self.kinematic_body.angular_velocity)
-
-        # Draw ball with gradient and glow
-        ball_pos = (int(self.dynamic_body_players[0].position[0]), int(self.dynamic_body_players[0].position[1]))
-        pygame.draw.circle(self.screen, self.BALL_COLOR, ball_pos, self.ball_radius)
-        pygame.draw.circle(self.screen, (255, 255, 255), ball_pos, self.ball_radius, 2)
 
     def _draw_indie_style(self):
         """Draw game objects with indie game aesthetic"""
@@ -514,21 +476,26 @@ class BalancingBallGame:
             # Process keyboard controls
             keys = pygame.key.get_pressed()
             # In order to fit the model action space, the model can currently only output 0 and 1, so 2 is no action
-            p1action = 2
-            p2action = 2
+            paction = []
+            # Player 1 controls
             if keys[pygame.K_LEFT]:
-                p1action = 0
+                paction.append((0 - self.player_ball_speed) * 10000)
             elif keys[pygame.K_RIGHT]:
-                p1action = 1
+                paction.append(self.player_ball_speed * 10000)
+            else:
+                paction.append(0)
 
+            # Player 2 controls
             if keys[pygame.K_a]:
-                p2action = 0
+                paction.append((0 - self.player_ball_speed) * 10000)
             elif keys[pygame.K_d]:
-                p2action = 1
+                paction.append(self.player_ball_speed * 10000)
+            else:
+                paction.append(0)
 
             # Take game step
             if not self.game_over:
-                self.step(p1action, p2action)
+                self.step(paction)
 
             # Render
             self.render()

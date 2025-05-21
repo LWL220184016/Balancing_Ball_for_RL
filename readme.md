@@ -88,7 +88,10 @@ V4.4:
     Add state base observation and training output
 
 V4.5:
-    add grayscale and resize the game screen image, improve code format
+    Add grayscale and resize the game screen image, improve code format
 
 V5:
-    add Level system
+    Add Level system
+
+V6: 
+    Add Level3 and new env for Two-player confrontation
