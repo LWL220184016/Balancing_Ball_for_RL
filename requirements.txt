@@ -9,3 +9,5 @@ flax
 optax
 cleanrl
 tensorboardX # CleanRL often uses tensorboardX
+pymunk
+pygame-ce

@@ -3,5 +3,9 @@ __pycache__/
 capture/
 gamme_history/
 
+compare*
+
 best_model1.zip
 best_model2.zip
+
+ppo*

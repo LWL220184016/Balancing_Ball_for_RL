@@ -1,13 +1,13 @@
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
-# import cv2
+import cv2
 
 from balancing_ball_game import BalancingBallGame
 
 class BalancingBallEnv(gym.Env):
     """
-    Gymnasium environment for the Balancing Ball game
+    Gymnasium environment for the Balancing Ball game with continuous action space
     """
     metadata = {'render_modes': ['human', 'rgb_array', 'rgb_array_and_human_in_colab']}
 
@@ -18,6 +18,8 @@ class BalancingBallEnv(gym.Env):
                  fps=30,
                  obs_type="game_screen",
                  image_size=(84, 84),
+                 window_x = 300,
+                 window_y = 180
                 ):
         """
         render_mode: how to render the environment
@@ -28,16 +30,15 @@ class BalancingBallEnv(gym.Env):
             Example: "game_screen" or "state_based"
         image_size: Size to resize images to (height, width)
             Example: (84, 84) - standard for many RL implementations
+        num_players: Number of players (2 for adversarial training)
         """
 
         super(BalancingBallEnv, self).__init__()
 
-        # Action space: discrete - 0: left, 1: right
-        self.action_space = spaces.Discrete(2)
-
+        
         # Initialize game
-        self.window_x = 300
-        self.window_y = 180
+        self.window_x = window_x
+        self.window_y = window_y
         self.platform_shape = "circle"
         self.platform_proportion = 0.333
 
@@ -60,6 +61,15 @@ class BalancingBallEnv(gym.Env):
             platform_proportion = self.platform_proportion,
         )
 
+        self.num_players = self.game.num_players
+
+        # Action space: continuous - Box space for horizontal force [-1.0, 1.0] for each player
+        if self.num_players == 1:
+            self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)
+        else:
+            self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(self.num_players,), dtype=np.float32)
+
+
         if obs_type == "game_screen":
             channels = 1
 
@@ -72,25 +82,18 @@ class BalancingBallEnv(gym.Env):
             self.step = self.step_game_screen
             self.reset = self.reset_game_screen
         elif obs_type == "state_based":
-            # State-based observation space: [ball_x, ball_y, ball_vx, ball_vy, platform_x, platform_y, platform_angular_velocity]
-            # Normalize values to be between -1 and 1
+            # State-based observation space for multi-player:
+            # [ball1_x, ball1_y, ball1_vx, ball1_vy, ball2_x, ball2_y, ball2_vx, ball2_vy, platform_x, platform_y, platform_angular_velocity]
+            obs_size = 4 * self.num_players + 3  # 4 values per player + 3 platform values
             self.observation_space = spaces.Box(
-                low=np.array([-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0]),
-                high=np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]),
+                low=np.full(obs_size, -1.0),
+                high=np.full(obs_size, 1.0),
                 dtype=np.float32
             )
             self.step = self.step_state_based
             self.reset = self.reset_state_based
         else:
             raise ValueError("obs_type must be 'game_screen' or 'state_based'")
-
-        # Platform_length /= 2 when for calculate the distance to the
-        # center of game window coordinates. The closer you are, the higher the reward.
-        self.platform_reward_length = (self.game.platform_length / 2) - 5
-
-        # When the ball is to be 10 points away from the center coordinates,
-        # it should be 1 - ((self.platform_length - 10) * self.x_axis_max_reward_rate)
-        self.x_axis_max_reward_rate = 0.5 / self.platform_reward_length
 
     def _preprocess_observation(self, observation):
         """Process raw game observation for RL training
@@ -119,9 +122,19 @@ class BalancingBallEnv(gym.Env):
         return observation
 
     def step_game_screen(self, action):
-        """Take a step in the environment"""
+        """Take a step in the environment with continuous actions"""
+        # Ensure action is the right shape
+        if isinstance(action, (int, float)):
+            action = [action]
+        elif len(action) != self.num_players:
+            # Pad or truncate action to match number of players
+            if len(action) < self.num_players:
+                action = list(action) + [0.0] * (self.num_players - len(action))
+            else:
+                action = action[:self.num_players]
+
         # Take step in the game
-        obs, step_reward, terminated = self.game.step(action)
+        obs, step_rewards, terminated = self.game.step(action)
 
         # Preprocess the observation
         obs = self._preprocess_observation(obs)
@@ -137,8 +150,18 @@ class BalancingBallEnv(gym.Env):
 
         stacked_obs = np.concatenate(self.observation_stack, axis=-1)
 
+        # For multi-agent, return sum of rewards or individual rewards based on your preference
+        # Here we return the sum for single-agent training on multi-player game
+        total_reward = sum(step_rewards) if isinstance(step_rewards, list) else step_rewards
+
         # Gymnasium expects (observation, reward, terminated, truncated, info)
-        return stacked_obs, step_reward, terminated, False, {}
+        info = {
+            'individual_rewards': step_rewards if isinstance(step_rewards, list) else [step_rewards],
+            'winner': getattr(self.game, 'winner', None),
+            'scores': getattr(self.game, 'score', [0])
+        }
+
+        return stacked_obs, total_reward, terminated, False, info
 
     def reset_game_screen(self, seed=None, options=None):
         """Reset the environment"""
@@ -164,43 +187,63 @@ class BalancingBallEnv(gym.Env):
 
     def _get_state_based_observation(self):
         """Convert game state to state-based observation for RL agent"""
-        # Normalize positions by window dimensions
-        ball_x = self.game.dynamic_body.position[0] / self.window_x * 2 - 1  # Convert to [-1, 1]
-        ball_y = self.game.dynamic_body.position[1] / self.window_y * 2 - 1  # Convert to [-1, 1]
+        obs = []
 
-        # Normalize velocities (assuming max velocity around 1000)
-        max_velocity = 1000
-        ball_vx = np.clip(self.game.dynamic_body.velocity[0] / max_velocity, -1, 1)
-        ball_vy = np.clip(self.game.dynamic_body.velocity[1] / max_velocity, -1, 1)
+        # Add each player's state
+        for i, player_body in enumerate(self.game.dynamic_body_players):
+            # Normalize positions by window dimensions
+            ball_x = player_body.position[0] / self.window_x * 2 - 1  # Convert to [-1, 1]
+            ball_y = player_body.position[1] / self.window_y * 2 - 1  # Convert to [-1, 1]
 
-        # Normalize platform position
-        platform_x = self.game.kinematic_body.position[0] / self.window_x * 2 - 1  # Convert to [-1, 1]
-        platform_y = self.game.kinematic_body.position[1] / self.window_y * 2 - 1  # Convert to [-1, 1]
+            # Normalize velocities (assuming max velocity around 1000)
+            max_velocity = 1000
+            ball_vx = np.clip(player_body.velocity[0] / max_velocity, -1, 1)
+            ball_vy = np.clip(player_body.velocity[1] / max_velocity, -1, 1)
+
+            obs.extend([ball_x, ball_y, ball_vx, ball_vy])
+
+        # Add platform state
+        platform_body = self.game.kinematic_body_platforms[0]
+        platform_x = platform_body.position[0] / self.window_x * 2 - 1  # Convert to [-1, 1]
+        platform_y = platform_body.position[1] / self.window_y * 2 - 1  # Convert to [-1, 1]
 
         # Normalize angular velocity (assuming max around 10)
         max_angular_velocity = 10
-        platform_angular_velocity = np.clip(self.game.kinematic_body.angular_velocity / max_angular_velocity, -1, 1)
+        platform_angular_velocity = np.clip(platform_body.angular_velocity / max_angular_velocity, -1, 1)
 
-        return np.array([
-            ball_x,
-            ball_y,
-            ball_vx,
-            ball_vy,
-            platform_x,
-            platform_y,
-            platform_angular_velocity
-        ], dtype=np.float32)
+        obs.extend([platform_x, platform_y, platform_angular_velocity])
+
+        return np.array(obs, dtype=np.float32)
 
     def step_state_based(self, action):
-        """Take a step in the environment"""
+        """Take a step in the environment with state-based observations"""
+        # Ensure action is the right shape
+        if isinstance(action, (int, float)):
+            action = [action]
+        elif len(action) != self.num_players:
+            # Pad or truncate action to match number of players
+            if len(action) < self.num_players:
+                action = list(action) + [0.0] * (self.num_players - len(action))
+            else:
+                action = action[:self.num_players]
+
         # Take step in the game
-        _, step_reward, terminated = self.game.step(action)
+        _, step_rewards, terminated = self.game.step(action)
 
         # Get state-based observation
         observation = self._get_state_based_observation()
 
+        # For multi-agent, return sum of rewards
+        total_reward = sum(step_rewards) if isinstance(step_rewards, list) else step_rewards
+
+        info = {
+            'individual_rewards': step_rewards if isinstance(step_rewards, list) else [step_rewards],
+            'winner': getattr(self.game, 'winner', None),
+            'scores': getattr(self.game, 'score', [0])
+        }
+
         # Gymnasium expects (observation, reward, terminated, truncated, info)
-        return observation, step_reward, terminated, False, {}
+        return observation, total_reward, terminated, False, info
 
     def reset_state_based(self, seed=None, options=None):
         """Reset the environment"""

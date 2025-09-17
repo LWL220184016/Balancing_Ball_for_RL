@@ -91,10 +91,10 @@ class Levels:
             platform = pymunk.Poly(kinematic_body, vs)
         platform.friction = 0.7
         platform.rotation = 0
-        kinematic_body.angular_velocity = random.randrange(-1, 2, 2)
 
         return {
             "type": "platform",
+            "platform_shape": platform_shape,
             "shape": platform,
             "default_position": default_kinematic_position,
             "body": kinematic_body,
@@ -171,6 +171,7 @@ class Level1(Levels):
     def __init__(self, space):
         super().__init__(space)
         self.space = space
+        self.player_ball_speed = 5000
 
 
     def setup(self, window_x, window_y):
@@ -181,6 +182,8 @@ class Level1(Levels):
         self.dynamic_body = player["body"]
         self.kinematic_body = platform["body"]
         self.default_player_position = player["default_position"]
+
+        self.kinematic_body.angular_velocity = random.randrange(-1, 2, 2)
 
         return (player, ), (platform, )
 
@@ -205,11 +208,14 @@ class Level1(Levels):
 
 class Level2(Levels):
     """
-    Level 1: Basic setup with a dynamic body and a static kinematic body.
+    Level 2: Basic setup with a dynamic body and a static kinematic body.
+    
+    The kinematic body changes its angular velocity every few seconds.
     """
     def __init__(self, space):
         super().__init__(space)
         self.space = space
+        self.player_ball_speed = 5000
         self.last_angular_velocity_change_time = time.time()
         self.angular_velocity_change_timeout = 5 # sec
 
@@ -222,6 +228,8 @@ class Level2(Levels):
         self.dynamic_body = player["body"]
         self.kinematic_body = platform["body"]
         self.default_player_position = player["default_position"]
+
+        self.kinematic_body.angular_velocity = random.randrange(-1, 2, 2)
 
         return (player, ), (platform, )
 
@@ -251,12 +259,17 @@ class Level2(Levels):
 # NOTE: 連續動作空間和對抗式訓練
 class Level3(Levels):
     """
-    Level 1: Basic setup with a dynamic body and a static kinematic body.
+    Level 3: Basic setup with a dynamic body and a static kinematic body.
+
+    Two players are introduced, each with their own dynamic body.
     """
     def __init__(self, space):
         super().__init__(space)
         self.space = space
-
+        self.player_ball_speed = 5000
+        self.last_collision_time = 0
+        self.collision_reward_cooldown = 0.5  # seconds
+        self.collision_occurred = False
 
     def setup(self, window_x, window_y):
         x = window_x / 5
@@ -269,7 +282,16 @@ class Level3(Levels):
                                         ball_color=(194, 238, 84), 
                                         default_player_position=(x*3, window_y / 5)
                                        )
-        platform = super().create_platform(window_x=window_x, window_y=window_y)
+        platform = super().create_platform(platform_shape="rectangle",platform_proportion=0.8, window_x=window_x, window_y=window_y)
+
+        # Set collision types for balls - 這是關鍵修復
+        player1["shape"].shape.collision_type = 1
+        player2["shape"].shape.collision_type = 2
+
+        # Add collision handler for balls colliding with each other
+        handler = self.space.add_collision_handler(1, 2)
+        handler.begin = self.handle_collision
+
         self.space.add(player1["body"], player1["shape"].shape)
         self.space.add(player2["body"], player2["shape"].shape)
         self.space.add(platform["body"], platform["shape"])
@@ -279,13 +301,33 @@ class Level3(Levels):
         self.default_player_position1 = player1["default_position"]
         self.default_player_position2 = player2["default_position"]
 
+        self.collision_occurred = False
+
         return (player1, player2), (platform, )
+
+    def handle_collision(self, arbiter, space, data):
+        """Handle collisions between balls"""
+        current_time = time.time()
+        if current_time - self.last_collision_time > self.collision_reward_cooldown:
+            self.last_collision_time = current_time
+            # Mark that a collision occurred
+            self.collision_occurred = True
+            
+            # 計算碰撞時的相對速度來決定獎勵
+            body1, body2 = arbiter.shapes[0].body, arbiter.shapes[1].body
+            
+            # 計算碰撞前的動量
+            self.collision_impulse_1 = abs(body1.velocity[0]) + abs(body1.velocity[1])
+            self.collision_impulse_2 = abs(body2.velocity[0]) + abs(body2.velocity[1])
+            
+            print(f"Collision occurred! Body1 speed: {self.collision_impulse_1:.2f}, Body2 speed: {self.collision_impulse_2:.2f}")
+        return True
 
     def action(self):
         """
         shape state changes in the game
         """
-        # Noting to do in this level
+        # Reset collision flag each frame in step function, not here
         pass
 
     def reset(self):
@@ -298,9 +340,13 @@ class Level3(Levels):
         self.dynamic_body2.position = self.default_player_position2
         self.dynamic_body2.angular_velocity = 0
         self.dynamic_body2.velocity = (0, 0)
-        self.kinematic_body.angular_velocity = random.randrange(-1, 2, 2)
-        self.last_angular_velocity_change_time = time.time()
+
+        self.collision_occurred = False
+        self.last_collision_time = 0
+        self.collision_impulse_1 = 0
+        self.collision_impulse_2 = 0
 
         self.space.reindex_shapes_for_body(self.dynamic_body1)
         self.space.reindex_shapes_for_body(self.dynamic_body2)
         self.space.reindex_shapes_for_body(self.kinematic_body)
+        
