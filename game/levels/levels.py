@@ -285,7 +285,7 @@ class Level3(Levels):
                                         ball_color=(194, 238, 84), 
                                         default_player_position=(x*3, window_y / 5)
                                        )
-        platform = super().create_platform(platform_shape="rectangle",platform_proportion=0.8, window_x=window_x, window_y=window_y)
+        platform = super().create_platform(platform_shape_type="rectangle",platform_proportion=0.8, window_x=window_x, window_y=window_y)
 
         # Set collision types for balls - 這是關鍵修復
         player1["shape"].shape.collision_type = 1

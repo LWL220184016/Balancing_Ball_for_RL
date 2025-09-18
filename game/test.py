@@ -4,7 +4,6 @@ from gym_env import BalancingBallEnv
 def run_standalone_game(render_mode="human", difficulty="medium", capture_per_second=None, window_x=1000, window_y=600, level=2):
     """Run the game in standalone mode with visual display"""
 
-    platform_shape = "circle"
     platform_proportion = 0.333
 
     game = BalancingBallGame(
@@ -12,7 +11,6 @@ def run_standalone_game(render_mode="human", difficulty="medium", capture_per_se
         difficulty = difficulty,
         window_x = window_x,
         window_y = window_y,
-        platform_shape = platform_shape,
         platform_proportion = platform_proportion,
         level = level,
         fps = 120,

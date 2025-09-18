@@ -41,7 +41,6 @@ class BalancingBallEnv(gym.Env):
         # Initialize game
         self.window_x = window_x
         self.window_y = window_y
-        self.platform_shape = "circle"
         self.platform_proportion = 0.333
 
         # Image preprocessing settings
@@ -59,7 +58,6 @@ class BalancingBallEnv(gym.Env):
             window_y = self.window_y,
             level = level,
             fps = fps,
-            platform_shape = self.platform_shape,
             platform_proportion = self.platform_proportion,
         )
 

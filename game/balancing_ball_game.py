@@ -47,7 +47,6 @@ class BalancingBallGame:
                  penalty_falling: float = -10.0,
                  level: int = 2,
                  fps: int = 120,
-                 platform_shape: str = "circle",
                  platform_proportion: int = 0.4,
                  capture_per_second: int = None,
                  max_force: float = 50000.0,  # Maximum horizontal force
@@ -108,7 +107,6 @@ class BalancingBallGame:
         players, platforms = self.level.setup(self.window_x, self.window_y)
         self.dynamic_body_players = []
         self.kinematic_body_platforms = []
-        self.platform_shape = {}
         self.players_color = []
         self.player_alive = []  # Track which players are still alive
 
@@ -119,8 +117,6 @@ class BalancingBallGame:
 
         for platform in platforms:
             self.kinematic_body_platforms.append(platform["body"])
-            if (platform["platform_shape_type"] == "rectangle"): # TODO 變數名不清晰
-                self.platform_shape[platform["platform_shape_type"]] = platform["shape"]
 
         self.ball_radius = players[0]["ball_radius"]
         self.platform_length = platforms[0]["platform_length"]
@@ -466,29 +462,39 @@ class BalancingBallGame:
 
     def _draw_indie_style(self):
         """Draw game objects with indie game aesthetic"""
-        # # Draw platform with gradient and glow
+        # Draw players
         for i in range(len(self.dynamic_body_players)):
-            ball_pos = (int(self.dynamic_body_players[i].position[0]), int(self.dynamic_body_players[i].position[1]))
-            pygame.draw.circle(self.screen, self.players_color[i], ball_pos, self.ball_radius)
-            pygame.draw.circle(self.screen, (255, 255, 255), ball_pos, self.ball_radius, 2)
+            if self.player_alive[i]:  # Only draw alive players
+                player_body = self.dynamic_body_players[i]
+                ball_pos = (int(player_body.position.x), int(player_body.position.y))
+                pygame.draw.circle(self.screen, self.players_color[i], ball_pos, self.ball_radius)
+                pygame.draw.circle(self.screen, (255, 255, 255), ball_pos, self.ball_radius, 2)
 
-        for platform in self.kinematic_body_platforms:
-            if (platform["platform_shape"] == "rectangle"): # TODO 變數名不清晰
-                platform_points = []
-                print(type(self.platform_shape["rectangle"]))
-                for v in self.platform_shape["rectangle"].get_vertices():
-                    x, y = v.rotated(platform.angle) + platform.position
-                    platform_points.append((int(x), int(y)))
+        # Draw platforms by checking the shape type associated with each body
+        for platform_body in self.kinematic_body_platforms:
+            # A body can have multiple shapes, iterate through them
+            for shape in platform_body.shapes:
+                if isinstance(shape, pymunk.Poly):
+                    # It's a polygon, draw it
+                    platform_points = [v.rotated(platform_body.angle) + platform_body.position for v in shape.get_vertices()]
+                    
+                    pygame.draw.polygon(self.screen, self.PLATFORM_COLOR, platform_points)
+                    pygame.draw.polygon(self.screen, (255, 255, 255), platform_points, 2)
+                    
+                    # For rotation indicator, we need a position and a "radius"
+                    # We can approximate the radius from the shape's bounding box
+                    radius_approx = (shape.bb.right - shape.bb.left) / 2
+                    self._draw_rotation_indicator(platform_body.position, radius_approx, platform_body.angular_velocity, platform_body)
 
-                pygame.draw.polygon(self.screen, self.PLATFORM_COLOR, platform_points)
-                pygame.draw.polygon(self.screen, (255, 255, 255), platform_points, 2)
-            else:  # Circle platform
-                platform_pos = (int(platform.position[0]), int(platform.position[1]))
-                pygame.draw.circle(self.screen, self.PLATFORM_COLOR, platform_pos, self.platform_length)
-                pygame.draw.circle(self.screen, (255, 255, 255), platform_pos, self.platform_length, 2)
-
-            # Draw rotation direction indicator
-            self._draw_rotation_indicator(platform_pos, self.platform_length, platform.angular_velocity, platform)
+                elif isinstance(shape, pymunk.Circle):
+                    # It's a circle, draw it
+                    platform_pos = (int(platform_body.position.x), int(platform_body.position.y))
+                    radius = int(shape.radius)
+                    
+                    pygame.draw.circle(self.screen, self.PLATFORM_COLOR, platform_pos, radius)
+                    pygame.draw.circle(self.screen, (255, 255, 255), platform_pos, radius, 2)
+                    
+                    self._draw_rotation_indicator(platform_pos, radius, platform_body.angular_velocity, platform_body)
 
     def _draw_rotation_indicator(self, position, radius, angular_velocity, body):
         """Draw an indicator showing the platform's rotation direction and speed"""
@@ -620,8 +626,8 @@ class BalancingBallGame:
                 moving_direction[i] = 0
 
             else:
-                raise ValueError("Invalid action. Action must be 0 (left), 1 (right), or 2 (no action).")
-        
+                raise ValueError(f"Invalid action: {moving_direction}. Action must be 0 (left), 1 (right), or 2 (no action).")
+
         return moving_direction
 
     def run_standalone(self):
@@ -645,20 +651,20 @@ class BalancingBallGame:
 
             # Player 1 controls (Arrow keys)
             if keys[pygame.K_LEFT]:
-                actions.append(-1.0)  # Full left force
+                actions.append(0)  # Full left force
             elif keys[pygame.K_RIGHT]:
                 actions.append(1.0)   # Full right force
             else:
-                actions.append(0.0)   # No force
+                actions.append(2)   # No force
 
             # Player 2 controls (WASD)
             if len(self.dynamic_body_players) > 1:
                 if keys[pygame.K_a]:
-                    actions.append(-1.0)  # Full left force
+                    actions.append(0)  # Full left force
                 elif keys[pygame.K_d]:
                     actions.append(1.0)   # Full right force
                 else:
-                    actions.append(0.0)   # No force
+                    actions.append(2)   # No force
 
             # Take game step
             if not self.game_over:
