@@ -1,7 +1,11 @@
 import pymunk
 
-from shapes.shape import Shape
 from typing import Tuple, Optional
+
+try:
+    from shapes.shape import Shape
+except ImportError:
+    from game.shapes.shape import Shape
 
 class Circle(Shape):
 

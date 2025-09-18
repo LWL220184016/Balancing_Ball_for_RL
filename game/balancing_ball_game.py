@@ -11,9 +11,16 @@ import datetime
 from typing import Dict, Tuple, Optional
 # from IPython.display import display, Image, clear_output
 from io import BytesIO
-from record import Recorder
-from levels.levels import get_level
 
+try:
+    from record import Recorder
+except ImportError:
+    from game.record import Recorder
+
+try:
+    from levels.levels import get_level
+except ImportError:
+    from game.levels.levels import get_level
 
 
 class BalancingBallGame:
@@ -101,6 +108,7 @@ class BalancingBallGame:
         players, platforms = self.level.setup(self.window_x, self.window_y)
         self.dynamic_body_players = []
         self.kinematic_body_platforms = []
+        self.platform_shape = {}
         self.players_color = []
         self.player_alive = []  # Track which players are still alive
 
@@ -111,8 +119,8 @@ class BalancingBallGame:
 
         for platform in platforms:
             self.kinematic_body_platforms.append(platform["body"])
-            if (platform["platform_shape"] == "rectangle"): # TODO 變數名不清晰
-                self.platform_shape = platform["shape"]
+            if (platform["platform_shape_type"] == "rectangle"): # TODO 變數名不清晰
+                self.platform_shape[platform["platform_shape_type"]] = platform["shape"]
 
         self.ball_radius = players[0]["ball_radius"]
         self.platform_length = platforms[0]["platform_length"]
@@ -467,7 +475,8 @@ class BalancingBallGame:
         for platform in self.kinematic_body_platforms:
             if (platform["platform_shape"] == "rectangle"): # TODO 變數名不清晰
                 platform_points = []
-                for v in self.platform_shape.get_vertices():
+                print(type(self.platform_shape["rectangle"]))
+                for v in self.platform_shape["rectangle"].get_vertices():
                     x, y = v.rotated(platform.angle) + platform.position
                     platform_points.append((int(x), int(y)))
 

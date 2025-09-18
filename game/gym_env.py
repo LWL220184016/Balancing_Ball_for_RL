@@ -3,7 +3,10 @@ import numpy as np
 from gymnasium import spaces
 import cv2
 
-from balancing_ball_game import BalancingBallGame
+try:
+    from balancing_ball_game import BalancingBallGame
+except ImportError:
+    from game.balancing_ball_game import BalancingBallGame
 
 class BalancingBallEnv(gym.Env):
     """
@@ -30,7 +33,6 @@ class BalancingBallEnv(gym.Env):
             Example: "game_screen" or "state_based"
         image_size: Size to resize images to (height, width)
             Example: (84, 84) - standard for many RL implementations
-        num_players: Number of players (2 for adversarial training)
         """
 
         super(BalancingBallEnv, self).__init__()

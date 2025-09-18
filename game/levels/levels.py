@@ -4,7 +4,10 @@ import pygame
 import numpy as np
 import time
 
-from shapes.circle import Circle
+try:
+    from shapes.circle import Circle
+except ImportError:
+    from game.shapes.circle import Circle
 
 def get_level(level: int, space):
     """
@@ -58,14 +61,14 @@ class Levels:
         }
 
     def create_platform(self,
-                        platform_shape: str = "circle",
+                        platform_shape_type: str = "circle",
                         platform_proportion: float = 0.4,
                         window_x: int = 1000,
                         window_y: int = 600,
                        ):
         """
         Create the platform with physics properties
-        platform_shape: circle, rectangle
+        platform_shape_type: circle, rectangle
         platform_length: Length of a rectangle or Diameter of a circle
         """
         platform_length = int(window_x * platform_proportion)
@@ -75,13 +78,13 @@ class Levels:
         kinematic_body.position = (window_x / 2, (window_y / 3) * 2)
         default_kinematic_position = kinematic_body.position
 
-        if platform_shape == "circle":
+        if platform_shape_type == "circle":
             platform_length = platform_length / 2 # radius
             platform = pymunk.Circle(kinematic_body, platform_length)
             platform.mass = 1  # 质量对 Kinematic 物体无意义，但需要避免除以零错误
             platform.friction = 0.7
 
-        elif platform_shape == "rectangle":
+        elif platform_shape_type == "rectangle":
             platform_length = platform_length
             vs = [(-platform_length/2, -10),
                 (platform_length/2, -10),
@@ -94,7 +97,7 @@ class Levels:
 
         return {
             "type": "platform",
-            "platform_shape": platform_shape,
+            "platform_shape_type": platform_shape_type,
             "shape": platform,
             "default_position": default_kinematic_position,
             "body": kinematic_body,
