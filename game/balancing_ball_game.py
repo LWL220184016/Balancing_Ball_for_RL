@@ -42,6 +42,7 @@ class BalancingBallGame:
                  window_x: int = 1000,
                  window_y: int = 600,
                  max_step: int = 30000,
+                 player_num: int = None,
                  reward_staying_alive: float = 0.1,
                  reward_ball_centered: float = 0.2,
                  penalty_falling: float = -10.0,
@@ -99,7 +100,7 @@ class BalancingBallGame:
         self.space.gravity = (0, 9810)
         self.space.damping = 0.9
 
-        self.level = get_level(level, self.space)
+        self.level = get_level(level, self.space, player_num)
         self.player_ball_speed = self.level.player_ball_speed
         players, platforms = self.level.setup(self.window_x, self.window_y)
         self.dynamic_body_players = []
@@ -258,7 +259,7 @@ class BalancingBallGame:
         # actions = self.calculate_player_speed_old(actions)
 
 
-        actions = self.calculate_player_speed(actions)
+        actions = self.calculate_player_speed(pactions)
 
         # 遍歷所有玩家
         for i, player_body in enumerate(self.dynamic_body_players):
@@ -671,20 +672,20 @@ class BalancingBallGame:
 
             # Player 1 controls (Arrow keys)
             if keys[pygame.K_LEFT]:
-                actions.append(0)  # Full left force
+                actions.append(-1)  # Full left force
             elif keys[pygame.K_RIGHT]:
-                actions.append(1.0)   # Full right force
+                actions.append(1)   # Full right force
             else:
-                actions.append(2)   # No force
+                actions.append(0)   # No force
 
             # Player 2 controls (WASD)
             if len(self.dynamic_body_players) > 1:
                 if keys[pygame.K_a]:
-                    actions.append(0)  # Full left force
+                    actions.append(-1)  # Full left force
                 elif keys[pygame.K_d]:
-                    actions.append(1.0)   # Full right force
+                    actions.append(1)   # Full right force
                 else:
-                    actions.append(2)   # No force
+                    actions.append(0)   # No force
 
             # Take game step
             if not self.game_over:

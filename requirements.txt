@@ -1,13 +1,23 @@
+stable-baselines3==2.7.0
+torch==2.8.0+cu126
+tensorboard==2.19.0
+gymnasium==1.2.0
+numpy==2.0.2
+pymunk==7.1.0
+pygame==2.6.1
+pygame-ce==2.5.5
+shimmy==2.0.0
+optuna==4.5.0
+
+
+# not strictly necessary
 # stable-baselines3[extra]
-# torch
-# tensorboard
-gymnasium
-pygame
-numpy
-jax[tpu] # For TPU support in Colab
-flax
-optax
-cleanrl
-tensorboardX # CleanRL often uses tensorboardX
-pymunk
-pygame-ce
+
+# cleanrl
+# tensorboardX # CleanRL often uses tensorboardX
+
+# # for TPU
+# cloud-tpu-client==0.10
+# jax[tpu] # For TPU support in Colab
+# flax==0.10.6
+# optax==0.2.5
