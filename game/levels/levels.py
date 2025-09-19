@@ -291,9 +291,9 @@ class Level3(Levels):
         player1["shape"].shape.collision_type = 1
         player2["shape"].shape.collision_type = 2
 
-        # Add collision handler for balls colliding with each other
-        handler = self.space.add_collision_handler(1, 2)
-        handler.begin = self.handle_collision
+        # # Add collision handler for balls colliding with each other
+        # handler = self.space.add_collision_handler(1, 2)
+        # handler.begin = self.handle_collision
 
         self.space.add(player1["body"], player1["shape"].shape)
         self.space.add(player2["body"], player2["shape"].shape)

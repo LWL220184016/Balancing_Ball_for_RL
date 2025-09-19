@@ -49,7 +49,6 @@ class BalancingBallGame:
                  fps: int = 120,
                  platform_proportion: int = 0.4,
                  capture_per_second: int = None,
-                 max_force: float = 50000.0,  # Maximum horizontal force
                  collision_reward: float = 5.0,  # Increased collision reward
                  speed_reward_multiplier: float = 0.01,  # Reward for maintaining speed
                  opponent_fall_bonus: float = 15.0,  # Bonus for causing opponent to fall
@@ -70,7 +69,6 @@ class BalancingBallGame:
             fps: frame per second
             platform_proportion: platform_length = window_x * platform_proportion
             capture_per_second: save game screen as a image every second, None means no capture
-            max_force: Maximum horizontal force that can be applied
             collision_reward: Reward bonus for causing opponent to fall through collision
             speed_reward_multiplier: Multiplier for speed-based rewards
         """
@@ -82,7 +80,6 @@ class BalancingBallGame:
         self.fps = fps
         self.window_x = window_x
         self.window_y = window_y
-        self.max_force = max_force
         self.collision_reward = collision_reward
         self.speed_reward_multiplier = speed_reward_multiplier
         self.opponent_fall_bonus = opponent_fall_bonus
@@ -256,8 +253,11 @@ class BalancingBallGame:
         self.level.collision_occurred = False
         self.players_fell_this_step = [False] * self.num_players
         
-        # Apply actions to players (horizontal forces)
-        actions = pactions if isinstance(pactions, list) else [pactions]
+        # 需要保留直到移除舊模型，詳情看函數說明
+        # actions = pactions if isinstance(pactions, list) else [pactions]
+        # actions = self.calculate_player_speed_old(actions)
+
+
         actions = self.calculate_player_speed(actions)
 
         # 遍歷所有玩家
@@ -612,7 +612,27 @@ class BalancingBallGame:
             pygame.quit()
 
     def calculate_player_speed(self, moving_direction: list = []):
-        """Calculate the speed of the player ball"""
+        """
+        Calculate the speed of the player ball for continuous action space
+
+        The new trained model uses a continuous action space ranging from -1.0 to 1.0,
+        where negative values represent leftward force and positive values represent rightward force.
+        """
+        for i in range(len(moving_direction)):
+            if moving_direction[i] < -1.0 or moving_direction[i] > 1.0:
+                raise ValueError(f"Invalid action: {moving_direction}. Action must be in range [-1.0, 1.0].")
+
+            moving_direction[i] = moving_direction[i] * self.player_ball_speed
+
+        return moving_direction
+
+    def calculate_player_speed_old(self, moving_direction: list = []):
+        """
+        Calculate the speed of the player ball
+
+        新訓練的模型是連續動作空間，範圍包含正數和負數，
+        但是早期訓練的模型只能輸出 0 和 1，分別代表向左和向右，因此有必要保留這個函數直到移除舊模型
+        """
         # In order to fit the model action space, the model can currently only output 0 and 1, so 2 is no action
 
         for i in range(len(moving_direction)):

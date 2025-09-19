@@ -3,7 +3,7 @@ import torch
 from stable_baselines3.common.policies import ActorCriticPolicy, ActorCriticCnnPolicy  # MLP policy instead of CNN
 
 class model_config:
-    model_obs_type="game_screen",
+    model_obs_type="game_screen"
 
     model_param={
         # ActorCriticCnnPolicyif for game_screen, ActorCriticPolicy for state base
@@ -28,9 +28,9 @@ class model_config:
     }
 
 class train_config:
-    total_timesteps=1000000,
-    save_freq=10000,
-    eval_freq=10000,
-    eval_episodes=5,
-    tensorboard_log="./logs/",
-    model_dir="./models/",
+    total_timesteps=1000000
+    save_freq=10000
+    eval_freq=10000
+    eval_episodes=5
+    tensorboard_log="./logs/"
+    model_dir="./models/"
