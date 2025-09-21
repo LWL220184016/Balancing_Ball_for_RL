@@ -3,52 +3,69 @@ import pymunk
 import pygame
 import numpy as np
 import time
+import json
+import os
 
 try:
     from shapes.circle import Circle
 except ImportError:
     from game.shapes.circle import Circle
 
-def get_level(level: int, space, player_num=None):
+def get_level(level: int, space, player_configs=None, platform_configs=None):
     """
     Get the level object based on the level number.
     """
-    if player_num == 0:
-        raise ValueError(f"Invalid player_num: {player_num}")
+    if not player_configs or not platform_configs:
+        # Get the directory of the current script
+        print("Loading default level configurations...")
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        config_path = os.path.join(dir_path, './level_default_cfg.json')
+        with open(config_path, 'r') as f:
+            default_configs = json.load(f)
+        
+        level_key = f"level{level}"
+        if level_key in default_configs:
+            level_cfg = default_configs[level_key]
+            if not player_configs:
+                player_configs = level_cfg.get("player_configs", [])
+            if not platform_configs:
+                platform_configs = level_cfg.get("platform_configs", [])
+        else:
+            raise ValueError(f"Default config for level {level} not found in {config_path}")
 
+    if not player_configs:
+        raise ValueError(f"Invalid player_configs: {player_configs}, must be a non-empty list or dict")
+
+    if not platform_configs:
+        raise ValueError(f"Invalid platform_configs: {platform_configs}, must be a non-empty list or dict")
+
+    print(f"Using player_configs: {player_configs}")
+    print(f"Using platform_configs: {platform_configs}")
     if level == 1:
-        return Level1(space, player_num)
+        return Level1(space, player_configs, platform_configs)
     elif level == 2:
-        return Level2(space, player_num)
+        return Level2(space, player_configs, platform_configs)
     elif level == 3:
-        return Level3(space, player_num)
+        return Level3(space, player_configs, platform_configs)
     else:
         raise ValueError(f"Invalid level number: {level}")
 
 class Levels:
-    def __init__(self, space, window_x: int = 1000, window_y: int = 600, player_num=None):
+    def __init__(self, space, player_configs=None, platform_configs=None):
         self.space = space
-        self.window_x = window_x
-        self.window_y = window_y
-        self.player_num = player_num
+        self.player_configs = player_configs
+        self.platform_configs = platform_configs
         self.players = []
         self.platforms = []
-
-    def _setup_level_specifics(self, window_x, window_y):
-        """
-        子類應重寫此方法以提供關卡配置。
-        應返回 (player_configs, platform_configs)
-        """
-        raise NotImplementedError("Subclasses must implement this method.")
 
     def setup(self, window_x, window_y):
         """
         通用設置方法，用於創建和註冊遊戲對象。
         """
-        player_configs, platform_configs = self._setup_level_specifics(window_x, window_y)
+        self.players = [self.create_player(window_x, window_y, **config) for config in self.player_configs]
+        self.platforms = [self.create_platform(window_x, window_y, **config) for config in self.platform_configs]
 
-        self.players = [self.create_player(**config) for config in player_configs]
-        self.platforms = [self.create_platform(**config) for config in platform_configs]
+        print(f"Created {len(self.players)} players and {len(self.platforms)} platforms.")
 
         for player in self.players:
             self.space.add(player["body"], player["shape"].shape)
@@ -59,18 +76,16 @@ class Levels:
         return tuple(self.players), tuple(self.platforms)
 
     def create_player(self,
-                      default_player_position: tuple = None,
-                      ball_color = (255, 213, 79),  # Bright yellow ball
                       window_x: int = 1000,
                       window_y: int = 600,
+                      default_player_position: tuple = None,
+                      ball_color = None,  
                      ):
         """
         Create the ball with physics properties
         default_player_position: Initial position of the player
-            default: (window_x / 2, window_y / 5)
         """
-        if default_player_position is None:
-            default_player_position = (window_x / 2, window_y / 5)
+        default_player_position = (window_x * default_player_position[0], window_y * default_player_position[1])
         dynamic_body = pymunk.Body()  # Ball body
         ball_radius = int(window_x / 67)
         player = Circle(
@@ -91,10 +106,11 @@ class Levels:
         }
 
     def create_platform(self,
-                        platform_shape_type: str = "circle",
-                        platform_proportion: float = 0.4,
                         window_x: int = 1000,
                         window_y: int = 600,
+                        platform_shape_type: str = None,
+                        platform_proportion: float = None,
+                        platform_position: tuple = None,
                        ):
         """
         Create the platform with physics properties
@@ -105,7 +121,7 @@ class Levels:
 
         # Create game bodies
         kinematic_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)  # Platform body
-        kinematic_body.position = (window_x / 2, (window_y / 3) * 2)
+        kinematic_body.position = (window_x * platform_position[0], window_y * platform_position[1])
         default_kinematic_position = kinematic_body.position
 
         if platform_shape_type == "circle":
@@ -133,6 +149,24 @@ class Levels:
             "body": kinematic_body,
             "platform_length": platform_length,
         }
+
+    def reset(self):
+        """
+        Reset the level to its initial state.
+        """
+        for player in self.players:
+            player_body = player["body"]
+            player_body.position = player["default_position"]
+            player_body.angular_velocity = 0
+            player_body.velocity = (0, 0)
+            self.space.reindex_shapes_for_body(player_body)
+
+        for platform in self.platforms:
+            platform_body = platform["body"]
+            platform_body.position = platform["default_position"]
+            platform_body.angular_velocity = 0
+            platform_body.velocity = (0, 0)
+            self.space.reindex_shapes_for_body(platform_body)
 
 # TODO not use for now
     def _draw_indie_style(self):
@@ -201,27 +235,17 @@ class Level1(Levels):
     """
     Level 1: Basic setup with a dynamic body and a static kinematic body.
     """
-    def __init__(self, space, player_num=None):
-        super().__init__(space, player_num)
+    def __init__(self, space, player_configs=None, platform_configs=None):
+        super().__init__(space, player_configs, platform_configs)
         self.space = space
         self.player_ball_speed = 5000
-        self.player_num = player_num
-
-    def _setup_level_specifics(self, window_x, window_y):
-        player_configs = [{
-            "window_x": window_x,
-            "window_y": window_y
-        }]
-        platform_configs = [{
-            "window_x": window_x,
-            "window_y": window_y
-        }]
-        return player_configs, platform_configs
+        self.player_configs = player_configs
 
     def setup(self, window_x, window_y):
         players, platforms = super().setup(window_x, window_y)
         # Set initial random velocity after setup
-        platforms[0]["body"].angular_velocity = random.randrange(-1, 2, 2)
+        for platform in platforms:
+            platform["body"].angular_velocity = random.randrange(-1, 2, 2)
         return players, platforms
 
     def action(self):
@@ -235,16 +259,10 @@ class Level1(Levels):
         """
         Reset the level to its initial state.
         """
-        player_body = self.players[0]["body"]
-        platform_body = self.platforms[0]["body"]
-
-        player_body.position = self.players[0]["default_position"]
-        player_body.angular_velocity = 0
-        player_body.velocity = (0, 0)
-        platform_body.angular_velocity = random.randrange(-1, 2, 2)
-
-        self.space.reindex_shapes_for_body(player_body)
-        self.space.reindex_shapes_for_body(platform_body)
+        super().reset()
+        
+        for platform in self.platforms:
+            platform["body"].angular_velocity = random.randrange(-1, 2, 2)
 
 class Level2(Levels):
     """
@@ -252,29 +270,20 @@ class Level2(Levels):
     
     The kinematic body changes its angular velocity every few seconds.
     """
-    def __init__(self, space, player_num=None):
-        super().__init__(space, player_num)
+    def __init__(self, space, player_configs=None, platform_configs=None):
+        super().__init__(space, player_configs, platform_configs)
         self.space = space
         self.player_ball_speed = 5000
-        self.player_num = player_num
+        self.player_configs = player_configs
         self.last_angular_velocity_change_time = time.time()
         self.angular_velocity_change_timeout = 5 # sec
-
-    def _setup_level_specifics(self, window_x, window_y):
-        player_configs = [{
-            "window_x": window_x,
-            "window_y": window_y
-        }]
-        platform_configs = [{
-            "window_x": window_x,
-            "window_y": window_y
-        }]
-        return player_configs, platform_configs
 
     def setup(self, window_x, window_y):
         players, platforms = super().setup(window_x, window_y)
         # Set initial random velocity after setup
-        platforms[0]["body"].angular_velocity = random.randrange(-1, 2, 2)
+        for platform in platforms:
+            platform["body"].angular_velocity = random.randrange(-1, 2, 2)
+
         return players, platforms
 
     def action(self):
@@ -290,17 +299,10 @@ class Level2(Levels):
         """
         Reset the level to its initial state.
         """
-        player_body = self.players[0]["body"]
-        platform_body = self.platforms[0]["body"]
-
-        player_body.position = self.players[0]["default_position"]
-        player_body.angular_velocity = 0
-        player_body.velocity = (0, 0)
-        platform_body.angular_velocity = random.randrange(-1, 2, 2)
+        super().reset()
+        for platform in self.platforms:
+            platform["body"].angular_velocity = random.randrange(-1, 2, 2)
         self.last_angular_velocity_change_time = time.time()
-
-        self.space.reindex_shapes_for_body(player_body)
-        self.space.reindex_shapes_for_body(platform_body)
 
 # Two players
 # NOTE: 連續動作空間和對抗式訓練
@@ -310,37 +312,16 @@ class Level3(Levels):
 
     Two players are introduced, each with their own dynamic body.
     """
-    def __init__(self, space, player_num=None):
-        super().__init__(space, player_num)
+    def __init__(self, space, player_configs=None, platform_configs=None):
+        super().__init__(space, player_configs, platform_configs)
         self.space = space
         self.player_ball_speed = 5000
-        self.player_num = player_num
+        self.player_configs = player_configs
         self.last_collision_time = 0
         self.collision_reward_cooldown = 0.5  # seconds
         self.collision_occurred = False
         self.collision_impulse_1 = 0
         self.collision_impulse_2 = 0
-
-    def _setup_level_specifics(self, window_x, window_y):
-        x = window_x / 5
-        player_configs = [
-            {
-                "window_x": window_x, "window_y": window_y,
-                "default_player_position": (x * 2, window_y / 5)
-            },
-            {
-                "window_x": window_x, "window_y": window_y,
-                "ball_color": (194, 238, 84),
-                "default_player_position": (x * 3, window_y / 5)
-            }
-        ]
-        platform_configs = [{
-            "platform_shape_type": "rectangle",
-            "platform_proportion": 0.8,
-            "window_x": window_x,
-            "window_y": window_y
-        }]
-        return player_configs, platform_configs
 
     def setup(self, window_x, window_y):
         players, platforms = super().setup(window_x, window_y)
@@ -386,6 +367,7 @@ class Level3(Levels):
         """
         Reset the level to its initial state.
         """
+        super().reset()
         player1_body = self.players[0]["body"]
         player2_body = self.players[1]["body"]
         platform_body = self.platforms[0]["body"]

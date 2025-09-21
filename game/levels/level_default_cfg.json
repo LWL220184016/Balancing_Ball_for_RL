@@ -1,0 +1,92 @@
+
+
+{
+    "level1": {
+        "player_configs": [
+            {
+                "ball_color": [
+                    255, 
+                    213, 
+                    79
+                ],
+                "default_player_position": [
+                    0.5,
+                    0.2
+                ]
+            }
+        ],
+        "platform_configs": [
+            {
+                "platform_shape_type": "circle",
+                "platform_proportion": 0.4,
+                "platform_position": [
+                    0.5,
+                    0.67
+                ]
+
+            }
+        ]
+    },
+    "level2": {
+        "player_configs": [
+            {
+                "ball_color": [
+                    255, 
+                    213, 
+                    79
+                ],
+                "default_player_position": [
+                    0.5,
+                    0.2
+                ]
+            }
+        ],
+        "platform_configs": [
+            {
+                "platform_shape_type": "circle",
+                "platform_proportion": 0.4,
+                "platform_position": [
+                    0.5,
+                    0.67
+                ]
+
+            }
+        ]
+    },
+    "level3": {
+        "player_configs": [
+            {
+                "ball_color": [
+                    255, 
+                    213, 
+                    79
+                ],
+                "default_player_position": [
+                    0.4,
+                    0.2
+                ]
+            },
+            {
+                "ball_color": [
+                    194,
+                    238,
+                    84
+                ],
+                "default_player_position": [
+                    0.6,
+                    0.2
+                ]
+            }
+        ],
+        "platform_configs": [
+            {
+                "platform_shape_type": "rectangle",
+                "platform_proportion": 0.8,
+                "platform_position": [
+                    0.5,
+                    0.67
+                ]
+            }
+        ]
+    }
+}

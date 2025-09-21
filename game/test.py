@@ -1,7 +1,7 @@
 from balancing_ball_game import BalancingBallGame
 from gym_env import BalancingBallEnv
 
-def run_standalone_game(render_mode="human", difficulty="medium", capture_per_second=None, window_x=1000, window_y=600, level=2):
+def run_standalone_game(render_mode="human", difficulty="medium", capture_per_second=None, window_x=1000, window_y=600, player_configs=None, level=2):
     """Run the game in standalone mode with visual display"""
 
     platform_proportion = 0.333
@@ -11,6 +11,7 @@ def run_standalone_game(render_mode="human", difficulty="medium", capture_per_se
         difficulty = difficulty,
         window_x = window_x,
         window_y = window_y,
+        player_configs = player_configs,
         platform_proportion = platform_proportion,
         level = level,
         fps = 120,
@@ -54,12 +55,39 @@ def test_gym_env(episodes=3, difficulty="medium"):
 
     env.close()
 
+player_configs = [
+            {
+                "ball_color": [
+                    255, 
+                    213, 
+                    79
+                ],
+                "default_player_position": [
+                    0.4,
+                    0.2
+                ]
+            },
+            {
+                "ball_color": [
+                    194,
+                    238,
+                    84
+                ],
+                "default_player_position": [
+                    0.6,
+                    0.2
+                ]
+            }
+        ]
+
+
 # rgb_array_and_human_in_colab
 run_standalone_game(render_mode="human", 
                     difficulty="medium", 
                     window_x=1000, 
                     window_y=600, 
-                    level=3, 
-                    capture_per_second = None
+                    player_configs=player_configs,
+                    level=1, 
+                    capture_per_second = None 
                     )
 # test_gym_env(difficulty="medium")

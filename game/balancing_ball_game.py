@@ -42,7 +42,7 @@ class BalancingBallGame:
                  window_x: int = 1000,
                  window_y: int = 600,
                  max_step: int = 30000,
-                 player_num: int = None,
+                 player_configs: dict = None,
                  reward_staying_alive: float = 0.1,
                  reward_ball_centered: float = 0.2,
                  penalty_falling: float = -10.0,
@@ -100,7 +100,7 @@ class BalancingBallGame:
         self.space.gravity = (0, 9810)
         self.space.damping = 0.9
 
-        self.level = get_level(level, self.space, player_num)
+        self.level = get_level(level, self.space, player_configs)
         self.player_ball_speed = self.level.player_ball_speed
         players, platforms = self.level.setup(self.window_x, self.window_y)
         self.dynamic_body_players = []
