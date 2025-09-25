@@ -1,12 +1,10 @@
-
-
 {
     "level1": {
         "player_configs": [
             {
                 "ball_color": [
-                    255, 
-                    213, 
+                    255,
+                    213,
                     79
                 ],
                 "default_player_position": [
@@ -23,7 +21,15 @@
                     0.5,
                     0.67
                 ]
-
+            }
+        ],
+        "environment_configs": [
+            {
+                "gravity": [
+                    0,
+                    9810
+                ],
+                "damping": 0.9
             }
         ]
     },
@@ -31,8 +37,8 @@
         "player_configs": [
             {
                 "ball_color": [
-                    255, 
-                    213, 
+                    255,
+                    213,
                     79
                 ],
                 "default_player_position": [
@@ -49,7 +55,15 @@
                     0.5,
                     0.67
                 ]
-
+            }
+        ],
+        "environment_configs": [
+            {
+                "gravity": [
+                    0,
+                    9810
+                ],
+                "damping": 0.9
             }
         ]
     },
@@ -57,14 +71,23 @@
         "player_configs": [
             {
                 "ball_color": [
-                    255, 
-                    213, 
+                    255,
+                    213,
                     79
                 ],
                 "default_player_position": [
                     0.4,
                     0.2
-                ]
+                ],
+                "action_param": {
+                    "speed": 5000,
+                    "jump_high" : -5.0,
+                    "collision_speed": 2000
+                },
+                "action_cooldown": {
+                    "jump": 1.0,
+                    "collision": 3
+                }
             },
             {
                 "ball_color": [
@@ -75,7 +98,16 @@
                 "default_player_position": [
                     0.6,
                     0.2
-                ]
+                ],
+                "action_params": {
+                    "speed": 5000,
+                    "jump_high" : -5.0,
+                    "collision_speed": 2000
+                },
+                "action_cooldown": {
+                    "jump": 1.0,
+                    "collision": 3
+                }
             }
         ],
         "platform_configs": [
@@ -86,6 +118,15 @@
                     0.5,
                     0.67
                 ]
+            }
+        ],
+        "environment_configs": [
+            {
+                "gravity": [
+                    0,
+                    9810
+                ],
+                "damping": 0.9
             }
         ]
     }

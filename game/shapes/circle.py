@@ -17,6 +17,7 @@ class Circle(Shape):
                 shape_radio: float = 20,
                 shape_mass: float = 1,
                 shape_friction: float = 0.1,
+                shape_elasticity: float = 0.8
             ):
         """
         Initialize a circular physics object.
@@ -28,6 +29,7 @@ class Circle(Shape):
             shape_radio: Radius of the circle in pixels
             shape_mass: Mass of the circle
             shape_friction: Friction coefficient for the circle
+            shape_elasticity: Elasticity (bounciness) of the circle
         """
 
         super().__init__(position, velocity, body)
@@ -35,4 +37,4 @@ class Circle(Shape):
         self.shape = pymunk.Circle(self.body, shape_radio)
         self.shape.mass = shape_mass
         self.shape.friction = shape_friction
-        self.shape.elasticity = 0.8  # Add some bounce to make the simulation more interesting
+        self.shape.elasticity = shape_elasticity  # Add some bounce to make the simulation more interesting

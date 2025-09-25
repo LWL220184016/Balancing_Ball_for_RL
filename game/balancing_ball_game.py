@@ -43,18 +43,16 @@ class BalancingBallGame:
                  window_y: int = 600,
                  max_step: int = 30000,
                  player_configs: dict = None,
+                 platform_configs: dict = None,
+                 environment_configs: dict = None,
                  reward_staying_alive: float = 0.1,
-                 reward_ball_centered: float = 0.2,
                  penalty_falling: float = -10.0,
-                 level: int = 2,
+                 level: int = None,
                  fps: int = 120,
-                 platform_proportion: int = 0.4,
                  capture_per_second: int = None,
-                 collision_reward: float = 5.0,  # Increased collision reward
                  speed_reward_multiplier: float = 0.01,  # Reward for maintaining speed
                  opponent_fall_bonus: float = 15.0,  # Bonus for causing opponent to fall
                  survival_bonus: float = 0.5,  # Bonus for staying alive when opponent falls
-                 platform_distance_penalty: float = 0.02,  # Penalty for being far from platform center
                 ):
         """
         Initialize the balancing ball game.
@@ -65,42 +63,31 @@ class BalancingBallGame:
             difficulty: Game difficulty level ("easy", "medium", "hard")
             max_step: 1 step = 1/fps, if fps = 120, 1 step = 1/120
             reward_staying_alive: float = 0.1,
-            reward_ball_centered: float = 0.2,
             penalty_falling: float = -10.0,
             fps: frame per second
-            platform_proportion: platform_length = window_x * platform_proportion
             capture_per_second: save game screen as a image every second, None means no capture
-            collision_reward: Reward bonus for causing opponent to fall through collision
             speed_reward_multiplier: Multiplier for speed-based rewards
         """
         # Game parameters
         self.max_step = max_step
         self.reward_staying_alive = reward_staying_alive
-        self.reward_ball_centered = reward_ball_centered
         self.penalty_falling = penalty_falling
         self.fps = fps
         self.window_x = window_x
         self.window_y = window_y
-        self.collision_reward = collision_reward
         self.speed_reward_multiplier = speed_reward_multiplier
         self.opponent_fall_bonus = opponent_fall_bonus
         self.survival_bonus = survival_bonus
-        self.platform_distance_penalty = platform_distance_penalty
 
         self.recorder = Recorder("game_history_record")
         self.render_mode = render_mode
         self.sound_enabled = sound_enabled
         self.difficulty = difficulty
 
-        platform_length = int(window_x * platform_proportion)
-        self._get_x_axis_max_reward_rate(platform_length)
-
         # Initialize physics space
         self.space = pymunk.Space()
-        self.space.gravity = (0, 9810)
-        self.space.damping = 0.9
 
-        self.level = get_level(level, self.space, player_configs)
+        self.level = get_level(level, self.space, player_configs, platform_configs, environment_configs)
         self.player_ball_speed = self.level.player_ball_speed
         players, platforms = self.level.setup(self.window_x, self.window_y)
         self.dynamic_body_players = []
@@ -143,9 +130,6 @@ class BalancingBallGame:
         # CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
         CURRENT_DIR = "."
         os.makedirs(os.path.dirname(CURRENT_DIR + "/capture/"), exist_ok=True)
-
-        if self.num_players > 2:
-            raise ValueError("Warning!!! collision reward calculation in step() can only work for two players now")
 
 
     def _setup_pygame(self):
@@ -250,29 +234,13 @@ class BalancingBallGame:
             terminated: Whether episode is done
             info: Additional information
         """
-        # Reset collision and fall tracking for this step
-        self.level.collision_occurred = False
         self.players_fell_this_step = [False] * self.num_players
         
         # 需要保留直到移除舊模型，詳情看函數說明
         # actions = pactions if isinstance(pactions, list) else [pactions]
         # actions = self.calculate_player_speed_old(actions)
 
-
-        actions = self.calculate_player_speed(pactions)
-
-        # 遍歷所有玩家
-        for i, player_body in enumerate(self.dynamic_body_players):
-            # 如果 actions 列表不夠長，則對後續玩家使用 0 作為預設動作
-            action_value = actions[i] if i < len(actions) else 0
-            
-            # 直接施加對應方向的力
-            force_vector = pymunk.Vec2d(action_value, 0)
-            player_body.apply_force_at_world_point(force_vector, player_body.position)
-
-            # # 施加角速度
-            # player_body.angular_velocity += action_value
-            # self.dynamic_body_players[1].angular_velocity += p1action
+        self._apply_player_actions(pactions)
 
         self.level.action()
 
@@ -281,18 +249,19 @@ class BalancingBallGame:
 
         # Check game state
         self.steps += 1
-        terminated = False
-        rewards = [0] * self.num_players
-        player_velocities = []
+        rewards, terminated = self.reward()
+        self.step_rewards = rewards
 
-        # Check collision reward if available
-        collision_occurred = getattr(self.level, 'collision_occurred', False)
-        collision_impulse_1 = getattr(self.level, 'collision_impulse_1', 0)
-        collision_impulse_2 = getattr(self.level, 'collision_impulse_2', 0)
+        return self._get_observation(), rewards, terminated
+
+    def reward(self):
+        """
+        Calculate and return the reward for the current state.
+        """
+        rewards = [0] * self.num_players
 
         # Check if balls fall off screen and calculate rewards
         alive_count = 0
-        platform_center_x = self.kinematic_body_platforms[0].position[0]
         
         for i, player in enumerate(self.dynamic_body_players):
             if not self.player_alive[i]:
@@ -300,10 +269,9 @@ class BalancingBallGame:
 
             ball_x = player.position[0]
             ball_y = player.position[1]
-            player_velocities.append(player.velocity)
 
             # Check if player falls
-            if (ball_y > self.kinematic_body_platforms[0].position[1] + 50 or
+            if (ball_y > self.window_y or
                 ball_x < 0 or ball_x > self.window_x):
 
                 self.player_alive[i] = False
@@ -321,38 +289,12 @@ class BalancingBallGame:
                 # 速度獎勵 - 鼓勵保持移動
                 current_speed = abs(player.velocity[0]) + abs(player.velocity[1])
                 speed_reward = min(current_speed * self.speed_reward_multiplier, 0.1)  # 限制最大速度獎勵
-                
-                # 平台中心獎勵 - 鼓勵靠近平台中心但不要太極端
-                center_reward = self._calculate_center_reward(ball_x)
-                
-                # 平台距離懲罰 - 距離平台中心太遠會有小懲罰
-                distance_from_platform = abs(ball_x - platform_center_x)
-                distance_penalty = -min(distance_from_platform * self.platform_distance_penalty, 0.5)
 
-                rewards[i] = survival_reward + speed_reward + center_reward + distance_penalty
-                self.score[i] += rewards[i]
+                # 不同關卡的特別獎勵
+                level_reward = self.level.reward(ball_x)
+
+                rewards[i] = survival_reward + speed_reward + level_reward
                 self.last_speeds[i] = current_speed
-
-        # 處理碰撞獎勵 - 更智能的獎勵系統
-        if collision_occurred and len(player_velocities) >= 2:
-            # 基於碰撞時的衝量差距給予獎勵
-            impulse_diff = collision_impulse_1 - collision_impulse_2
-            
-            # 獎勵較高衝量的玩家，懲罰較低衝量的玩家
-            if abs(impulse_diff) > 0.1:  # 避免微小差距的獎勵
-                collision_reward_1 = impulse_diff * self.collision_reward * 0.1
-                collision_reward_2 = -impulse_diff * self.collision_reward * 0.1
-                
-                # 限制碰撞獎勵的範圍
-                collision_reward_1 = np.clip(collision_reward_1, -2.0, 2.0)
-                collision_reward_2 = np.clip(collision_reward_2, -2.0, 2.0)
-                
-                if self.player_alive[0]:
-                    rewards[0] += collision_reward_1
-                if self.player_alive[1]:
-                    rewards[1] += collision_reward_2
-                    
-                print(f"Collision rewards: P1: {collision_reward_1:.2f}, P2: {collision_reward_2:.2f}")
 
         # 處理對手掉落的獎勵
         for i in range(self.num_players):
@@ -363,7 +305,10 @@ class BalancingBallGame:
                     rewards[i] += self.opponent_fall_bonus  # 獲得擊敗對手的獎勵
                     print(f"Player {i+1} gets opponent fall bonus: {self.opponent_fall_bonus}")
 
+            self.score[i] += rewards[i]
+
         # Check if game should end
+        terminated = False
         if alive_count <= 1 or self.steps >= self.max_step:
             print("Final Scores: ", self.score)
             terminated = True
@@ -374,6 +319,7 @@ class BalancingBallGame:
                 self.winner = next(i for i in range(self.num_players) if self.player_alive[i])
                 # Give bonus to winner
                 rewards[self.winner] += self.survival_bonus * self.steps / 100  # 生存時間越長獎勵越多
+                self.score[self.winner] += rewards[self.winner]
                 print(f"Winner: Player {self.winner + 1}")
             elif alive_count == 0:
                 self.winner = None  # Draw
@@ -391,7 +337,7 @@ class BalancingBallGame:
             }
             self.recorder.add_no_limit(result)
 
-        return self._get_observation(), rewards, terminated
+        return rewards, terminated
 
     def _get_observation(self) -> np.ndarray:
         """Convert game state to observation for RL agent"""
@@ -403,14 +349,6 @@ class BalancingBallGame:
 
         self.frame_count += 1
         return screen_data
-
-    def _calculate_center_reward(self, ball_x):
-        """Calculate reward based on how close ball is to center"""
-        distance_from_center = abs(ball_x - self.window_x/2)
-        if distance_from_center < self.reward_width:
-            normalized_distance = distance_from_center / self.reward_width
-            return self.reward_ball_centered * (1.0 - normalized_distance)
-        return 0
 
     def render(self) -> Optional[np.ndarray]:
         """Render the current game state"""
@@ -539,7 +477,7 @@ class BalancingBallGame:
         """Draw game information on screen"""
         # Create texts
         time_text = f"Time: {time.time() - self.start_time:.1f}"
-        score_texts = [f"P{i+1}: {self.score[i]:.1f}" for i in range(self.num_players)]
+        score_texts = [f"P{i+1}: {self.score[i]:.1f} + {self.step_rewards[i]:.1f}" for i in range(self.num_players)]
 
         # Render texts
         time_surface = self.font.render(time_text, True, (255, 255, 255))
@@ -578,55 +516,29 @@ class BalancingBallGame:
                            (self.window_x/2 - game_over_surface.get_width()/2,
                             self.window_y/2 - game_over_surface.get_height()/2))
 
-    def _get_x_axis_max_reward_rate(self, platform_length):
-        """
-        ((self.platform_length / 2) - 5) for calculate the distance to the
-        center of game window coordinates. The closer you are, the higher the reward.
-
-        When the ball is to be 10 points away from the center coordinates,
-        it should be 1 - ((self.platform_length - 10) * self.x_axis_max_reward_rate)
-        """
-        self.reward_width = (platform_length / 2) - 5
-        self.x_axis_max_reward_rate = 2 / self.reward_width
-        print("self.x_axis_max_reward_rate: ", self.x_axis_max_reward_rate)
-
-    def _reward_calculator(self, ball_x):
-        # score & reward
-        step_reward = 1/100
-
-        rw = abs(ball_x - self.window_x/2)
-        if rw < self.reward_width:
-            x_axis_reward_rate = 1 + ((self.reward_width - abs(ball_x - self.window_x/2)) * self.x_axis_max_reward_rate)
-            step_reward = self.steps * 0.01 * x_axis_reward_rate  # Simplified reward calculation
-
-            if self.steps % 500 == 0:
-                step_reward += self.steps/100
-                print("check point: ", self.steps/500)
-
-            return step_reward
-        else:
-            return 0
-
     def close(self):
         """Close the game and clean up resources"""
         if self.render_mode in ["human", "rgb_array"]:
             pygame.quit()
 
-    def calculate_player_speed(self, moving_direction: list = []):
+    def _apply_player_actions(self, players_action: list = []):
         """
         Calculate the speed of the player ball for continuous action space
 
         The new trained model uses a continuous action space ranging from -1.0 to 1.0,
         where negative values represent leftward force and positive values represent rightward force.
         """
-        for i in range(len(moving_direction)):
-            if moving_direction[i] < -1.0 or moving_direction[i] > 1.0:
-                raise ValueError(f"Invalid action: {moving_direction}. Action must be in range [-1.0, 1.0].")
 
-            moving_direction[i] = moving_direction[i] * self.player_ball_speed
+        # 遍歷所有玩家
+        for i, player_body in enumerate(self.dynamic_body_players):
+            # 如果 actions 列表不夠長，則對後續玩家使用 0 作為預設動作
+            force_vector = pymunk.Vec2d(players_action[i][0], players_action[i][1]) * self.player_ball_speed
+            player_body.apply_force_at_world_point(force_vector, player_body.position)
 
-        return moving_direction
-
+            # # 施加角速度
+            # player_body.angular_velocity += action_value
+            # self.dynamic_body_players[1].angular_velocity += p1action
+            
     def calculate_player_speed_old(self, moving_direction: list = []):
         """
         Calculate the speed of the player ball
@@ -638,18 +550,26 @@ class BalancingBallGame:
 
         for i in range(len(moving_direction)):
             if moving_direction[i] == 0:
-                moving_direction[i] = self.player_ball_speed * -1
+                moving_direction[i] = pymunk.Vec2d(self.player_ball_speed * -1, 0)
 
             elif moving_direction[i] == 1:
-                moving_direction[i] = self.player_ball_speed
+                moving_direction[i] = pymunk.Vec2d(self.player_ball_speed, 0)
 
             elif moving_direction[i] == 2:
-                moving_direction[i] = 0
+                moving_direction[i] = pymunk.Vec2d(0, 0)
 
             else:
                 raise ValueError(f"Invalid action: {moving_direction}. Action must be 0 (left), 1 (right), or 2 (no action).")
+            
+            # 遍歷所有玩家
+        for i, player_body in enumerate(self.dynamic_body_players):
+            # 如果 actions 列表不夠長，則對後續玩家使用 0 作為預設動作
+            force_vector = moving_direction[i]
+            player_body.apply_force_at_world_point(force_vector, player_body.position)
 
-        return moving_direction
+            # # 施加角速度
+            # player_body.angular_velocity += action_value
+            # self.dynamic_body_players[1].angular_velocity += p1action
 
     def run_standalone(self):
         """Run the game in standalone mode with keyboard controls"""
@@ -670,22 +590,29 @@ class BalancingBallGame:
             keys = pygame.key.get_pressed()
             actions = []
 
-            # Player 1 controls (Arrow keys)
-            if keys[pygame.K_LEFT]:
-                actions.append(-1)  # Full left force
-            elif keys[pygame.K_RIGHT]:
-                actions.append(1)   # Full right force
-            else:
-                actions.append(0)   # No force
+            # Player 1 controls (WASD + Space for jump)
+            p1_x_force = 0
+            p1_y_force = 0
+            if keys[pygame.K_a]:
+                p1_x_force = -1  # Full left force
+            elif keys[pygame.K_d]:
+                p1_x_force = 1  # Full right force
 
-            # Player 2 controls (WASD)
+            if keys[pygame.K_SPACE]:
+                p1_y_force = -5  # Full upward force (jump)
+
+            actions.append((p1_x_force, p1_y_force))
+
+            # Player 2 controls (Arrow keys)
+            p2_x_force = 0
+            p2_y_force = 0
             if len(self.dynamic_body_players) > 1:
-                if keys[pygame.K_a]:
-                    actions.append(-1)  # Full left force
-                elif keys[pygame.K_d]:
-                    actions.append(1)   # Full right force
-                else:
-                    actions.append(0)   # No force
+                if keys[pygame.K_LEFT]:
+                    p2_x_force = -1  # Full left force
+                elif keys[pygame.K_RIGHT]:
+                    p2_x_force = 1   # Full right force
+
+            actions.append((p2_x_force, p2_y_force))
 
             # Take game step
             if not self.game_over:

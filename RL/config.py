@@ -4,6 +4,10 @@ from stable_baselines3.common.policies import ActorCriticPolicy, ActorCriticCnnP
 
 class model_config:
     model_obs_type="game_screen"
+    
+    action_space_low=-1.0  # Minimum action value
+    action_space_high=1.0   # Maximum action value
+    action_num = 3
 
     model_param={
         # ActorCriticCnnPolicyif for game_screen, ActorCriticPolicy for state base
@@ -32,5 +36,6 @@ class train_config:
     save_freq=10000
     eval_freq=10000
     eval_episodes=5
+    agent_num=2
     tensorboard_log="./logs/"
     model_dir="./models/"

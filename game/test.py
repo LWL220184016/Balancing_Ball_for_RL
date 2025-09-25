@@ -1,10 +1,9 @@
 from balancing_ball_game import BalancingBallGame
 from gym_env import BalancingBallEnv
 
-def run_standalone_game(render_mode="human", difficulty="medium", capture_per_second=None, window_x=1000, window_y=600, player_configs=None, level=2):
+def run_standalone_game(render_mode="human", difficulty="medium", capture_per_second=None, window_x=1000, window_y=600, player_configs=None, platform_configs=None, environment_configs=None, level=2):
     """Run the game in standalone mode with visual display"""
 
-    platform_proportion = 0.333
 
     game = BalancingBallGame(
         render_mode = render_mode,
@@ -12,7 +11,8 @@ def run_standalone_game(render_mode="human", difficulty="medium", capture_per_se
         window_x = window_x,
         window_y = window_y,
         player_configs = player_configs,
-        platform_proportion = platform_proportion,
+        platform_configs = platform_configs,
+        environment_configs = environment_configs,
         level = level,
         fps = 120,
         capture_per_second = capture_per_second,
@@ -80,6 +80,30 @@ player_configs = [
             }
         ]
 
+platform_configs = [
+            {
+                "platform_shape_type": "rectangle",
+                "platform_proportion": 0.8,
+                "platform_position": [
+                    0.5,
+                    0.67
+                ]
+            },
+            {
+                "platform_shape_type": "circle",
+                "platform_proportion": 0.1,
+                "platform_position": [
+                    0.25,
+                    0.4
+                ]
+            }
+        ]
+environment_configs = [
+            {
+                "gravity": [0, 9810],
+                "damping": 0.9
+            }
+        ]
 
 # rgb_array_and_human_in_colab
 run_standalone_game(render_mode="human", 
@@ -87,7 +111,9 @@ run_standalone_game(render_mode="human",
                     window_x=1000, 
                     window_y=600, 
                     player_configs=player_configs,
-                    level=1, 
-                    capture_per_second = None 
+                    platform_configs=platform_configs,
+                    environment_configs=environment_configs,
+                    level=3, 
+                    capture_per_second=None
                     )
 # test_gym_env(difficulty="medium")

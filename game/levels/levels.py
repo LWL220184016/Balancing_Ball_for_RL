@@ -11,11 +11,11 @@ try:
 except ImportError:
     from game.shapes.circle import Circle
 
-def get_level(level: int, space, player_configs=None, platform_configs=None):
+def get_level(level: int, space, player_configs=None, platform_configs=None, environment_configs=None):
     """
     Get the level object based on the level number.
     """
-    if not player_configs or not platform_configs:
+    if not player_configs or not platform_configs or not environment_configs:
         # Get the directory of the current script
         print("Loading default level configurations...")
         dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -30,17 +30,24 @@ def get_level(level: int, space, player_configs=None, platform_configs=None):
                 player_configs = level_cfg.get("player_configs", [])
             if not platform_configs:
                 platform_configs = level_cfg.get("platform_configs", [])
+            if not environment_configs:
+                environment_configs = level_cfg.get("environment_configs", [])
         else:
             raise ValueError(f"Default config for level {level} not found in {config_path}")
 
     if not player_configs:
         raise ValueError(f"Invalid player_configs: {player_configs}, must be a non-empty list or dict")
 
-    if not platform_configs:
-        raise ValueError(f"Invalid platform_configs: {platform_configs}, must be a non-empty list or dict")
+    if not environment_configs:
+        raise ValueError(f"Invalid environment_configs: {environment_configs}, must be a non-empty list or dict")
 
     print(f"Using player_configs: {player_configs}")
     print(f"Using platform_configs: {platform_configs}")
+    print(f"Using environment_configs: {environment_configs}")
+
+    space.gravity = tuple(environment_configs[0].get("gravity"))
+    space.damping = environment_configs[0].get("damping")
+
     if level == 1:
         return Level1(space, player_configs, platform_configs)
     elif level == 2:
@@ -56,6 +63,8 @@ class Levels:
         self.player_configs = player_configs
         self.platform_configs = platform_configs
         self.players = []
+        self.num_players = len(player_configs)
+        self.player_alive = []  # Track which players are still alive
         self.platforms = []
 
     def setup(self, window_x, window_y):
@@ -79,7 +88,9 @@ class Levels:
                       window_x: int = 1000,
                       window_y: int = 600,
                       default_player_position: tuple = None,
-                      ball_color = None,  
+                      ball_color = None,
+                      action_param: dict = None,
+                      action_cooldown: dict = None
                      ):
         """
         Create the ball with physics properties
@@ -102,7 +113,9 @@ class Levels:
             "default_position": default_player_position,
             "body": dynamic_body,
             "ball_radius": ball_radius,
-            "ball_color": ball_color
+            "ball_color": ball_color,
+            "action_param": action_param,
+            "action_cooldown": action_cooldown
         }
 
     def create_platform(self,
@@ -237,15 +250,26 @@ class Level1(Levels):
     """
     def __init__(self, space, player_configs=None, platform_configs=None):
         super().__init__(space, player_configs, platform_configs)
+        self.level_type = "Horizontal_viewing_angle"
         self.space = space
         self.player_ball_speed = 5000
         self.player_configs = player_configs
 
-    def setup(self, window_x, window_y):
+        if len(platform_configs) > 1:
+            raise ValueError("Level 1 only supports one platform configuration.")
+
+
+    def setup(self, window_x, window_y, reward_ball_centered=0.2):
         players, platforms = super().setup(window_x, window_y)
         # Set initial random velocity after setup
-        for platform in platforms:
-            platform["body"].angular_velocity = random.randrange(-1, 2, 2)
+        platform = platforms[0]
+        platform["body"].angular_velocity = random.randrange(-1, 2, 2)
+
+        self.platform_center_x = platform["body"].position[0]
+        # Reward parameters
+        self.reward_ball_centered = reward_ball_centered
+        self.reward_width = (platform["platform_length"] / 2) - 5
+
         return players, platforms
 
     def action(self):
@@ -255,14 +279,22 @@ class Level1(Levels):
         # Noting to do in this level
         pass
 
+    def reward(self, ball_x):
+        center_reward = 0
+
+        distance_from_center = abs(ball_x - self.platform_center_x)
+        if distance_from_center < self.reward_width:
+            normalized_distance = distance_from_center / self.reward_width
+            center_reward = self.reward_ball_centered * (1.0 - normalized_distance)
+
+        return center_reward
+
     def reset(self):
         """
         Reset the level to its initial state.
         """
         super().reset()
-        
-        for platform in self.platforms:
-            platform["body"].angular_velocity = random.randrange(-1, 2, 2)
+        self.platforms[0]["body"].angular_velocity = random.randrange(-1, 2, 2)
 
 class Level2(Levels):
     """
@@ -272,17 +304,26 @@ class Level2(Levels):
     """
     def __init__(self, space, player_configs=None, platform_configs=None):
         super().__init__(space, player_configs, platform_configs)
+        self.level_type = "Horizontal_viewing_angle"
         self.space = space
         self.player_ball_speed = 5000
         self.player_configs = player_configs
         self.last_angular_velocity_change_time = time.time()
         self.angular_velocity_change_timeout = 5 # sec
 
-    def setup(self, window_x, window_y):
+        if len(platform_configs) > 1:
+            raise ValueError("Level 2 only supports one platform configuration.")
+
+    def setup(self, window_x, window_y, reward_ball_centered=0.2):
         players, platforms = super().setup(window_x, window_y)
         # Set initial random velocity after setup
-        for platform in platforms:
-            platform["body"].angular_velocity = random.randrange(-1, 2, 2)
+        platform = platforms[0]
+        platform["body"].angular_velocity = random.randrange(-1, 2, 2)
+
+        self.platform_center_x = platform["body"].position[0]
+        # Reward parameters
+        self.reward_ball_centered = reward_ball_centered
+        self.reward_width = (platform["platform_length"] / 2) - 5
 
         return players, platforms
 
@@ -290,10 +331,19 @@ class Level2(Levels):
         """
         shape state changes in the game
         """
-        platform_body = self.platforms[0]["body"]
         if time.time() - self.last_angular_velocity_change_time > self.angular_velocity_change_timeout:
-            platform_body.angular_velocity = random.randrange(-1, 2, 2)
+            self.platforms[0]["body"].angular_velocity = random.randrange(-1, 2, 2)
             self.last_angular_velocity_change_time = time.time()
+
+    def reward(self, ball_x):
+        center_reward = 0
+
+        distance_from_center = abs(ball_x - self.platform_center_x)
+        if distance_from_center < self.reward_width:
+            normalized_distance = distance_from_center / self.reward_width
+            center_reward = self.reward_ball_centered * (1.0 - normalized_distance)
+
+        return center_reward
 
     def reset(self):
         """
@@ -314,77 +364,27 @@ class Level3(Levels):
     """
     def __init__(self, space, player_configs=None, platform_configs=None):
         super().__init__(space, player_configs, platform_configs)
+        self.level_type = "Top_down_angle"
         self.space = space
         self.player_ball_speed = 5000
         self.player_configs = player_configs
-        self.last_collision_time = 0
-        self.collision_reward_cooldown = 0.5  # seconds
-        self.collision_occurred = False
-        self.collision_impulse_1 = 0
-        self.collision_impulse_2 = 0
 
     def setup(self, window_x, window_y):
         players, platforms = super().setup(window_x, window_y)
 
-        # Set collision types for balls - 這是關鍵修復
-        players[0]["shape"].shape.collision_type = 1
-        players[1]["shape"].shape.collision_type = 2
-
-        # # Add collision handler for balls colliding with each other
-        # handler = self.space.add_collision_handler(1, 2)
-        # handler.begin = self.handle_collision
-        
-        self.collision_occurred = False
-
         return players, platforms
-
-    def handle_collision(self, arbiter, space, data):
-        """Handle collisions between balls"""
-        current_time = time.time()
-        if current_time - self.last_collision_time > self.collision_reward_cooldown:
-            self.last_collision_time = current_time
-            # Mark that a collision occurred
-            self.collision_occurred = True
-            
-            # 計算碰撞時的相對速度來決定獎勵
-            body1, body2 = arbiter.shapes[0].body, arbiter.shapes[1].body
-            
-            # 計算碰撞前的動量
-            self.collision_impulse_1 = abs(body1.velocity[0]) + abs(body1.velocity[1])
-            self.collision_impulse_2 = abs(body2.velocity[0]) + abs(body2.velocity[1])
-            
-            print(f"Collision occurred! Body1 speed: {self.collision_impulse_1:.2f}, Body2 speed: {self.collision_impulse_2:.2f}")
-        return True
 
     def action(self):
         """
         shape state changes in the game
         """
-        # Reset collision flag each frame in step function, not here
         pass
+
+    def reward(self, ball_x=None):
+        return 0
 
     def reset(self):
         """
         Reset the level to its initial state.
         """
         super().reset()
-        player1_body = self.players[0]["body"]
-        player2_body = self.players[1]["body"]
-        platform_body = self.platforms[0]["body"]
-
-        player1_body.position = self.players[0]["default_position"]
-        player1_body.angular_velocity = 0
-        player1_body.velocity = (0, 0)
-        
-        player2_body.position = self.players[1]["default_position"]
-        player2_body.angular_velocity = 0
-        player2_body.velocity = (0, 0)
-
-        self.collision_occurred = False
-        self.last_collision_time = 0
-        self.collision_impulse_1 = 0
-        self.collision_impulse_2 = 0
-
-        self.space.reindex_shapes_for_body(player1_body)
-        self.space.reindex_shapes_for_body(player2_body)
-        self.space.reindex_shapes_for_body(platform_body)
