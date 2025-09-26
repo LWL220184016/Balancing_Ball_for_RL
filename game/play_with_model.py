@@ -11,25 +11,24 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "game_b
 
 from gym_env import BalancingBallEnv
 
-def make_env(render_mode="human", difficulty="medium", level=1):
+def make_env(render_mode="human", level=1):
     """Create an environment function"""
     def _init():
-        env = BalancingBallEnv(render_mode=render_mode, difficulty=difficulty, obs_type="game_screen", level=level, window_x=1000, window_y=600, fps=120)
+        env = BalancingBallEnv(render_mode=render_mode, obs_type="game_screen", level=level, window_x=1000, window_y=600, fps=120)
         return env
     return _init
 
-def play_game(model_path, difficulty="medium", level=1, episodes=5):
+def play_game(model_path, level=1, episodes=5):
     """
     Play the game using a trained model
     
     Args:
         model_path: Path to the saved model
-        difficulty: Game difficulty level
         episodes: Number of episodes to play
     """
     # Create environment
     env = make_vec_env(
-        make_env(render_mode="human", difficulty=difficulty, level=level),
+        make_env(render_mode="human", level=level),
         n_envs=1
     )
     # Load the model
@@ -64,7 +63,6 @@ def play_game(model_path, difficulty="medium", level=1, episodes=5):
 if __name__ == "__main__":
     play_game(
         model_path="./ppo_game_screen_315000_steps_level1",
-        difficulty="medium",
         level=2,
         episodes=10
     )

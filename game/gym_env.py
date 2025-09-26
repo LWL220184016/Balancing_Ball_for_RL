@@ -16,7 +16,6 @@ class BalancingBallEnv(gym.Env):
 
     def __init__(self,
                  render_mode="rgb_array",
-                 difficulty="medium",
                  level=2,
                  fps=30,
                  obs_type="game_screen",
@@ -52,7 +51,6 @@ class BalancingBallEnv(gym.Env):
         self.game = BalancingBallGame(
             render_mode=render_mode,
             sound_enabled=(render_mode == "human"),
-            difficulty=difficulty,
             window_x = self.window_x,
             window_y = self.window_y,
             level = level,

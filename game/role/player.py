@@ -1,5 +1,4 @@
 
-import time
 import pymunk
 
 
@@ -10,25 +9,45 @@ class Player:
         self.action_cooldown = action_cooldown  # Dictionary of action cooldowns
         self.action_params = action_params  # Dictionary of action parameters
         self.last_action_time = {action: 0 for action in action_cooldown}  # Track last action time for each action
+        self.is_alive = True
 
     def move(self, direction):
-        
-        pass
+        force_vector = pymunk.Vec2d(direction * self.action_params["speed"], 0)
+        self.shape.body.apply_force_at_world_point(force_vector, self.shape.body.position)
 
-    def jump(self):
-        pass
+        # # 施加角速度
+        # self.shape.body.angular_velocity += p1action
 
+    def jump(self, action):
+        force_vector = pymunk.Vec2d(0, action * self.action_params["jump_high"])
+        self.shape.body.apply_force_at_world_point(force_vector, self.shape.body.position)
 
-    def perform_action(self, players_action: list = []):
+    def perform_action(self, players_action):
         # 遍歷所有玩家
-        for i, player_body in enumerate(self.dynamic_body_players):
-            if players_action[i][1] > 0:  # Jump action
-                if time.time() - self.players_action_lasttime[i]["jump"] > self.players_action_cooldown[i]["jump"]:
-                    players_action[i][1] * self.players_action_params[i]["jump"]
+        if players_action[0] != 0:
+            self.move(players_action[0])
 
-            force_vector = pymunk.Vec2d(players_action[i][0], players_action[i][1])
-            player_body.apply_force_at_world_point(force_vector, player_body.position)
+        if players_action[1] != 0 and self.get_velocity()[1] == 0:  # Jump action
+            self.jump(players_action[1])
 
-            # # 施加角速度
-            # player_body.angular_velocity += action_value
-            # self.dynamic_body_players[1].angular_velocity += p1action
+    def _draw_indie_style(self, screen):
+        self.shape._draw(screen, self.ball_color)
+
+    def get_radius(self):
+        return self.shape.shape_radio
+    
+    def get_color(self):
+        return self.ball_color
+    
+    def get_position(self):
+        return self.shape.body.position[0], self.shape.body.position[1]
+    
+    def get_default_position(self):
+        return self.shape.default_position[0], self.shape.default_position[1]
+    
+    def get_velocity(self):
+        return self.shape.body.velocity[0], self.shape.body.velocity[1]
+
+    def get_physics_components(self):
+        """Returns the physics body and shape for adding to the space."""
+        return self.shape.body, self.shape.shape

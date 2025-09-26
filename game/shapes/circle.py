@@ -1,3 +1,4 @@
+import pygame
 import pymunk
 
 from typing import Tuple, Optional
@@ -32,9 +33,13 @@ class Circle(Shape):
             shape_elasticity: Elasticity (bounciness) of the circle
         """
 
-        super().__init__(position, velocity, body)
+        super().__init__(position, velocity, body, shape_mass, shape_friction, shape_elasticity)
         self.shape_radio = shape_radio
         self.shape = pymunk.Circle(self.body, shape_radio)
-        self.shape.mass = shape_mass
-        self.shape.friction = shape_friction
-        self.shape.elasticity = shape_elasticity  # Add some bounce to make the simulation more interesting
+
+    def _draw(self, screen, ball_color):
+        x, y = self.body.position
+        radius = self.shape_radio
+        ball_pos = (int(x), int(y))
+        pygame.draw.circle(screen, ball_color, ball_pos, radius)
+        pygame.draw.circle(screen, (255, 255, 255), ball_pos, radius, 2)

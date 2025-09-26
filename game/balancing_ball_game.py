@@ -1,11 +1,9 @@
 import pymunk
 import pygame
 import time
-import numpy as np
 import os
-import numpy as np
 import base64
-import datetime
+import numpy as np
 # import IPython.display as ipd
 
 from typing import Dict, Tuple, Optional
@@ -32,13 +30,11 @@ class BalancingBallGame:
 
     # Visual settings for indie style
     BACKGROUND_COLOR = (41, 50, 65)  # Dark blue background
-    BALL_COLOR = (255, 213, 79)  # Bright yellow ball
     PLATFORM_COLOR = (235, 64, 52)  # Red platform
 
     def __init__(self,
                  render_mode: str = "human",
                  sound_enabled: bool = True,
-                 difficulty: str = "medium",
                  window_x: int = 1000,
                  window_y: int = 600,
                  max_step: int = 30000,
@@ -60,7 +56,6 @@ class BalancingBallGame:
         Args:
             render_mode: "human" for visible window, "rgb_array" for gym env, "headless" for no rendering
             sound_enabled: Whether to enable sound effects
-            difficulty: Game difficulty level ("easy", "medium", "hard")
             max_step: 1 step = 1/fps, if fps = 120, 1 step = 1/120
             reward_staying_alive: float = 0.1,
             penalty_falling: float = -10.0,
@@ -82,30 +77,19 @@ class BalancingBallGame:
         self.recorder = Recorder("game_history_record")
         self.render_mode = render_mode
         self.sound_enabled = sound_enabled
-        self.difficulty = difficulty
 
         # Initialize physics space
         self.space = pymunk.Space()
 
         self.level = get_level(level, self.space, player_configs, platform_configs, environment_configs)
-        self.player_ball_speed = self.level.player_ball_speed
-        players, platforms = self.level.setup(self.window_x, self.window_y)
-        self.dynamic_body_players = []
+        self.players, self.platforms = self.level.setup(self.window_x, self.window_y)
         self.kinematic_body_platforms = []
-        self.players_color = []
-        self.player_alive = []  # Track which players are still alive
 
-        for i, player in enumerate(players):
-            self.dynamic_body_players.append(player["body"])
-            self.players_color.append(player["ball_color"])
-            self.player_alive.append(True)
-
-        for platform in platforms:
+        for platform in self.platforms:
             self.kinematic_body_platforms.append(platform["body"])
 
-        self.ball_radius = players[0]["ball_radius"]
-        self.platform_length = platforms[0]["platform_length"]
-        self.num_players = len(players)
+        self.platform_length = self.platforms[0]["platform_length"]
+        self.num_players = len(self.players)
 
         # Game state tracking
         self.steps = 0
@@ -122,8 +106,6 @@ class BalancingBallGame:
         else:
             print("render_mode is not human or rgb_array, so no pygame setup.")
 
-        # Set difficulty parameters
-        self._apply_difficulty()
         self.capture_per_second = capture_per_second
 
         # Create folders for captures if needed
@@ -189,20 +171,6 @@ class BalancingBallGame:
             self.sound_enabled = False
             pass
 
-    def _apply_difficulty(self):
-        """Apply difficulty settings to the game"""
-        if self.difficulty == "easy":
-            self.max_platform_speed = 1.5
-            self.ball_elasticity = 0.5
-        elif self.difficulty == "medium":
-            self.max_platform_speed = 2.5
-            self.ball_elasticity = 0.7
-        else:  # hard
-            self.max_platform_speed = 3.5
-            self.ball_elasticity = 0.9
-
-        # self.circle.shape.elasticity = self.ball_elasticity
-
     def reset(self) -> np.ndarray:
         """Reset the game state and return the initial observation"""
         # Reset physics objects
@@ -214,14 +182,13 @@ class BalancingBallGame:
         self.game_over = False
         self.score = [0] * self.num_players
         self.winner = None
-        self.player_alive = [True] * self.num_players
         self.last_speeds = [0] * self.num_players
         self.players_fell_this_step = [False] * self.num_players
 
         # Return initial observation
         return self._get_observation()
 
-    def step(self, pactions: list = []) -> Tuple[np.ndarray, list, bool, Dict]:
+    def step(self, pactions: list = [Tuple[float, float]]) -> Tuple[np.ndarray, list, bool, Dict]:
         """
         Take a step in the game using the given actions.
 
@@ -240,8 +207,8 @@ class BalancingBallGame:
         # actions = pactions if isinstance(pactions, list) else [pactions]
         # actions = self.calculate_player_speed_old(actions)
 
-        self._apply_player_actions(pactions)
-
+        for i, player in enumerate(self.players):
+            player.perform_action(pactions[i])
         self.level.action()
 
         # Step the physics simulation
@@ -263,18 +230,17 @@ class BalancingBallGame:
         # Check if balls fall off screen and calculate rewards
         alive_count = 0
         
-        for i, player in enumerate(self.dynamic_body_players):
-            if not self.player_alive[i]:
+        for i, player in enumerate(self.players):
+            if not player.is_alive:
                 continue
 
-            ball_x = player.position[0]
-            ball_y = player.position[1]
+            ball_x, ball_y = player.get_position()
 
             # Check if player falls
             if (ball_y > self.window_y or
                 ball_x < 0 or ball_x > self.window_x):
 
-                self.player_alive[i] = False
+                player.is_alive = False
                 self.players_fell_this_step[i] = True
                 rewards[i] = self.penalty_falling
 
@@ -287,7 +253,8 @@ class BalancingBallGame:
                 survival_reward = self.reward_staying_alive
 
                 # 速度獎勵 - 鼓勵保持移動
-                current_speed = abs(player.velocity[0]) + abs(player.velocity[1])
+                vx, vy = player.get_velocity()
+                current_speed = abs(vx) + abs(vy)
                 speed_reward = min(current_speed * self.speed_reward_multiplier, 0.1)  # 限制最大速度獎勵
 
                 # 不同關卡的特別獎勵
@@ -297,8 +264,8 @@ class BalancingBallGame:
                 self.last_speeds[i] = current_speed
 
         # 處理對手掉落的獎勵
-        for i in range(self.num_players):
-            if self.player_alive[i]:  # 如果這個玩家還活著
+        for i, player in enumerate(self.players):
+            if player.is_alive:  # 如果這個玩家還活著
                 # 檢查是否有對手在這步掉落
                 opponents_fell = any(self.players_fell_this_step[j] for j in range(self.num_players) if j != i)
                 if opponents_fell:
@@ -316,7 +283,7 @@ class BalancingBallGame:
 
             # Determine winner (last player alive or highest score)
             if alive_count == 1:
-                self.winner = next(i for i in range(self.num_players) if self.player_alive[i])
+                self.winner = next(i for i in range(self.num_players) if self.players[i].is_alive)
                 # Give bonus to winner
                 rewards[self.winner] += self.survival_bonus * self.steps / 100  # 生存時間越長獎勵越多
                 self.score[self.winner] += rewards[self.winner]
@@ -402,12 +369,9 @@ class BalancingBallGame:
     def _draw_indie_style(self):
         """Draw game objects with indie game aesthetic"""
         # Draw players
-        for i in range(len(self.dynamic_body_players)):
-            if self.player_alive[i]:  # Only draw alive players
-                player_body = self.dynamic_body_players[i]
-                ball_pos = (int(player_body.position.x), int(player_body.position.y))
-                pygame.draw.circle(self.screen, self.players_color[i], ball_pos, self.ball_radius)
-                pygame.draw.circle(self.screen, (255, 255, 255), ball_pos, self.ball_radius, 2)
+        for player in self.players:
+            if player.is_alive:
+                player._draw_indie_style(self.screen)
 
         # Draw platforms by checking the shape type associated with each body
         for platform_body in self.kinematic_body_platforms:
@@ -491,7 +455,7 @@ class BalancingBallGame:
         # Draw scores
         y_offset = 40
         for i, surface in enumerate(score_surfaces):
-            color = self.players_color[i] if i < len(self.players_color) else (255, 255, 255)
+            color = self.players[i].get_color() if self.players[i].is_alive else (100, 100, 100)
             pygame.draw.rect(self.screen, (0, 0, 0, 128),
                             (5, y_offset, surface.get_width() + 10, surface.get_height() + 5))
             colored_surface = self.font.render(score_texts[i], True, color)
@@ -520,24 +484,6 @@ class BalancingBallGame:
         """Close the game and clean up resources"""
         if self.render_mode in ["human", "rgb_array"]:
             pygame.quit()
-
-    def _apply_player_actions(self, players_action: list = []):
-        """
-        Calculate the speed of the player ball for continuous action space
-
-        The new trained model uses a continuous action space ranging from -1.0 to 1.0,
-        where negative values represent leftward force and positive values represent rightward force.
-        """
-
-        # 遍歷所有玩家
-        for i, player_body in enumerate(self.dynamic_body_players):
-            # 如果 actions 列表不夠長，則對後續玩家使用 0 作為預設動作
-            force_vector = pymunk.Vec2d(players_action[i][0], players_action[i][1]) * self.player_ball_speed
-            player_body.apply_force_at_world_point(force_vector, player_body.position)
-
-            # # 施加角速度
-            # player_body.angular_velocity += action_value
-            # self.dynamic_body_players[1].angular_velocity += p1action
             
     def calculate_player_speed_old(self, moving_direction: list = []):
         """
@@ -550,10 +496,10 @@ class BalancingBallGame:
 
         for i in range(len(moving_direction)):
             if moving_direction[i] == 0:
-                moving_direction[i] = pymunk.Vec2d(self.player_ball_speed * -1, 0)
+                moving_direction[i] = pymunk.Vec2d(self.players[i].get_speed() * -1, 0)
 
             elif moving_direction[i] == 1:
-                moving_direction[i] = pymunk.Vec2d(self.player_ball_speed, 0)
+                moving_direction[i] = pymunk.Vec2d(self.players[i].get_speed(), 0)
 
             elif moving_direction[i] == 2:
                 moving_direction[i] = pymunk.Vec2d(0, 0)
@@ -562,14 +508,10 @@ class BalancingBallGame:
                 raise ValueError(f"Invalid action: {moving_direction}. Action must be 0 (left), 1 (right), or 2 (no action).")
             
             # 遍歷所有玩家
-        for i, player_body in enumerate(self.dynamic_body_players):
+        for i, player in enumerate(self.players):
             # 如果 actions 列表不夠長，則對後續玩家使用 0 作為預設動作
             force_vector = moving_direction[i]
-            player_body.apply_force_at_world_point(force_vector, player_body.position)
-
-            # # 施加角速度
-            # player_body.angular_velocity += action_value
-            # self.dynamic_body_players[1].angular_velocity += p1action
+            player.move(force_vector)
 
     def run_standalone(self):
         """Run the game in standalone mode with keyboard controls"""
@@ -599,14 +541,14 @@ class BalancingBallGame:
                 p1_x_force = 1  # Full right force
 
             if keys[pygame.K_SPACE]:
-                p1_y_force = -5  # Full upward force (jump)
+                p1_y_force = 1  # Jump force persentage (0 to 1)
 
             actions.append((p1_x_force, p1_y_force))
 
             # Player 2 controls (Arrow keys)
             p2_x_force = 0
             p2_y_force = 0
-            if len(self.dynamic_body_players) > 1:
+            if len(self.players) > 1:
                 if keys[pygame.K_LEFT]:
                     p2_x_force = -1  # Full left force
                 elif keys[pygame.K_RIGHT]:

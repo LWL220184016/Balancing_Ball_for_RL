@@ -6,10 +6,17 @@ import time
 import json
 import os
 
+
 try:
     from shapes.circle import Circle
+    from shapes.rectangle import Rectangle
+    from role.player import Player
+    from role.platform import Platform
 except ImportError:
     from game.shapes.circle import Circle
+    from game.shapes.rectangle import Rectangle
+    from game.role.player import Player
+    from game.role.platform import Platform
 
 def get_level(level: int, space, player_configs=None, platform_configs=None, environment_configs=None):
     """
@@ -64,7 +71,6 @@ class Levels:
         self.platform_configs = platform_configs
         self.players = []
         self.num_players = len(player_configs)
-        self.player_alive = []  # Track which players are still alive
         self.platforms = []
 
     def setup(self, window_x, window_y):
@@ -77,7 +83,8 @@ class Levels:
         print(f"Created {len(self.players)} players and {len(self.platforms)} platforms.")
 
         for player in self.players:
-            self.space.add(player["body"], player["shape"].shape)
+            body, shape = player.get_physics_components()
+            self.space.add(body, shape)
         
         for platform in self.platforms:
             self.space.add(platform["body"], platform["shape"])
@@ -89,34 +96,32 @@ class Levels:
                       window_y: int = 600,
                       default_player_position: tuple = None,
                       ball_color = None,
-                      action_param: dict = None,
+                      action_params: dict = None,
                       action_cooldown: dict = None
                      ):
         """
         Create the ball with physics properties
         default_player_position: Initial position of the player
         """
-        default_player_position = (window_x * default_player_position[0], window_y * default_player_position[1])
         dynamic_body = pymunk.Body()  # Ball body
+        default_player_position = (window_x * default_player_position[0], window_y * default_player_position[1])
         ball_radius = int(window_x / 67)
-        player = Circle(
+        shape = Circle(
             position=default_player_position,
             velocity=(0, 0),
             body=dynamic_body,
             shape_radio=ball_radius,
             shape_friction=100,
         )
+
+        player = Player(
+            shape=shape,
+            ball_color=ball_color,
+            action_params=action_params,
+            action_cooldown=action_cooldown
+        )
         # Store initial values for reset
-        return {
-            "type": "player",
-            "shape": player,
-            "default_position": default_player_position,
-            "body": dynamic_body,
-            "ball_radius": ball_radius,
-            "ball_color": ball_color,
-            "action_param": action_param,
-            "action_cooldown": action_cooldown
-        }
+        return player
 
     def create_platform(self,
                         window_x: int = 1000,
@@ -130,29 +135,42 @@ class Levels:
         platform_shape_type: circle, rectangle
         platform_length: Length of a rectangle or Diameter of a circle
         """
-        platform_length = int(window_x * platform_proportion)
-
         # Create game bodies
         kinematic_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)  # Platform body
         kinematic_body.position = (window_x * platform_position[0], window_y * platform_position[1])
         default_kinematic_position = kinematic_body.position
+        platform_length = int(window_x * platform_proportion)
 
         if platform_shape_type == "circle":
             platform_length = platform_length / 2 # radius
-            platform = pymunk.Circle(kinematic_body, platform_length)
-            platform.mass = 1  # 质量对 Kinematic 物体无意义，但需要避免除以零错误
-            platform.friction = 0.7
+            shape = Circle(
+                position=default_kinematic_position,
+                velocity=(0, 0),
+                body=kinematic_body,
+                shape_radio=platform_length,
+                shape_friction=0.7,
+            )
+
 
         elif platform_shape_type == "rectangle":
             platform_length = platform_length
-            vs = [(-platform_length/2, -10),
-                (platform_length/2, -10),
-                (platform_length/2, 10),
-                (-platform_length/2, 10)]
+            # vs = [(-platform_length/2, -10),
+            #     (platform_length/2, -10),
+            #     (platform_length/2, 10),
+            #     (-platform_length/2, 10)]
 
-            platform = pymunk.Poly(kinematic_body, vs)
-        platform.friction = 0.7
-        platform.rotation = 0
+            # shape = pymunk.Poly(kinematic_body, vs)
+            shape = Rectangle( 還沒完成
+                position=default_kinematic_position,
+                velocity=(0, 0),
+                body=kinematic_body,
+                shape_width=platform_length,
+                shape_height=20,
+                shape_friction=0.7,
+                shape_elasticity=0.1
+            )
+
+        platform = Platform(shape)
 
         return {
             "type": "platform",
@@ -168,8 +186,9 @@ class Levels:
         Reset the level to its initial state.
         """
         for player in self.players:
-            player_body = player["body"]
-            player_body.position = player["default_position"]
+            player.is_alive = True
+            player_body = player.get_physics_components()[0]
+            player_body.position = player.get_default_position()
             player_body.angular_velocity = 0
             player_body.velocity = (0, 0)
             self.space.reindex_shapes_for_body(player_body)
@@ -252,7 +271,6 @@ class Level1(Levels):
         super().__init__(space, player_configs, platform_configs)
         self.level_type = "Horizontal_viewing_angle"
         self.space = space
-        self.player_ball_speed = 5000
         self.player_configs = player_configs
 
         if len(platform_configs) > 1:
@@ -306,7 +324,6 @@ class Level2(Levels):
         super().__init__(space, player_configs, platform_configs)
         self.level_type = "Horizontal_viewing_angle"
         self.space = space
-        self.player_ball_speed = 5000
         self.player_configs = player_configs
         self.last_angular_velocity_change_time = time.time()
         self.angular_velocity_change_timeout = 5 # sec
@@ -366,7 +383,6 @@ class Level3(Levels):
         super().__init__(space, player_configs, platform_configs)
         self.level_type = "Top_down_angle"
         self.space = space
-        self.player_ball_speed = 5000
         self.player_configs = player_configs
 
     def setup(self, window_x, window_y):

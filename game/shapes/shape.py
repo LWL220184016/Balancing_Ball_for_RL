@@ -9,6 +9,9 @@ class Shape:
                 velocity: Tuple[float, float] = (0, 0),
                 body: Optional[pymunk.Body] = None,
                 shape: Optional[pymunk.Shape] = None,
+                shape_mass: float = None,
+                shape_friction: float = None,
+                shape_elasticity: float = None
             ):
         """
         Initialize a physical shape with associated body.
@@ -28,6 +31,9 @@ class Shape:
         self.default_angular_velocity = 0
 
         self.shape = shape
+        self.shape.mass = shape_mass
+        self.shape.friction = shape_friction
+        self.shape.elasticity = shape_elasticity  # Add some bounce to make the simulation more interesting
 
     def reset(self):
         """Reset the body to its default position, velocity and angular velocity."""
