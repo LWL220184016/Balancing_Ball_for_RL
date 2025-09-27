@@ -12,13 +12,12 @@ from io import BytesIO
 
 try:
     from record import Recorder
+    from levels.levels import get_level
+    from collision_handle import CollisionHandler
 except ImportError:
     from game.record import Recorder
-
-try:
-    from levels.levels import get_level
-except ImportError:
     from game.levels.levels import get_level
+    from game.collision_handle import CollisionHandler
 
 
 class BalancingBallGame:
@@ -84,6 +83,7 @@ class BalancingBallGame:
         self.level = get_level(level=level, space=self.space, collision_type=collision_type, player_configs=player_configs, platform_configs=platform_configs, environment_configs=environment_configs)
         self.players, self.platforms = self.level.setup(self.window_x, self.window_y)
         self.num_players = len(self.players)
+        self.collision_handler = CollisionHandler(self.space, self.players, self.platforms)
 
         # Game state tracking
         self.steps = 0
@@ -195,11 +195,13 @@ class BalancingBallGame:
             terminated: Whether episode is done
             info: Additional information
         """
-        
-        # 優先更新碰撞檢測
-        self.space.on_collision(None, None, post_solve=self._collision_handler)
+        self.collision_handler.check_is_on_ground()
+        self.collision_handler.check_is_collision_player()
+        # Step the physics simulation
+        self.space.step(1/self.fps)
 
-        
+        # 在物理糢擬后執行動作會導致環境數據過時，但是當 FPS 較高時，這種影響可以忽略不計
+        # 而且不得不這麽做的原因是碰撞檢測的回調函數只能在 step 之後執行
         self.players_fell_this_step = [False] * self.num_players
         
         # 需要保留直到移除舊模型，詳情看函數說明
@@ -210,8 +212,6 @@ class BalancingBallGame:
             player.perform_action(pactions[i])
         self.level.action()
 
-        # Step the physics simulation
-        self.space.step(1/self.fps)
 
         # Check game state
         self.steps += 1
@@ -304,15 +304,6 @@ class BalancingBallGame:
             self.recorder.add_no_limit(result)
 
         return rewards, terminated
-
-    def _collision_handler(self, arbiter, space, data):
-        """Handle collisions between objects"""
-        if arbiter.shapes[0].collision_type < 2000:  # Threshold for playing sound
-        if self.sound_enabled and self.sound_bounce:
-            self.sound_bounce.play()
-
-
-        return True  # Continue with normal collision handling
 
     def _get_observation(self) -> np.ndarray:
         """Convert game state to observation for RL agent"""
@@ -477,11 +468,13 @@ class BalancingBallGame:
 
             # Process keyboard controls for continuous actions
             keys = pygame.key.get_pressed()
+            mouse_buttons = pygame.mouse.get_pressed()
             actions = []
 
             # Player 1 controls (WASD + Space for jump)
             p1_x_force = 0
             p1_y_force = 0
+            p1_ability1 = None
             if keys[pygame.K_a]:
                 p1_x_force = -1  # Full left force
             elif keys[pygame.K_d]:
@@ -490,18 +483,22 @@ class BalancingBallGame:
             if keys[pygame.K_SPACE]:
                 p1_y_force = 1  # Jump force persentage (0 to 1)
 
-            actions.append((p1_x_force, p1_y_force))
+            if mouse_buttons[0]:
+                p1_ability1 = pygame.mouse.get_pos()  # Activate ability 1
+
+            actions.append((p1_x_force, p1_y_force, p1_ability1))
 
             # Player 2 controls (Arrow keys)
             p2_x_force = 0
             p2_y_force = 0
+            p2_ability1 = None
             if len(self.players) > 1:
                 if keys[pygame.K_LEFT]:
                     p2_x_force = -1  # Full left force
                 elif keys[pygame.K_RIGHT]:
                     p2_x_force = 1   # Full right force
 
-            actions.append((p2_x_force, p2_y_force))
+            actions.append((p2_x_force, p2_y_force, p2_ability1))
 
             # Take game step
             if not self.game_over:

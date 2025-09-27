@@ -87,17 +87,18 @@ class Levels:
         self.players = [self.create_player(window_x, window_y, **config) for config in self.player_configs]
         self.platforms = [self.create_platform(window_x, window_y, **config) for config in self.platform_configs]
 
+
         print(f"Created {len(self.players)} players and {len(self.platforms)} platforms.")
 
         for player in self.players:
             body, shape = player.get_physics_components()
             self.space.add(body, shape)
-        
+
         for platform in self.platforms:
             body, shape = platform.get_physics_components()
             self.space.add(body, shape)
 
-        return tuple(self.players), tuple(self.platforms)
+        return self.players, self.platforms
 
     def create_player(self,
                       window_x: int = 1000,
@@ -114,7 +115,6 @@ class Levels:
         dynamic_body = pymunk.Body()  # Ball body
         default_player_position = (window_x * default_player_position[0], window_y * default_player_position[1])
         ball_radius = int(window_x / 67)
-        self.collision_type_player += 1
         shape = Circle(
             position=default_player_position,
             velocity=(0, 0),
@@ -131,6 +131,7 @@ class Levels:
             action_params=action_params,
             action_cooldown=action_cooldown
         )
+        self.collision_type_player += 1
         # Store initial values for reset
         return player
 
@@ -152,7 +153,6 @@ class Levels:
         kinematic_body.position = (window_x * platform_position[0], window_y * platform_position[1])
         default_kinematic_position = kinematic_body.position
         platform_length = int(window_x * platform_proportion)
-        self.collision_type_platform += 1
 
         if platform_shape_type == "circle":
             platform_length = platform_length / 2 # radius
@@ -193,19 +193,10 @@ class Levels:
         Reset the level to its initial state.
         """
         for player in self.players:
-            player.set_is_alive(True)
-            player_body = player.get_physics_components()[0]
-            player_body.position = player.get_default_position()
-            player_body.angular_velocity = 0
-            player_body.velocity = (0, 0)
-            self.space.reindex_shapes_for_body(player_body)
+            player.reset(self.space)
 
         for platform in self.platforms:
-            platform_body = platform.get_physics_components()[0]
-            platform_body.position = platform.get_default_position()
-            platform_body.angular_velocity = 0
-            platform_body.velocity = (0, 0)
-            self.space.reindex_shapes_for_body(platform_body)
+            platform.reset(self.space)
 
 class Level1(Levels):
     """

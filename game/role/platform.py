@@ -38,3 +38,6 @@ class Platform(Role):
         state.extend([norm_angular_v])
 
         return state
+    
+    def reset(self, space):
+        super().reset(space)

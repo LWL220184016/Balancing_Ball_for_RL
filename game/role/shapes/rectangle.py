@@ -50,3 +50,6 @@ class Rectangle(Shape):
 
     def get_reward_width(self):
         return self.shape_size[0] / 2 - 5
+    
+    def reset(self):
+        super().reset()

@@ -20,6 +20,20 @@ class Role:
     def _draw_indie_style(self, screen):
         self.shape._draw(screen, self.color)
 
+    def check_cooldowns(self, ability_name) -> bool:
+        """Check and update action cooldowns"""
+        
+        if (time.time() - self.last_action_time[ability_name]) > self.action_cooldown[ability_name]:
+            self.last_action_time[ability_name] = time.time()
+            return True
+        return False
+
+    def reset(self, space):
+        self.shape.reset()
+        self.last_action_time = {action: 0 for action in self.action_cooldown}
+        body = self.shape.get_physics_components()[0]
+        space.reindex_shapes_for_body(body)
+
     def get_state(self, window_size):
         """
         返回該角色的正規化狀態向量。

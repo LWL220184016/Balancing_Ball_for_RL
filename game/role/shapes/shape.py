@@ -28,6 +28,7 @@ class Shape:
 
     def reset(self):
         """Reset the body to its default position, velocity and angular velocity."""
+        
         self.body.position = self.default_position
         self.body.velocity = self.default_velocity
         self.body.angular_velocity = self.default_angular_velocity
@@ -75,5 +76,8 @@ class Shape:
         
         return self.body, self.shape
     
+    def set_velocity(self, velocity):
+        self.body.velocity = velocity
+
     def set_angular_velocity(self, angle):
         self.body.angular_velocity = angle

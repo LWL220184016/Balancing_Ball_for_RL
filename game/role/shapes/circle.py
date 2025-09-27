@@ -93,3 +93,6 @@ class Circle(Shape):
 
     def get_reward_width(self):
         return self.shape_size - 5
+    
+    def reset(self):
+        super().reset()

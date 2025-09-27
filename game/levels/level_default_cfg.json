@@ -21,6 +21,7 @@
                     "collision_speed": 2000
                 },
                 "action_cooldown": {
+                    "jump": 0.1,
                     "collision": 3
                 }
             }
@@ -72,6 +73,7 @@
                     "collision_speed": 2000
                 },
                 "action_cooldown": {
+                    "jump": 0.1,
                     "collision": 3
                 }
             }
@@ -120,9 +122,10 @@
                 "action_params": {
                     "speed": 5000,
                     "jump_high": -1000000,
-                    "collision_speed": 2000
+                    "collision_speed": 8000
                 },
                 "action_cooldown": {
+                    "jump": 0.1,
                     "collision": 3
                 }
             },
@@ -142,6 +145,7 @@
                     "collision_speed": 2000
                 },
                 "action_cooldown": {
+                    "jump": 0.1,
                     "collision": 3
                 }
             }

@@ -1,4 +1,5 @@
 
+import time
 import pymunk
 import numpy as np
 
@@ -31,12 +32,24 @@ class Player(Role):
         if players_action[0] != 0:
             self.move(players_action[0])
 
-        if players_action[1] != 0 and self.is_on_ground:  # Jump action
+        if players_action[1] != 0 and self.is_on_ground and self.check_cooldowns("jump"):  # Jump action
             self.jump(players_action[1])
+            self.last_action_time["jump"] = time.time()
 
-        # if players_action[2] != 0 or players_action[3] != 0:  # collision action
-        #     torque = players_action[2] * self.action_params.get("rotate_speed", 0) - players_action[3] * self.action_params.get("rotate_speed", 0)
-        #     self.shape.body.torque += torque
+        if isinstance(players_action[2], tuple) and self.check_cooldowns("collision"):  # Collision action
+            # 处理旋转动作
+            x, y = self.get_position()
+            target_x, target_y = players_action[2]
+
+            # 計算方向向量
+            direction_vector = pymunk.Vec2d(target_x - x, target_y - y)
+
+            # 只有在向量長度不為零時才進行計算，以避免除以零的錯誤
+            if direction_vector.length > 0:
+                # 正規化向量（使其長度為1）並乘以速度
+                velocity_vector = direction_vector.normalized() * self.action_params["collision_speed"]
+                # 直接設置速度
+                self.shape.set_velocity(velocity_vector)
 
     def get_state(self, window_size, velocity_scale=200.0, **kwargs):
         """
@@ -58,8 +71,17 @@ class Player(Role):
 
         return state
     
+    
+    def reset(self, space):
+        super().reset(space)
+        self.is_alive = True
+        self.is_on_ground = False
+
     def get_is_alive(self):
         return self.is_alive
+
+    def get_is_on_ground(self):
+        return self.is_on_ground
 
     def set_is_alive(self, alive_status: bool):
         self.is_alive = alive_status
