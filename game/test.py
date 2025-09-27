@@ -1,7 +1,7 @@
 from balancing_ball_game import BalancingBallGame
 from gym_env import BalancingBallEnv
 
-def run_standalone_game(render_mode="human", capture_per_second=None, window_x=1000, window_y=600, player_configs=None, platform_configs=None, environment_configs=None, level=2, fps=120):
+def run_standalone_game(render_mode="human", capture_per_second=None, window_x=1000, window_y=600, collision_type=None, player_configs=None, platform_configs=None, environment_configs=None, level=2, fps=120):
     """Run the game in standalone mode with visual display"""
 
 
@@ -9,6 +9,7 @@ def run_standalone_game(render_mode="human", capture_per_second=None, window_x=1
         render_mode = render_mode,
         window_x = window_x,
         window_y = window_y,
+        collision_type = collision_type,
         player_configs = player_configs,
         platform_configs = platform_configs,
         environment_configs = environment_configs,
@@ -55,50 +56,9 @@ def test_gym_env(episodes=3):
 
 if __name__ == "__main__":
     # Example usage:
+    collision_type = None
     player_configs = None
-    # player_configs = [
-    #             {
-    #                 "ball_color": [
-    #                     255, 
-    #                     213, 
-    #                     79
-    #                 ],
-    #                 "default_player_position": [
-    #                     0.4,
-    #                     0.2
-    #                 ]
-    #             },
-    #             {
-    #                 "ball_color": [
-    #                     194,
-    #                     238,
-    #                     84
-    #                 ],
-    #                 "default_player_position": [
-    #                     0.6,
-    #                     0.2
-    #                 ]
-    #             }
-    #         ]
-
-    platform_configs = [
-                {
-                    "platform_shape_type": "rectangle",
-                    "platform_proportion": 0.8,
-                    "platform_position": [
-                        0.5,
-                        0.67
-                    ]
-                },
-                {
-                    "platform_shape_type": "circle",
-                    "platform_proportion": 0.1,
-                    "platform_position": [
-                        0.25,
-                        0.4
-                    ]
-                }
-            ]
+    platform_configs = None
     environment_configs = [
                 {
                     "gravity": [0, 9810],
@@ -110,6 +70,7 @@ if __name__ == "__main__":
     run_standalone_game(render_mode="human", 
                         window_x=1000, 
                         window_y=600, 
+                        collision_type=collision_type,
                         player_configs=player_configs,
                         platform_configs=platform_configs,
                         environment_configs=environment_configs,

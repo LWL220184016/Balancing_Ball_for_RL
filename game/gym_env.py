@@ -185,29 +185,13 @@ class BalancingBallEnv(gym.Env):
         """Convert game state to state-based observation for RL agent"""
         obs = []
 
-        # Add each player's state
-        for i, player_body in enumerate(self.game.dynamic_body_players):
-            # Normalize positions by window dimensions
-            ball_x = player_body.position[0] / self.window_x * 2 - 1  # Convert to [-1, 1]
-            ball_y = player_body.position[1] / self.window_y * 2 - 1  # Convert to [-1, 1]
+        # 從每個玩家獲取狀態
+        for player in self.game.get_players():
+            obs.extend(player.get_state(window_size=(self.window_x, self.window_y), velocity_scale=200.0))
 
-            # Normalize velocities (assuming max velocity around 1000)
-            max_velocity = 1000
-            ball_vx = np.clip(player_body.velocity[0] / max_velocity, -1, 1)
-            ball_vy = np.clip(player_body.velocity[1] / max_velocity, -1, 1)
-
-            obs.extend([ball_x, ball_y, ball_vx, ball_vy])
-
-        # Add platform state
-        platform_body = self.game.kinematic_body_platforms[0]
-        platform_x = platform_body.position[0] / self.window_x * 2 - 1  # Convert to [-1, 1]
-        platform_y = platform_body.position[1] / self.window_y * 2 - 1  # Convert to [-1, 1]
-
-        # Normalize angular velocity (assuming max around 10)
-        max_angular_velocity = 10
-        platform_angular_velocity = np.clip(platform_body.angular_velocity / max_angular_velocity, -1, 1)
-
-        obs.extend([platform_x, platform_y, platform_angular_velocity])
+        # 從每個平台獲取狀態
+        for platform in self.game.get_platforms():
+            obs.extend(platform.get_state(window_size=(self.window_x, self.window_y), velocity_scale=20.0))
 
         return np.array(obs, dtype=np.float32)
 

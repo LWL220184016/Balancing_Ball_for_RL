@@ -1,16 +1,28 @@
 {
     "level1": {
+        "collision_type": {
+            "player": 1000,
+            "platform": 2000
+        },
         "player_configs": [
             {
-                "ball_color": [
+                "player_color": [
                     255,
                     213,
                     79
                 ],
                 "default_player_position": [
-                    0.5,
+                    0.4,
                     0.2
-                ]
+                ],
+                "action_params": {
+                    "speed": 5000,
+                    "jump_high": -1000000,
+                    "collision_speed": 2000
+                },
+                "action_cooldown": {
+                    "collision": 3
+                }
             }
         ],
         "platform_configs": [
@@ -20,6 +32,11 @@
                 "platform_position": [
                     0.5,
                     0.67
+                ],
+                "platform_color": [
+                    235,
+                    64,
+                    52
                 ]
             }
         ],
@@ -34,17 +51,29 @@
         ]
     },
     "level2": {
+        "collision_type": {
+            "player": 1000,
+            "platform": 2000
+        },
         "player_configs": [
             {
-                "ball_color": [
+                "player_color": [
                     255,
                     213,
                     79
                 ],
                 "default_player_position": [
-                    0.5,
+                    0.4,
                     0.2
-                ]
+                ],
+                "action_params": {
+                    "speed": 5000,
+                    "jump_high": -1000000,
+                    "collision_speed": 2000
+                },
+                "action_cooldown": {
+                    "collision": 3
+                }
             }
         ],
         "platform_configs": [
@@ -54,6 +83,11 @@
                 "platform_position": [
                     0.5,
                     0.67
+                ],
+                "platform_color": [
+                    235,
+                    64,
+                    52
                 ]
             }
         ],
@@ -68,9 +102,13 @@
         ]
     },
     "level3": {
+        "collision_type": {
+            "player": 1000,
+            "platform": 2000
+        },
         "player_configs": [
             {
-                "ball_color": [
+                "player_color": [
                     255,
                     213,
                     79
@@ -81,7 +119,7 @@
                 ],
                 "action_params": {
                     "speed": 5000,
-                    "jump_high" : -1000000, 
+                    "jump_high": -1000000,
                     "collision_speed": 2000
                 },
                 "action_cooldown": {
@@ -89,7 +127,7 @@
                 }
             },
             {
-                "ball_color": [
+                "player_color": [
                     194,
                     238,
                     84
@@ -100,7 +138,7 @@
                 ],
                 "action_params": {
                     "speed": 5000,
-                    "jump_high" : -1000000,
+                    "jump_high": -1000000,
                     "collision_speed": 2000
                 },
                 "action_cooldown": {
@@ -115,6 +153,11 @@
                 "platform_position": [
                     0.5,
                     0.67
+                ],
+                "platform_color": [
+                    235,
+                    64,
+                    52
                 ]
             }
         ],

@@ -30,7 +30,6 @@ class BalancingBallGame:
 
     # Visual settings for indie style
     BACKGROUND_COLOR = (41, 50, 65)  # Dark blue background
-    PLATFORM_COLOR = (235, 64, 52)  # Red platform
 
     def __init__(self,
                  render_mode: str = "human",
@@ -38,6 +37,7 @@ class BalancingBallGame:
                  window_x: int = 1000,
                  window_y: int = 600,
                  max_step: int = 30000,
+                 collision_type: dict = None,
                  player_configs: dict = None,
                  platform_configs: dict = None,
                  environment_configs: dict = None,
@@ -81,14 +81,8 @@ class BalancingBallGame:
         # Initialize physics space
         self.space = pymunk.Space()
 
-        self.level = get_level(level, self.space, player_configs, platform_configs, environment_configs)
+        self.level = get_level(level=level, space=self.space, collision_type=collision_type, player_configs=player_configs, platform_configs=platform_configs, environment_configs=environment_configs)
         self.players, self.platforms = self.level.setup(self.window_x, self.window_y)
-        self.kinematic_body_platforms = []
-
-        for platform in self.platforms:
-            self.kinematic_body_platforms.append(platform["body"])
-
-        self.platform_length = self.platforms[0]["platform_length"]
         self.num_players = len(self.players)
 
         # Game state tracking
@@ -201,6 +195,11 @@ class BalancingBallGame:
             terminated: Whether episode is done
             info: Additional information
         """
+        
+        # 優先更新碰撞檢測
+        self.space.on_collision(None, None, post_solve=self._collision_handler)
+
+        
         self.players_fell_this_step = [False] * self.num_players
         
         # 需要保留直到移除舊模型，詳情看函數說明
@@ -231,7 +230,7 @@ class BalancingBallGame:
         alive_count = 0
         
         for i, player in enumerate(self.players):
-            if not player.is_alive:
+            if not player.get_is_alive():
                 continue
 
             ball_x, ball_y = player.get_position()
@@ -240,7 +239,7 @@ class BalancingBallGame:
             if (ball_y > self.window_y or
                 ball_x < 0 or ball_x > self.window_x):
 
-                player.is_alive = False
+                player.set_is_alive(False)
                 self.players_fell_this_step[i] = True
                 rewards[i] = self.penalty_falling
 
@@ -265,7 +264,7 @@ class BalancingBallGame:
 
         # 處理對手掉落的獎勵
         for i, player in enumerate(self.players):
-            if player.is_alive:  # 如果這個玩家還活著
+            if player.get_is_alive():  # 如果這個玩家還活著
                 # 檢查是否有對手在這步掉落
                 opponents_fell = any(self.players_fell_this_step[j] for j in range(self.num_players) if j != i)
                 if opponents_fell:
@@ -276,14 +275,14 @@ class BalancingBallGame:
 
         # Check if game should end
         terminated = False
-        if alive_count <= 1 or self.steps >= self.max_step:
+        if alive_count == 0 or (alive_count == 1 and self.num_players > 1) or self.steps >= self.max_step:
             print("Final Scores: ", self.score)
             terminated = True
             self.game_over = True
 
             # Determine winner (last player alive or highest score)
-            if alive_count == 1:
-                self.winner = next(i for i in range(self.num_players) if self.players[i].is_alive)
+            if alive_count == 1 and self.num_players > 1:
+                self.winner = next(i for i in range(self.num_players) if self.players[i].get_is_alive())
                 # Give bonus to winner
                 rewards[self.winner] += self.survival_bonus * self.steps / 100  # 生存時間越長獎勵越多
                 self.score[self.winner] += rewards[self.winner]
@@ -305,6 +304,15 @@ class BalancingBallGame:
             self.recorder.add_no_limit(result)
 
         return rewards, terminated
+
+    def _collision_handler(self, arbiter, space, data):
+        """Handle collisions between objects"""
+        if arbiter.shapes[0].collision_type < 2000:  # Threshold for playing sound
+        if self.sound_enabled and self.sound_bounce:
+            self.sound_bounce.play()
+
+
+        return True  # Continue with normal collision handling
 
     def _get_observation(self) -> np.ndarray:
         """Convert game state to observation for RL agent"""
@@ -370,72 +378,11 @@ class BalancingBallGame:
         """Draw game objects with indie game aesthetic"""
         # Draw players
         for player in self.players:
-            if player.is_alive:
+            if player.get_is_alive():
                 player._draw_indie_style(self.screen)
 
-        # Draw platforms by checking the shape type associated with each body
-        for platform_body in self.kinematic_body_platforms:
-            # A body can have multiple shapes, iterate through them
-            for shape in platform_body.shapes:
-                if isinstance(shape, pymunk.Poly):
-                    # It's a polygon, draw it
-                    platform_points = [v.rotated(platform_body.angle) + platform_body.position for v in shape.get_vertices()]
-                    
-                    pygame.draw.polygon(self.screen, self.PLATFORM_COLOR, platform_points)
-                    pygame.draw.polygon(self.screen, (255, 255, 255), platform_points, 2)
-                    
-                    # For rotation indicator, we need a position and a "radius"
-                    # We can approximate the radius from the shape's bounding box
-                    radius_approx = (shape.bb.right - shape.bb.left) / 2
-                    self._draw_rotation_indicator(platform_body.position, radius_approx, platform_body.angular_velocity, platform_body)
-
-                elif isinstance(shape, pymunk.Circle):
-                    # It's a circle, draw it
-                    platform_pos = (int(platform_body.position.x), int(platform_body.position.y))
-                    radius = int(shape.radius)
-                    
-                    pygame.draw.circle(self.screen, self.PLATFORM_COLOR, platform_pos, radius)
-                    pygame.draw.circle(self.screen, (255, 255, 255), platform_pos, radius, 2)
-                    
-                    self._draw_rotation_indicator(platform_pos, radius, platform_body.angular_velocity, platform_body)
-
-    def _draw_rotation_indicator(self, position, radius, angular_velocity, body):
-        """Draw an indicator showing the platform's rotation direction and speed"""
-        # Only draw the indicator if there's some rotation
-        if abs(angular_velocity) < 0.1:
-            return
-
-        # Calculate indicator properties based on angular velocity
-        indicator_color = (50, 255, 150) if angular_velocity > 0 else (255, 150, 50)
-        num_arrows = min(3, max(1, int(abs(angular_velocity))))
-        indicator_radius = radius - 20  # Place indicator inside the platform
-
-        # Draw arrow indicators along the platform's circumference
-        start_angle = body.angle
-
-        for i in range(num_arrows):
-            # Calculate arrow position
-            arrow_angle = start_angle + i * (2 * np.pi / num_arrows)
-
-            # Calculate arrow start and end points
-            base_x = position[0] + int(np.cos(arrow_angle) * indicator_radius)
-            base_y = position[1] + int(np.sin(arrow_angle) * indicator_radius)
-
-            # Determine arrow direction based on angular velocity
-            if angular_velocity > 0:  # Clockwise
-                arrow_end_angle = arrow_angle + 0.3
-            else:  # Counter-clockwise
-                arrow_end_angle = arrow_angle - 0.3
-
-            tip_x = position[0] + int(np.cos(arrow_end_angle) * (indicator_radius + 15))
-            tip_y = position[1] + int(np.sin(arrow_end_angle) * (indicator_radius + 15))
-
-            # Draw arrow line
-            pygame.draw.line(self.screen, indicator_color, (base_x, base_y), (tip_x, tip_y), 3)
-
-            # Draw arrowhead
-            arrowhead_size = 7
-            pygame.draw.circle(self.screen, indicator_color, (tip_x, tip_y), arrowhead_size)
+        for platform in self.platforms:
+            platform._draw_indie_style(self.screen) 
 
     def _draw_game_info(self):
         """Draw game information on screen"""
@@ -455,7 +402,7 @@ class BalancingBallGame:
         # Draw scores
         y_offset = 40
         for i, surface in enumerate(score_surfaces):
-            color = self.players[i].get_color() if self.players[i].is_alive else (100, 100, 100)
+            color = self.players[i].get_color() if self.players[i].get_is_alive() else (100, 100, 100)
             pygame.draw.rect(self.screen, (0, 0, 0, 128),
                             (5, y_offset, surface.get_width() + 10, surface.get_height() + 5))
             colored_surface = self.font.render(score_texts[i], True, color)
@@ -564,3 +511,9 @@ class BalancingBallGame:
             self.render()
 
         self.close()
+
+    def get_players(self):
+        return self.players
+    
+    def get_platforms(self):
+        return self.platforms
