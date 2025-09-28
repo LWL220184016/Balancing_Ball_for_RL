@@ -1,26 +1,21 @@
 
 import numpy as np
+import pymunk
 from role.roles import Role
 from role.shapes.shape import Shape
 
 class Platform(Role):
-    def __init__(self, shape: Shape, platform_color: tuple, action_params: dict, action_cooldown: dict):
-        super().__init__(shape, platform_color, action_params, action_cooldown)
+    def __init__(self, shape: Shape, platform_color: tuple, abilities: list[str]):
+        super().__init__(shape, platform_color, abilities)
         self.platform_color = platform_color
-        self.action_cooldown = action_cooldown  # Dictionary of action cooldowns
-        self.action_params = action_params  # Dictionary of action parameters
-        self.last_action_time = {action: 0 for action in action_cooldown}  # Track last action time for each action
 
-    def move(self, direction):
-        raise NotImplementedError(f"This method '{self.move.__name__}' not implemented.")
-
-    def perform_action(self, players_action):
+    def perform_action(self, players_action: list):
         raise NotImplementedError(f"This method '{self.perform_action.__name__}' not implemented.")
     
     def get_reward_width(self):
         return self.shape.get_reward_width()
 
-    def get_state(self, window_size, velocity_scale=20.0, **kwargs):
+    def get_state(self, window_size: tuple, velocity_scale: float = 20.0, **kwargs):
         """
         獲取玩家的正規化狀態。
         使用 tanh 函數來處理沒有固定上限的速度。
@@ -39,5 +34,5 @@ class Platform(Role):
 
         return state
     
-    def reset(self, space):
+    def reset(self, space: pymunk.Space):
         super().reset(space)

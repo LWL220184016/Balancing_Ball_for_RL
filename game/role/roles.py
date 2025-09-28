@@ -1,40 +1,40 @@
-
-
 import time
+import pygame
+import pymunk
+
+from typing import Dict
+from role.abilities.ability import Ability
 from role.shapes.shape import Shape
+from role.abilities import *  # Import all abilities 
 
 class Role:
-    def __init__(self, shape: Shape, color: tuple, action_params: dict, action_cooldown: dict):
+    def __init__(self, shape: Shape, color: tuple, abilities: list[str]):
         self.shape = shape
         self.color = color
-        self.action_cooldown = action_cooldown  # Dictionary of action cooldowns
-        self.action_params = action_params  # Dictionary of action parameters
-        self.last_action_time = {action: 0 for action in action_cooldown}  # Track last action time for each action
+        # 使用列表推導式和 globals() 來動態實例化類別
+        if abilities:
+            self.abilities: Dict[str, Ability] = {name: globals()[name]() for name in abilities if name in globals()}
+            print(f"Initialized Role with abilities: {list(self.abilities.keys())}")
+        else:
+            self.abilities = {}
+            print("Initialized with no abilities.")
 
-    def move(self, direction):
-        raise NotImplementedError(f"This method '{self.move.__name__}' should be overridden by subclasses.")
-
-    def perform_action(self, players_action):
+    def perform_action(self, players_action: list):
         raise NotImplementedError(f"This method '{self.perform_action.__name__}' should be overridden by subclasses.")
 
-    def _draw_indie_style(self, screen):
+    def _draw_indie_style(self, screen: pygame.Surface):
         self.shape._draw(screen, self.color)
 
-    def check_cooldowns(self, ability_name) -> bool:
-        """Check and update action cooldowns"""
-        
-        if (time.time() - self.last_action_time[ability_name]) > self.action_cooldown[ability_name]:
-            self.last_action_time[ability_name] = time.time()
-            return True
-        return False
-
-    def reset(self, space):
+    def reset(self, space: pymunk.Space):
         self.shape.reset()
-        self.last_action_time = {action: 0 for action in self.action_cooldown}
+
+        if self.abilities:
+            for ability in self.abilities.values():
+                ability.reset()
         body = self.shape.get_physics_components()[0]
         space.reindex_shapes_for_body(body)
 
-    def get_state(self, window_size):
+    def get_state(self, window_size: tuple):
         """
         返回該角色的正規化狀態向量。
         """
@@ -49,11 +49,10 @@ class Role:
 
         current_time = time.time()
         # 確保按鍵順序一致，以便狀態向量的維度固定
-        sorted_actions = sorted(self.action_cooldown.keys())
 
-        for action in sorted_actions:
-            cooldown_duration = self.action_cooldown.get(action, 0)
-            last_use_time = self.last_action_time.get(action, 0)
+        for ability in self.abilities.values():
+            cooldown_duration = ability.get_cooldown()
+            last_use_time = ability.get_last_used_time()
 
             if cooldown_duration > 0:
                 time_since_last_use = current_time - last_use_time
@@ -93,5 +92,5 @@ class Role:
         """Returns the physics body and shape for adding to the space."""
         return self.shape.get_physics_components()
     
-    def set_angular_velocity(self, angle):
+    def set_angular_velocity(self, angle: float):
         self.shape.set_angular_velocity(angle)

@@ -1,31 +1,43 @@
 {
+    "player_configs": [
+        {
+            "player_color": [
+                255,
+                213,
+                79
+            ],
+            "default_player_position": [
+                0.4,
+                0.2
+            ],
+            "abilities": [
+                "Move",
+                "Jump",
+                "Collision"
+            ]
+        },
+        {
+            "player_color": [
+                194,
+                238,
+                84
+            ],
+            "default_player_position": [
+                0.6,
+                0.2
+            ],
+            "abilities": [
+                "Move",
+                "Jump",
+                "Collision"
+            ]
+        }
+    ],
     "level1": {
         "collision_type": {
             "player": 1000,
             "platform": 2000
         },
-        "player_configs": [
-            {
-                "player_color": [
-                    255,
-                    213,
-                    79
-                ],
-                "default_player_position": [
-                    0.4,
-                    0.2
-                ],
-                "action_params": {
-                    "speed": 5000,
-                    "jump_high": -1000000,
-                    "collision_speed": 2000
-                },
-                "action_cooldown": {
-                    "jump": 0.1,
-                    "collision": 3
-                }
-            }
-        ],
         "platform_configs": [
             {
                 "platform_shape_type": "circle",
@@ -38,7 +50,8 @@
                     235,
                     64,
                     52
-                ]
+                ],
+                "abilities": []
             }
         ],
         "environment_configs": [
@@ -56,28 +69,6 @@
             "player": 1000,
             "platform": 2000
         },
-        "player_configs": [
-            {
-                "player_color": [
-                    255,
-                    213,
-                    79
-                ],
-                "default_player_position": [
-                    0.4,
-                    0.2
-                ],
-                "action_params": {
-                    "speed": 5000,
-                    "jump_high": -1000000,
-                    "collision_speed": 2000
-                },
-                "action_cooldown": {
-                    "jump": 0.1,
-                    "collision": 3
-                }
-            }
-        ],
         "platform_configs": [
             {
                 "platform_shape_type": "circle",
@@ -90,7 +81,8 @@
                     235,
                     64,
                     52
-                ]
+                ],
+                "abilities": []
             }
         ],
         "environment_configs": [
@@ -108,48 +100,6 @@
             "player": 1000,
             "platform": 2000
         },
-        "player_configs": [
-            {
-                "player_color": [
-                    255,
-                    213,
-                    79
-                ],
-                "default_player_position": [
-                    0.4,
-                    0.2
-                ],
-                "action_params": {
-                    "speed": 5000,
-                    "jump_high": -1000000,
-                    "collision_speed": 8000
-                },
-                "action_cooldown": {
-                    "jump": 0.1,
-                    "collision": 3
-                }
-            },
-            {
-                "player_color": [
-                    194,
-                    238,
-                    84
-                ],
-                "default_player_position": [
-                    0.6,
-                    0.2
-                ],
-                "action_params": {
-                    "speed": 5000,
-                    "jump_high": -1000000,
-                    "collision_speed": 2000
-                },
-                "action_cooldown": {
-                    "jump": 0.1,
-                    "collision": 3
-                }
-            }
-        ],
         "platform_configs": [
             {
                 "platform_shape_type": "rectangle",
@@ -162,7 +112,8 @@
                     235,
                     64,
                     52
-                ]
+                ],
+                "abilities": []
             }
         ],
         "environment_configs": [

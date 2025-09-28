@@ -76,8 +76,8 @@ class Shape:
         
         return self.body, self.shape
     
-    def set_velocity(self, velocity):
+    def set_velocity(self, velocity: pymunk.Vec2d):
         self.body.velocity = velocity
 
-    def set_angular_velocity(self, angle):
+    def set_angular_velocity(self, angle: float):
         self.body.angular_velocity = angle

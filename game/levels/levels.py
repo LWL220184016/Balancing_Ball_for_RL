@@ -1,7 +1,5 @@
 import random
 import pymunk
-import pygame
-import numpy as np
 import time
 import json
 import os
@@ -30,13 +28,14 @@ def get_level(level: int, space, collision_type=None, player_configs=None, platf
         with open(config_path, 'r') as f:
             default_configs = json.load(f)
         
+        if not player_configs:
+            player_configs = default_configs.get("player_configs", [])
+
         level_key = f"level{level}"
         if level_key in default_configs:
             level_cfg = default_configs[level_key]
             if not collision_type:
                 collision_type = level_cfg.get("collision_type", {})
-            if not player_configs:
-                player_configs = level_cfg.get("player_configs", [])
             if not platform_configs:
                 platform_configs = level_cfg.get("platform_configs", [])
             if not environment_configs:
@@ -105,8 +104,7 @@ class Levels:
                       window_y: int = 600,
                       default_player_position: tuple = None,
                       player_color = None,
-                      action_params: dict = None,
-                      action_cooldown: dict = None
+                      abilities: dict = None
                      ):
         """
         Create the ball with physics properties
@@ -128,8 +126,7 @@ class Levels:
         player = Player(
             shape=shape,
             player_color=player_color,
-            action_params=action_params,
-            action_cooldown=action_cooldown
+            abilities=abilities
         )
         self.collision_type_player += 1
         # Store initial values for reset
@@ -142,6 +139,7 @@ class Levels:
                         platform_proportion: float = None,
                         platform_position: tuple = None,
                         platform_color = None,
+                        abilities: dict = None
                        ):
         """
         Create the platform with physics properties
@@ -181,9 +179,8 @@ class Levels:
 
         platform = Platform(
             shape, 
-            platform_color, 
-            action_params={}, 
-            action_cooldown={}
+            platform_color,
+            abilities=abilities
         )
 
         return platform

@@ -455,51 +455,23 @@ class BalancingBallGame:
         """Run the game in standalone mode with keyboard controls"""
         if self.render_mode not in ["human", "rgb_array_and_human_in_colab"]:
             raise ValueError("Standalone mode requires render_mode='human' or 'rgb_array_and_human_in_colab'")
+        
+        try:
+            from human_control import HumanControl
+        except ImportError:
+            from game.human_control import HumanControl
+            
+        self.human_control = HumanControl(self)
 
         running = True
         while running:
             # Handle events
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_r and self.game_over:
-                        self.reset()
+            actions = self.human_control.get_player_actions()
 
-            # Process keyboard controls for continuous actions
-            keys = pygame.key.get_pressed()
-            mouse_buttons = pygame.mouse.get_pressed()
-            actions = []
-
-            # Player 1 controls (WASD + Space for jump)
-            p1_x_force = 0
-            p1_y_force = 0
-            p1_ability1 = None
-            if keys[pygame.K_a]:
-                p1_x_force = -1  # Full left force
-            elif keys[pygame.K_d]:
-                p1_x_force = 1  # Full right force
-
-            if keys[pygame.K_SPACE]:
-                p1_y_force = 1  # Jump force persentage (0 to 1)
-
-            if mouse_buttons[0]:
-                p1_ability1 = pygame.mouse.get_pos()  # Activate ability 1
-
-            actions.append((p1_x_force, p1_y_force, p1_ability1))
-
-            # Player 2 controls (Arrow keys)
-            p2_x_force = 0
-            p2_y_force = 0
-            p2_ability1 = None
-            if len(self.players) > 1:
-                if keys[pygame.K_LEFT]:
-                    p2_x_force = -1  # Full left force
-                elif keys[pygame.K_RIGHT]:
-                    p2_x_force = 1   # Full right force
-
-            actions.append((p2_x_force, p2_y_force, p2_ability1))
-
+            if actions is False:
+                running = False
+                continue
+            
             # Take game step
             if not self.game_over:
                 self.step(actions)
@@ -512,5 +484,11 @@ class BalancingBallGame:
     def get_players(self):
         return self.players
     
+    def get_num_players(self):
+        return self.num_players
+    
     def get_platforms(self):
         return self.platforms
+    
+    def get_game_over(self):
+        return self.game_over
