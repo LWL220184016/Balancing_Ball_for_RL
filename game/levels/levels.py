@@ -6,15 +6,11 @@ import os
 
 
 try:
-    from role.shapes.circle import Circle
-    from role.shapes.rectangle import Rectangle
-    from role.player import Player
-    from role.platform import Platform
+    from role.player import PlayerFactory
+    from role.platform import PlatformFactory
 except ImportError:
-    from game.role.shapes.circle import Circle
-    from game.role.shapes.rectangle import Rectangle
-    from game.role.player import Player
-    from game.role.platform import Platform
+    from game.role.player import PlayerFactory
+    from game.role.platform import PlatformFactory
 
 def get_level(level: int, space, collision_type=None, player_configs=None, platform_configs=None, environment_configs=None):
     """
@@ -81,10 +77,14 @@ class Levels:
         """
         self.collision_type_player = self.collision_type.get("player")
         self.collision_type_platform = self.collision_type.get("platform")
+
+        player_factory = PlayerFactory(self.collision_type_player)
+        platform_factory = PlatformFactory(self.collision_type_platform)
+
         if not self.collision_type_player or not self.collision_type_platform:
             raise ValueError(f"Invalid collision_type: {self.collision_type}, must contain 'player' and 'platform' keys with integer values")
-        self.players = [self.create_player(window_x, window_y, **config) for config in self.player_configs]
-        self.platforms = [self.create_platform(window_x, window_y, **config) for config in self.platform_configs]
+        self.players = [player_factory.create_player(window_x, window_y, **config) for config in self.player_configs]
+        self.platforms = [platform_factory.create_platform(window_x, window_y, **config) for config in self.platform_configs]
 
 
         print(f"Created {len(self.players)} players and {len(self.platforms)} platforms.")
@@ -99,92 +99,6 @@ class Levels:
 
         return self.players, self.platforms
 
-    def create_player(self,
-                      window_x: int = 1000,
-                      window_y: int = 600,
-                      default_player_position: tuple = None,
-                      player_color = None,
-                      abilities: dict = None
-                     ):
-        """
-        Create the ball with physics properties
-        default_player_position: Initial position of the player
-        """
-        dynamic_body = pymunk.Body()  # Ball body
-        default_player_position = (window_x * default_player_position[0], window_y * default_player_position[1])
-        ball_radius = int(window_x / 67)
-        shape = Circle(
-            position=default_player_position,
-            velocity=(0, 0),
-            body=dynamic_body,
-            shape_size=ball_radius,
-            shape_friction=100,
-            collision_type=self.collision_type_player,
-            draw_rotation_indicator=False
-        )
-
-        player = Player(
-            shape=shape,
-            player_color=player_color,
-            abilities=abilities
-        )
-        self.collision_type_player += 1
-        # Store initial values for reset
-        return player
-
-    def create_platform(self,
-                        window_x: int = 1000,
-                        window_y: int = 600,
-                        platform_shape_type: str = None,
-                        platform_proportion: float = None,
-                        platform_position: tuple = None,
-                        platform_color = None,
-                        abilities: dict = None
-                       ):
-        """
-        Create the platform with physics properties
-        platform_shape_type: circle, rectangle
-        platform_length: Length of a rectangle or Diameter of a circle
-        """
-        # Create game bodies
-        kinematic_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)  # Platform body
-        kinematic_body.position = (window_x * platform_position[0], window_y * platform_position[1])
-        default_kinematic_position = kinematic_body.position
-        platform_length = int(window_x * platform_proportion)
-
-        if platform_shape_type == "circle":
-            platform_length = platform_length / 2 # radius
-            shape = Circle(
-                position=default_kinematic_position,
-                velocity=(0, 0),
-                body=kinematic_body,
-                shape_size=platform_length,
-                shape_friction=0.7,
-                collision_type=self.collision_type_platform,
-                draw_rotation_indicator=True,
-            )
-
-
-        elif platform_shape_type == "rectangle":
-            platform_length = platform_length
-            shape = Rectangle(
-                position=default_kinematic_position,
-                velocity=(0, 0),
-                body=kinematic_body,
-                shape_size=(platform_length, 20),
-                shape_friction=0.7,
-                shape_elasticity=0.1,
-                collision_type=self.collision_type_platform,
-            )
-
-        platform = Platform(
-            shape, 
-            platform_color,
-            abilities=abilities
-        )
-
-        return platform
-    
     def reset(self):
         """
         Reset the level to its initial state.
@@ -337,3 +251,4 @@ class Level3(Levels):
         Reset the level to its initial state.
         """
         super().reset()
+

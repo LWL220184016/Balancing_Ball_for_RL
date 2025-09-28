@@ -45,10 +45,10 @@ class Circle(Shape):
         self.shape.collision_type = collision_type
         self.draw_rotation_indicator = draw_rotation_indicator
 
-    def _draw(self, screen, player_color):
+    def _draw(self, screen, color):
         x, y = self.body.position
         ball_pos = (int(x), int(y))
-        pygame.draw.circle(screen, player_color, ball_pos, self.shape_size)
+        pygame.draw.circle(screen, color, ball_pos, self.shape_size)
         pygame.draw.circle(screen, (255, 255, 255), ball_pos, self.shape_size, 2)
         if self.draw_rotation_indicator == True:
             self._draw_rotation_indicator(screen, ball_pos, self.shape_size, self.body.angular_velocity, self.body)

@@ -19,7 +19,7 @@ class Role:
             self.abilities = {}
             print("Initialized with no abilities.")
 
-    def perform_action(self, players_action: list):
+    def perform_action(self, action: list):
         raise NotImplementedError(f"This method '{self.perform_action.__name__}' should be overridden by subclasses.")
 
     def _draw_indie_style(self, screen: pygame.Surface):
@@ -92,5 +92,9 @@ class Role:
         """Returns the physics body and shape for adding to the space."""
         return self.shape.get_physics_components()
     
+    def set_velocity(self, velocity: pymunk.Vec2d):
+        self.shape.set_velocity(velocity)
+
     def set_angular_velocity(self, angle: float):
         self.shape.set_angular_velocity(angle)
+
