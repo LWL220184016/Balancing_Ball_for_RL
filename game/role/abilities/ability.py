@@ -1,5 +1,3 @@
-
-
 import json
 import os
 import time
@@ -10,28 +8,33 @@ if TYPE_CHECKING:
     from game.role.player import Player
 
 class Ability:
+    _default_configs = None  # 用於緩存配置的類變量
 
     def __init__(self, ability_name: str):
 
         self.ability_name = ability_name
-        # 從 json 文件中加載對應數據
-        print("Loading default ability configurations...")
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        config_path = os.path.join(dir_path, './abilities_default_cfg.json')
-        with open(config_path, 'r') as f:
-            default_configs = json.load(f)
+        # 檢查配置是否已加載，如果沒有則加載一次
+        if Ability._default_configs is None:
+            print("Loading default ability configurations for the first time...")
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            config_path = os.path.join(dir_path, './abilities_default_cfg.json')
+            with open(config_path, 'r') as f:
+                Ability._default_configs = json.load(f)
         
-        player_configs = default_configs.get(self.ability_name)
+        abilities_configs = Ability._default_configs.get(self.ability_name)
         
         # Force 的意思是能力基於施加力來實現
         # Speed 的意思是能力基於直接修改速度來實現
         # Speed 和 Force 只能二選一
         # Cooldown 是該能力的冷卻時間，單位是秒
-        if player_configs:
-            self.force = player_configs.get("force")
-            self.speed = player_configs.get("speed")
-            self.cooldown = player_configs.get("cooldown")  # Default cooldown of 1 second
+        if abilities_configs:
+            self.force = abilities_configs.get("force")
+            self.speed = abilities_configs.get("speed")
+            self.cooldown = abilities_configs.get("cooldown")  # Default cooldown of 1 second
         else:
+            # 即使配置已加載，仍需處理找不到特定能力配置的情況
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            config_path = os.path.join(dir_path, './abilities_default_cfg.json')
             raise ValueError(f"Default config for ability '{self.ability_name}' not found in {config_path}")
 
         self.last_used_time = 0  # Track the last time the ability was used

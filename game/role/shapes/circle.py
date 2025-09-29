@@ -9,48 +9,48 @@ try:
 except ImportError:
     from role.shapes.shape import Shape
 
-class Circle(Shape):
+class Circle(Shape): 
 
     def __init__(
                 self,
-                position: Tuple[float, float] = (300, 100),
-                velocity: Tuple[float, float] = (0, 0),
+                shape_size: int = None,
+                shape_mass: float = None,
+                shape_friction: float = None,
+                shape_elasticity: float = None,
+                position: Tuple[float, float] = None,
+                velocity: Tuple[float, float] = None,
                 body: Optional[pymunk.Body] = None,
-                shape_size: float = 20,
-                shape_mass: float = 1,
-                shape_friction: float = 0.1,
-                shape_elasticity: float = 0.8,
                 collision_type: Optional[int] = None,
-                draw_rotation_indicator: bool = None,
+                is_draw_rotation_indicator: bool = None,
             ):
         """
         Initialize a circular physics object.
 
         Args:
-            position: Initial position (x, y) of the circle
-            velocity: Initial velocity (vx, vy) of the circle
-            body: The pymunk Body to attach this circle to
-            shape_size: Radius of the circle in pixels
+            shape_size: Diameter of the circle in pixels
             shape_mass: Mass of the circle
             shape_friction: Friction coefficient for the circle
             shape_elasticity: Elasticity (bounciness) of the circle
+            position: Initial position (x, y) of the circle
+            velocity: Initial velocity (vx, vy) of the circle
+            body: The pymunk Body to attach this circle to
         """
 
         super().__init__(position, velocity, body)
-        self.shape_size = shape_size
-        self.shape = pymunk.Circle(self.body, shape_size)
+        self.shape_size = shape_size / 2  # radius
+        self.shape = pymunk.Circle(self.body, self.shape_size)
         self.shape.mass = shape_mass
         self.shape.friction = shape_friction
         self.shape.elasticity = shape_elasticity
         self.shape.collision_type = collision_type
-        self.draw_rotation_indicator = draw_rotation_indicator
+        self.is_draw_rotation_indicator = is_draw_rotation_indicator
 
     def _draw(self, screen, color):
         x, y = self.body.position
         ball_pos = (int(x), int(y))
         pygame.draw.circle(screen, color, ball_pos, self.shape_size)
         pygame.draw.circle(screen, (255, 255, 255), ball_pos, self.shape_size, 2)
-        if self.draw_rotation_indicator == True:
+        if self.is_draw_rotation_indicator == True:
             self._draw_rotation_indicator(screen, ball_pos, self.shape_size, self.body.angular_velocity, self.body)
 
     def _draw_rotation_indicator(self, screen, position, radius, angular_velocity, body):

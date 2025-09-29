@@ -1,4 +1,6 @@
 import pymunk
+import random
+
 from typing import Tuple, Optional
 
 class Shape:
@@ -36,6 +38,19 @@ class Shape:
     def apply_force_at_world_point(self, force, point):
         self.body.apply_force_at_world_point(force, point)
 
+    def calculate_position(window_x: int, window_y: int, position: tuple):
+        # if len(position) != 0:
+        #     default_position = (window_x * position[0], window_y * position[1])
+        # else:
+        #     default_position = (random.randint(0, window_x), random.randint(0, window_y))
+        # return default_position
+
+        return (
+            window_x * position[0] if isinstance(position[0], float) else random.randint(0, window_x), 
+            window_y * position[1] if isinstance(position[1], float) else random.randint(0, window_y)
+        )
+
+
     def _draw(self, screen, color):
         raise NotImplementedError(f"This method '{self._draw.__name__}' should be implemented by subclasses.")
 
@@ -61,6 +76,9 @@ class Shape:
     
     def get_default_position(self):
         return self.default_position[0], self.default_position[1]
+
+    def set_default_position(self, position: Tuple[float, float]):
+        self.default_position = position
 
     def get_velocity(self):
         return self.body.velocity[0], self.body.velocity[1]

@@ -59,12 +59,13 @@ if __name__ == "__main__":
     collision_type = None
     player_configs = None
     platform_configs = None
-    environment_configs = [
-                {
-                    "gravity": [0, 9810],
-                    "damping": 0.9
-                }
-            ]
+    environment_configs = None
+    # environment_configs = [
+    #             {
+    #                 "gravity": [0, 9810],
+    #                 "damping": 0.9
+    #             }
+    #         ]
 
     # rgb_array_and_human_in_colab
     run_standalone_game(render_mode="human", 
@@ -77,5 +78,5 @@ if __name__ == "__main__":
                         level=3, 
                         fps=360,
                         capture_per_second=None
-                        )
+                       )
     # test_gym_env()

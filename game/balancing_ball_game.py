@@ -12,11 +12,11 @@ from io import BytesIO
 
 try:
     from record import Recorder
-    from levels.levels import get_level
+    from levels.get_levels import get_level
     from collision_handle import CollisionHandler
 except ImportError:
     from game.record import Recorder
-    from game.levels.levels import get_level
+    from game.levels.get_levels import get_level
     from game.collision_handle import CollisionHandler
 
 
@@ -81,7 +81,7 @@ class BalancingBallGame:
         self.space = pymunk.Space()
 
         self.level = get_level(level=level, space=self.space, collision_type=collision_type, player_configs=player_configs, platform_configs=platform_configs, environment_configs=environment_configs)
-        self.players, self.platforms = self.level.setup(self.window_x, self.window_y)
+        self.players, self.platforms, self.entities = self.level.setup(self.window_x, self.window_y)
         self.num_players = len(self.players)
         self.collision_handler = CollisionHandler(self.space, self.players, self.platforms)
 
@@ -374,6 +374,13 @@ class BalancingBallGame:
 
         for platform in self.platforms:
             platform._draw_indie_style(self.screen) 
+        
+        for entity in self.entities:
+            if isinstance(entity, list):
+                for e in entity:
+                    e._draw_indie_style(self.screen)
+            else:
+                entity._draw_indie_style(self.screen)
 
     def _draw_game_info(self):
         """Draw game information on screen"""
@@ -420,8 +427,7 @@ class BalancingBallGame:
 
     def close(self):
         """Close the game and clean up resources"""
-        if self.render_mode in ["human", "rgb_array"]:
-            pygame.quit()
+        pygame.quit()
             
     def calculate_player_speed_old(self, moving_direction: list = []):
         """

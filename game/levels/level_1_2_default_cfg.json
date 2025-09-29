@@ -1,0 +1,68 @@
+{
+    "player_configs": [
+        {
+            "shape_type": "circle",
+            "size": [
+                0.03
+            ],
+            "shape_mass": 1,
+            "shape_friction": 100,
+            "shape_elasticity": 0.8,
+            "default_position": [
+                0.5,
+                0.2
+            ],
+            "default_velocity": [
+                0,
+                0
+            ],
+            "abilities": [
+                "Move"
+            ],
+            "color": [
+                255,
+                213,
+                79
+            ]
+        }
+    ],
+    "collision_type": {
+        "player": 1000,
+        "platform": 2000,
+        "fallingRock": 3000
+    },
+    "level1_2": {
+        "platform_configs": [
+            {
+                "shape_type": "circle",
+                "size": [ 0.4 ],
+                "shape_mass": 1,
+                "shape_friction": 0.7,
+                "shape_elasticity": 0.1,
+                "default_position": [
+                    0.5,
+                    0.67
+                ],
+                "default_velocity": [
+                    0,
+                    0
+                ],
+                "abilities": [],
+                "color": [
+                    235,
+                    64,
+                    52
+                ]
+            }
+        ],
+        "environment_configs": [
+            {
+                "gravity": [
+                    0,
+                    9810
+                ],
+                "damping": 0.9
+            }
+        ]
+    }
+}

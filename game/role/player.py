@@ -1,4 +1,3 @@
-
 import pymunk
 import numpy as np
 
@@ -19,14 +18,14 @@ class Player(Role):
         self.is_on_ground = False
 
     def perform_action(self, action: list):
-        # 遍歷所有玩家
-        if action[0] != 0:
+        # 遍歷所有玩家，並使用 .get() 安全地檢查能力是否存在
+        if action[0] != 0 and self.abilities.get("Move"):
             self.abilities["Move"].action(action[0], self)
 
-        if action[1] != 0:  # Jump action
+        if action[1] != 0 and self.abilities.get("Jump"):
             self.abilities["Jump"].action(action[1], self)
 
-        if isinstance(action[2], tuple):  # Collision action
+        if isinstance(action[2], tuple) and self.abilities.get("Collision"):
             # 处理旋转动作
             self.abilities["Collision"].action(action[2], self)
 
@@ -77,27 +76,55 @@ class PlayerFactory:
     def create_player(self,
                       window_x: int = 1000,
                       window_y: int = 600,
-                      default_player_position: tuple = None,
-                      color = None,
-                      abilities: dict = None
+                      shape_type: str = "circle",
+                      size: tuple = None,
+                      shape_mass: float = None,
+                      shape_friction: float = None,
+                      shape_elasticity: float = None,
+                      default_position: tuple = None,
+                      default_velocity: tuple = None,
+                      abilities: dict = None,
+                      color: tuple = None
                      ) -> Player:
-        """
-        Create the ball with physics properties
-        default_player_position: Initial position of the player
+        """Create the ball with physics properties.
+
+        Args:
+            window_x (int): Width of the game window.
+            window_y (int): Height of the game window.
+            shape_type (str): Type of the shape, e.g., "circle", "rectangle".
+            size (tuple): 
+                - If shape is Circle: It is a tuple (float,) and will be the radius of the ball as a proportion of window_x.
+                - If shape is Rectangle: It is a tuple (float, float, ...) and will be side lengths as a proportion of window_x and window_y.
+            shape_mass (float): Mass of the ball.
+            shape_friction (float): Friction of the ball.
+            shape_elasticity (float): Elasticity of the ball.
+            default_position (tuple(float, float)): Proportion of window_x and window_y.
+            default_velocity (tuple(float, float)): Initial velocity of the player.
+            abilities (dict{str, str, ...}): Abilities of the player.
+            color (tuple(int, int, int)): Color of the player.
+
+        Returns:
+            Player: The created player object.
         """
 
-        dynamic_body = pymunk.Body()  # Ball body
-        default_player_position = (window_x * default_player_position[0], window_y * default_player_position[1])
-        ball_radius = int(window_x / 67)
-        shape = Circle(
-            position=default_player_position,
-            velocity=(0, 0),
-            body=dynamic_body,
-            shape_size=ball_radius,
-            shape_friction=100,
-            collision_type=self.collision_type_player,
-            draw_rotation_indicator=False
-        )
+        dynamic_body = pymunk.Body(body_type=pymunk.Body.DYNAMIC)  # Ball body
+        default_position = Shape.calculate_position(window_x, window_y, default_position)
+        
+        if shape_type == "circle":
+            ball_radius = int(window_x * size[0])
+            shape = Circle(
+                shape_size=ball_radius,
+                shape_mass=shape_mass,
+                shape_friction=shape_friction,
+                shape_elasticity=shape_elasticity,
+                position=default_position,
+                velocity=default_velocity,
+                body=dynamic_body,
+                collision_type=self.collision_type_player,
+                is_draw_rotation_indicator=False
+            )
+        else:
+            raise ValueError(f"Unsupported shape_type: {shape_type}. Currently, only 'circle' is supported.")
 
         player = Player(
             shape=shape,

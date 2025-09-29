@@ -1,9 +1,5 @@
 import random
-import pymunk
 import time
-import json
-import os
-
 
 try:
     from role.player import PlayerFactory
@@ -11,56 +7,6 @@ try:
 except ImportError:
     from game.role.player import PlayerFactory
     from game.role.platform import PlatformFactory
-
-def get_level(level: int, space, collision_type=None, player_configs=None, platform_configs=None, environment_configs=None):
-    """
-    Get the level object based on the level number.
-    """
-    if not player_configs or not platform_configs or not environment_configs:
-        # Get the directory of the current script
-        print("Loading default level configurations...")
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        config_path = os.path.join(dir_path, './level_default_cfg.json')
-        with open(config_path, 'r') as f:
-            default_configs = json.load(f)
-        
-        if not player_configs:
-            player_configs = default_configs.get("player_configs", [])
-
-        level_key = f"level{level}"
-        if level_key in default_configs:
-            level_cfg = default_configs[level_key]
-            if not collision_type:
-                collision_type = level_cfg.get("collision_type", {})
-            if not platform_configs:
-                platform_configs = level_cfg.get("platform_configs", [])
-            if not environment_configs:
-                environment_configs = level_cfg.get("environment_configs", [])
-        else:
-            raise ValueError(f"Default config for level {level} not found in {config_path}")
-
-    if not player_configs:
-        raise ValueError(f"Invalid player_configs: {player_configs}, must be a non-empty list or dict")
-
-    if not environment_configs:
-        raise ValueError(f"Invalid environment_configs: {environment_configs}, must be a non-empty list or dict")
-
-    print(f"Using collision_type: {collision_type}")
-    print(f"Using player_configs: {player_configs}")
-    print(f"Using platform_configs: {platform_configs}")
-    print(f"Using environment_configs: {environment_configs}")
-
-    space.gravity = tuple(environment_configs[0].get("gravity"))
-    space.damping = environment_configs[0].get("damping")
-
-    if level == 1:
-        return Level1(space, collision_type, player_configs, platform_configs)
-    elif level == 2:
-        return Level2(space, collision_type, player_configs, platform_configs)
-    elif level == 3:
-        return Level3(space, collision_type, player_configs, platform_configs)
-    else:
-        raise ValueError(f"Invalid level number: {level}")
 
 class Levels:
     def __init__(self, space, collision_type=None, player_configs=None, platform_configs=None):
@@ -113,11 +59,10 @@ class Level1(Levels):
     """
     Level 1: Basic setup with a dynamic body and a static kinematic body.
     """
-    def __init__(self, space, collision_type=None, player_configs=None, platform_configs=None):
+    def __init__(self, space, collision_type=None, player_configs=None, platform_configs=None, level_config=None):
         super().__init__(space, collision_type, player_configs, platform_configs)
         self.level_type = "Horizontal_viewing_angle"
         self.space = space
-        self.player_configs = player_configs
 
         if len(platform_configs) > 1:
             raise ValueError("Level 1 only supports one platform configuration.")
@@ -134,7 +79,7 @@ class Level1(Levels):
         self.reward_ball_centered = reward_ball_centered
         self.reward_width = platform.get_reward_width()
 
-        return players, platforms
+        return players, platforms, []
 
     def action(self):
         """
@@ -167,11 +112,10 @@ class Level2(Levels):
     
     The kinematic body changes its angular velocity every few seconds.
     """
-    def __init__(self, space, collision_type=None, player_configs=None, platform_configs=None):
+    def __init__(self, space, collision_type=None, player_configs=None, platform_configs=None, level_config=None):
         super().__init__(space, collision_type, player_configs, platform_configs)
         self.level_type = "Horizontal_viewing_angle"
         self.space = space
-        self.player_configs = player_configs
         self.last_angular_velocity_change_time = time.time()
         self.angular_velocity_change_timeout = 5 # sec
 
@@ -189,7 +133,7 @@ class Level2(Levels):
         self.reward_ball_centered = reward_ball_centered
         self.reward_width = platform.get_reward_width()
 
-        return players, platforms
+        return players, platforms, []
 
     def action(self):
         """
@@ -218,30 +162,51 @@ class Level2(Levels):
             platform.set_angular_velocity(random.randrange(-1, 2, 2))
         self.last_angular_velocity_change_time = time.time()
 
-# Two players
-# NOTE: 連續動作空間和對抗式訓練
 class Level3(Levels):
     """
     Level 3: Basic setup with a dynamic body and a static kinematic body.
 
     Two players are introduced, each with their own dynamic body.
     """
-    def __init__(self, space, collision_type=None, player_configs=None, platform_configs=None):
+    def __init__(self, space, collision_type=None, player_configs=None, platform_configs=None, level_config=None):
         super().__init__(space, collision_type, player_configs, platform_configs)
         self.level_type = "Horizontal_viewing_angle"
         self.space = space
-        self.player_configs = player_configs
+        self.collision_type = collision_type
+        self.level_config = level_config
+        self.falling_rocks = []
+        self.window_size = None
 
     def setup(self, window_x, window_y):
         players, platforms = super().setup(window_x, window_y)
+        self.window_size = (window_x, window_y)
+        
+        try:
+            from role.falling_rock import FallingRockFactory
+        except ImportError:
+            from game.role.falling_rock import FallingRockFactory
 
-        return players, platforms
+        falling_rock_configs = self.level_config.get("falling_rock_configs")
+        entities_configs = self.level_config.get("entities_configs")
+
+        falling_rock_factory = FallingRockFactory(self.collision_type.get("fallingRock"))
+        添加根據 entity_configs 的配置來創建對應數量的 falling rocks 
+        self.falling_rocks = [falling_rock_factory.create_fallingRock(window_x, window_y, **config) for config in falling_rock_configs]
+
+        for rock in self.falling_rocks:
+            body, shape = rock.get_physics_components()
+            self.space.add(body, shape)
+
+        return players, platforms, [self.falling_rocks]
 
     def action(self):
         """
         shape state changes in the game
         """
-        pass
+        for rock in self.falling_rocks:
+            pos_x, pos_y = rock.get_position()
+            if pos_y > self.window_size[1]: # 檢查是否掉出視窗底部
+                rock.reset(self.space, self.window_size)
 
     def reward(self, ball_x=None):
         return 0
@@ -251,4 +216,6 @@ class Level3(Levels):
         Reset the level to its initial state.
         """
         super().reset()
+        for rock in self.falling_rocks:
+            rock.reset(self.space, self.window_size)
 

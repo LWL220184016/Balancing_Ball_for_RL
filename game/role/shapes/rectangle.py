@@ -1,5 +1,6 @@
 import pygame
 import pymunk
+import math
 
 from typing import Tuple, Optional
 
@@ -12,26 +13,26 @@ class Rectangle(Shape):
 
     def __init__(
                 self,
-                position: Tuple[float, float] = (300, 100),
-                velocity: Tuple[float, float] = (0, 0),
-                body: Optional[pymunk.Body] = None,
                 shape_size: Tuple[float, float] = None,
-                shape_mass: float = 1,
-                shape_friction: float = 0.7,
-                shape_elasticity: float = 0.1,
+                shape_mass: float = None,
+                shape_friction: float = None,
+                shape_elasticity: float = None,
+                position: Tuple[float, float] = None,
+                velocity: Tuple[float, float] = None,
+                body: Optional[pymunk.Body] = None,
                 collision_type: Optional[int] = None,
             ):
         """
         Initialize a rectangular physics object.
 
         Args:
-            position: Initial position (x, y) of the rectangle
-            velocity: Initial velocity (vx, vy) of the rectangle
-            body: The pymunk Body to attach this rectangle to
             shape_size: Width and Height of the rectangle in pixels
             shape_mass: Mass of the rectangle
             shape_friction: Friction coefficient for the rectangle
             shape_elasticity: Elasticity (bounciness) of the rectangle
+            position: Initial position (x, y) of the rectangle
+            velocity: Initial velocity (vx, vy) of the rectangle
+            body: The pymunk Body to attach this rectangle to
         """
 
         super().__init__(position, velocity, body)
@@ -43,10 +44,9 @@ class Rectangle(Shape):
         self.shape.collision_type = collision_type
 
     def _draw(self, screen, rect_color):
-        x, y = self.body.position
-        rect = pygame.Rect(int(x - self.shape_size[0] / 2), int(y - self.shape_size[1] / 2), self.shape_size[0], self.shape_size[1])
-        pygame.draw.rect(screen, rect_color, rect)
-        pygame.draw.rect(screen, (255, 255, 255), rect, 2)
+        points = [self.body.local_to_world(v) for v in self.shape.get_vertices()]
+        pygame.draw.polygon(screen, rect_color, points)
+        pygame.draw.polygon(screen, (255, 255, 255), points, 2)
 
     def get_reward_width(self):
         return self.shape_size[0] / 2 - 5

@@ -1,0 +1,128 @@
+{
+    "player_configs": [
+        {
+            "shape_type": "circle",
+            "size": [
+                0.03
+            ],
+            "shape_mass": 1,
+            "shape_friction": 100,
+            "shape_elasticity": 0.8,
+            "default_position": [
+                0.4,
+                0.2
+            ],
+            "default_velocity": [
+                0,
+                0
+            ],
+            "abilities": [
+                "Move",
+                "Jump",
+                "Collision"
+            ],
+            "color": [
+                255,
+                213,
+                79
+            ]
+        },
+        {
+            "shape_type": "circle",
+            "size": [
+                0.03
+            ],
+            "shape_mass": 1,
+            "shape_friction": 100,
+            "shape_elasticity": 0.8,
+            "default_position": [
+                0.6,
+                0.2
+            ],
+            "default_velocity": [
+                0,
+                0
+            ],
+            "abilities": [
+                "Move",
+                "Jump",
+                "Collision"
+            ],
+            "color": [
+                194,
+                238,
+                84
+            ]
+        }
+    ],
+    "collision_type": {
+        "player": 1000,
+        "platform": 2000,
+        "fallingRock": 3000
+    },
+    "level3": {
+        "platform_configs": [
+            {
+                "shape_type": "rectangle",
+                "size": [
+                    0.8,
+                    0.04
+                ],
+                "shape_mass": 1,
+                "shape_friction": 0.7,
+                "shape_elasticity": 0.1,
+                "default_position": [
+                    0.5,
+                    0.67
+                ],
+                "default_velocity": [
+                    0,
+                    0
+                ],
+                "abilities": [],
+                "color": [
+                    235,
+                    64,
+                    52
+                ]
+            }
+        ],
+        "falling_rock_configs": [
+            {
+                "shape_type": "rectangle",
+                "size": [
+                    0.01,
+                    0.005
+                ],
+                "shape_mass": 10,
+                "shape_friction": 0.7,
+                "shape_elasticity": 0,
+                "default_position": [ "random" , 0.1],
+                "default_velocity": [
+                    0,
+                    0
+                ],
+                "abilities": [],
+                "color": [
+                    100,
+                    100,
+                    100
+                ]
+            }
+        ],
+        "entities_configs": {
+            "quantity": {
+                "fallingRock": 3
+            }
+        },
+        "environment_configs": [
+            {
+                "gravity": [
+                    0,
+                    9810
+                ],
+                "damping": 0.9
+            }
+        ]
+    }
+}

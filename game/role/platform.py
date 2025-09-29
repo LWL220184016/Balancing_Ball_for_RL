@@ -51,48 +51,68 @@ class PlatformFactory:
         self.collision_type_platform = collision_type_platform
 
     def create_platform(self,
-                         window_x: int = 1000,
+                        window_x: int = 1000,
                         window_y: int = 600,
-                        platform_shape_type: str = None,
-                        platform_proportion: float = None,
-                        platform_position: tuple = None,
-                        color = None,
-                        abilities: dict = None
+                        shape_type: str = "circle",
+                        size: tuple = None,
+                        shape_mass: float = None,
+                        shape_friction: float = None,
+                        shape_elasticity: float = None,
+                        default_position: tuple = None,
+                        default_velocity: tuple = None,
+                        abilities: dict = None,
+                        color: tuple = None
                        ) -> Platform:
-        """
-        Create the platform with physics properties
-        platform_shape_type: circle, rectangle
-        platform_length: Length of a rectangle or Diameter of a circle
+        """Create the platform with physics properties.
+
+        Args:
+            window_x (int): Width of the game window.
+            window_y (int): Height of the game window.
+            shape_type (str): Type of the shape, e.g., "circle", "rectangle".
+            size (tuple): 
+                - If shape is Circle: It is a tuple (float,) and will be the radius of the ball as a proportion of window_x.
+                - If shape is Rectangle: It is a tuple (float, float, ...) and will be side lengths as a proportion of window_x and window_y.
+            shape_mass (float): Mass of the platform.
+            shape_friction (float): Friction of the platform.
+            shape_elasticity (float): Elasticity of the platform.
+            default_position (tuple(float, float)): Proportion of window_x and window_y.
+            default_velocity (tuple(float, float)): Initial velocity of the platform.
+            abilities (dict{str, str, ...}): Abilities of the platform.
+            color (tuple(int, int, int)): Color of the platform.
+
+        Returns:
+            Platform: The created platform object.
         """
         # Create game bodies
         kinematic_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)  # Platform body
-        kinematic_body.position = (window_x * platform_position[0], window_y * platform_position[1])
-        default_kinematic_position = kinematic_body.position
-        platform_length = int(window_x * platform_proportion)
+        default_position = Shape.calculate_position(window_x, window_y, default_position)
 
-        if platform_shape_type == "circle":
-            platform_length = platform_length / 2 # radius
+        if shape_type == "circle":
+            length = int(window_x * size[0])
             shape = Circle(
-                position=default_kinematic_position,
-                velocity=(0, 0),
+                shape_size=length,
+                shape_mass=shape_mass,
+                shape_friction=shape_friction,
+                shape_elasticity=shape_elasticity,
+                position=default_position,
+                velocity=default_velocity,
                 body=kinematic_body,
-                shape_size=platform_length,
-                shape_friction=0.7,
                 collision_type=self.collision_type_platform,
-                draw_rotation_indicator=True,
+                is_draw_rotation_indicator=True
             )
 
 
-        elif platform_shape_type == "rectangle":
-            platform_length = platform_length
+        elif shape_type == "rectangle":
+            length = (size[0] * window_x, size[1] * window_y)
             shape = Rectangle(
-                position=default_kinematic_position,
-                velocity=(0, 0),
+                shape_size=length,
+                shape_mass=shape_mass,
+                shape_friction=shape_friction,
+                shape_elasticity=shape_elasticity,
+                position=default_position,
+                velocity=default_velocity,
                 body=kinematic_body,
-                shape_size=(platform_length, 20),
-                shape_friction=0.7,
-                shape_elasticity=0.1,
-                collision_type=self.collision_type_platform,
+                collision_type=self.collision_type_platform
             )
 
         platform = Platform(
