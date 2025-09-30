@@ -1,23 +1,43 @@
 import random
 import time
+import pymunk
 
 try:
     from role.player import PlayerFactory
     from role.platform import PlatformFactory
+    from role.falling_rock import FallingRockFactory
+    from role.falling_rock import FallingRock
 except ImportError:
     from game.role.player import PlayerFactory
     from game.role.platform import PlatformFactory
+    from game.role.falling_rock import FallingRockFactory
+    from game.role.falling_rock import FallingRock
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    # 將導致循環導入的 import 語句移到這裡
+    from game.collision_handle import CollisionHandler
+    
 class Levels:
-    def __init__(self, space, collision_type=None, player_configs=None, platform_configs=None):
+    def __init__(self, 
+                 space: pymunk.Space, 
+                 collision_handler: 'CollisionHandler' = None, 
+                 collision_type: dict = None, 
+                 player_configs: list = None, 
+                 platform_configs: list = None
+                ):
         self.space = space
+        self.collision_handler = collision_handler
         self.collision_type = collision_type
         self.player_configs = player_configs
         self.platform_configs = platform_configs
         self.players = []
         self.platforms = []
 
-    def setup(self, window_x, window_y):
+    def setup(self, 
+              window_x: int, 
+              window_y: int
+             ):
         """
         通用設置方法，用於創建和註冊遊戲對象。
         """
@@ -45,6 +65,22 @@ class Levels:
 
         return self.players, self.platforms
 
+    def action(self):
+        """
+        shape state changes in the game
+        """
+        # Noting to do in base level
+        pass
+
+    def reward(self, ball_x: float = None):
+        return 0
+
+    def status_reset_step(self):
+        """
+        Reset status that needs to be reset every step.
+        """
+        raise NotImplementedError(f"This method '{self.status_reset_step.__name__}' should be overridden by subclasses.")
+
     def reset(self):
         """
         Reset the level to its initial state.
@@ -59,16 +95,27 @@ class Level1(Levels):
     """
     Level 1: Basic setup with a dynamic body and a static kinematic body.
     """
-    def __init__(self, space, collision_type=None, player_configs=None, platform_configs=None, level_config=None):
-        super().__init__(space, collision_type, player_configs, platform_configs)
+    def __init__(self, 
+                 space: pymunk.Space, 
+                 collision_handler: 'CollisionHandler' = None, 
+                 collision_type: dict = None, 
+                 player_configs: list = None, 
+                 platform_configs: list = None,
+                 level_config: dict = None
+                ):
+        super().__init__(space, collision_handler, collision_type, player_configs, platform_configs)
         self.level_type = "Horizontal_viewing_angle"
-        self.space = space
+
 
         if len(platform_configs) > 1:
             raise ValueError("Level 1 only supports one platform configuration.")
 
 
-    def setup(self, window_x, window_y, reward_ball_centered=0.2):
+    def setup(self, 
+              window_x: int, 
+              window_y: int, 
+              reward_ball_centered: float = 0.2
+             ):
         players, platforms = super().setup(window_x, window_y)
         # Set initial random velocity after setup
         platform = platforms[0]
@@ -88,7 +135,7 @@ class Level1(Levels):
         # Noting to do in this level
         pass
 
-    def reward(self, ball_x):
+    def reward(self, ball_x: float):
         center_reward = 0
 
         distance_from_center = abs(ball_x - self.platform_center_x)
@@ -97,6 +144,12 @@ class Level1(Levels):
             center_reward = self.reward_ball_centered * (1.0 - normalized_distance)
 
         return center_reward
+
+    def status_reset_step(self):
+        """
+        Reset status that needs to be reset every step.
+        """
+        pass
 
     def reset(self):
         """
@@ -112,17 +165,27 @@ class Level2(Levels):
     
     The kinematic body changes its angular velocity every few seconds.
     """
-    def __init__(self, space, collision_type=None, player_configs=None, platform_configs=None, level_config=None):
-        super().__init__(space, collision_type, player_configs, platform_configs)
+    def __init__(self, 
+                 space: pymunk.Space, 
+                 collision_handler: 'CollisionHandler' = None, 
+                 collision_type: dict = None, 
+                 player_configs: list = None, 
+                 platform_configs: list = None,
+                 level_config: dict = None
+                ):
+        super().__init__(space, collision_handler, collision_type, player_configs, platform_configs)
         self.level_type = "Horizontal_viewing_angle"
-        self.space = space
         self.last_angular_velocity_change_time = time.time()
         self.angular_velocity_change_timeout = 5 # sec
 
         if len(platform_configs) > 1:
             raise ValueError("Level 2 only supports one platform configuration.")
 
-    def setup(self, window_x, window_y, reward_ball_centered=0.2):
+    def setup(self, 
+              window_x: int, 
+              window_y: int, 
+              reward_ball_centered: float = 0.2
+             ):
         players, platforms = super().setup(window_x, window_y)
         # Set initial random velocity after setup
         platform = platforms[0]
@@ -143,7 +206,7 @@ class Level2(Levels):
             self.platforms[0].set_angular_velocity(random.randrange(-1, 2, 2))
             self.last_angular_velocity_change_time = time.time()
 
-    def reward(self, ball_x):
+    def reward(self, ball_x: float):
         center_reward = 0
 
         distance_from_center = abs(ball_x - self.platform_center_x)
@@ -152,6 +215,12 @@ class Level2(Levels):
             center_reward = self.reward_ball_centered * (1.0 - normalized_distance)
 
         return center_reward
+
+    def status_reset_step(self):
+        """
+        Reset status that needs to be reset every step.
+        """
+        pass
 
     def reset(self):
         """
@@ -168,34 +237,41 @@ class Level3(Levels):
 
     Two players are introduced, each with their own dynamic body.
     """
-    def __init__(self, space, collision_type=None, player_configs=None, platform_configs=None, level_config=None):
-        super().__init__(space, collision_type, player_configs, platform_configs)
+    def __init__(self, 
+                 space: pymunk.Space, 
+                 collision_handler: 'CollisionHandler' = None, 
+                 collision_type: dict = None, 
+                 player_configs: list = None, 
+                 platform_configs: list = None,
+                 level_config: dict = None
+                ):
+        super().__init__(space, collision_handler, collision_type, player_configs, platform_configs)
         self.level_type = "Horizontal_viewing_angle"
-        self.space = space
         self.collision_type = collision_type
         self.level_config = level_config
-        self.falling_rocks = []
+        self.falling_rocks: list[FallingRock] = []
         self.window_size = None
 
-    def setup(self, window_x, window_y):
+    def setup(self, 
+              window_x: int, 
+              window_y: int
+             ):
         players, platforms = super().setup(window_x, window_y)
         self.window_size = (window_x, window_y)
-        
-        try:
-            from role.falling_rock import FallingRockFactory
-        except ImportError:
-            from game.role.falling_rock import FallingRockFactory
 
         falling_rock_configs = self.level_config.get("falling_rock_configs")
         entities_configs = self.level_config.get("entities_configs")
 
         falling_rock_factory = FallingRockFactory(self.collision_type.get("fallingRock"))
-        添加根據 entity_configs 的配置來創建對應數量的 falling rocks 
-        self.falling_rocks = [falling_rock_factory.create_fallingRock(window_x, window_y, **config) for config in falling_rock_configs]
 
-        for rock in self.falling_rocks:
-            body, shape = rock.get_physics_components()
-            self.space.add(body, shape)
+        # 根據 entity_configs 的配置來創建對應數量的 falling rocks
+        quantities = entities_configs.get("quantity")
+        for config in falling_rock_configs:
+            for _ in range(quantities.get("fallingRock")):
+                rock = falling_rock_factory.create_fallingRock(window_x, window_y, **config)
+                self.falling_rocks.append(rock)
+                body, shape = rock.get_physics_components()
+                self.space.add(body, shape)
 
         return players, platforms, [self.falling_rocks]
 
@@ -205,11 +281,21 @@ class Level3(Levels):
         """
         for rock in self.falling_rocks:
             pos_x, pos_y = rock.get_position()
-            if pos_y > self.window_size[1]: # 檢查是否掉出視窗底部
+            if pos_y > self.window_size[1] or rock.get_is_on_ground(): # 檢查是否掉出視窗底部或者落在平臺上
                 rock.reset(self.space, self.window_size)
 
-    def reward(self, ball_x=None):
+    def reward(self, ball_x: float = None):
         return 0
+
+    def status_reset_step(self):
+        """
+        Reset status that needs to be reset every step.
+        """
+        for player in self.players:
+            player.set_is_on_ground(False)
+
+        for rock in self.falling_rocks:
+            rock.set_is_on_ground(False)
 
     def reset(self):
         """

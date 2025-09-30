@@ -82,19 +82,30 @@ class Role:
     def get_default_position(self):
         return self.shape.get_default_position()
     
+    def get_physics_components(self):
+        """Returns the physics body and shape for adding to the space."""
+        return self.shape.get_physics_components()
+    
     def get_velocity(self):
         return self.shape.get_velocity()
     
     def get_angular_velocity(self):
         return self.shape.get_angular_velocity()
 
-    def get_physics_components(self):
-        """Returns the physics body and shape for adding to the space."""
-        return self.shape.get_physics_components()
-    
+    def get_is_alive(self):
+        return self.is_alive
+
+    def get_is_on_ground(self):
+        return self.is_on_ground
+
     def set_velocity(self, velocity: pymunk.Vec2d):
         self.shape.set_velocity(velocity)
 
     def set_angular_velocity(self, angle: float):
         self.shape.set_angular_velocity(angle)
 
+    def set_is_alive(self, alive_status: bool):
+        self.is_alive = alive_status
+
+    def set_is_on_ground(self, on_ground: bool):
+        self.is_on_ground = on_ground

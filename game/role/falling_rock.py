@@ -109,5 +109,6 @@ class FallingRockFactory:
             color,
             abilities=abilities
         )
+        self.collision_type_fallingRock += 1
 
         return falling_rock

@@ -1,8 +1,21 @@
 import os
 import json
+import pymunk
+
 from levels.levels import *
 
-def get_level(level: int, space, collision_type=None, player_configs=None, platform_configs=None, environment_configs=None):
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from game.collision_handle import CollisionHandler
+
+def get_level(level: int, 
+              space: pymunk.Space, 
+              collision_handler: 'CollisionHandler' = None, 
+              collision_type: dict = None, 
+              player_configs: dict = None, 
+              platform_configs: dict = None, 
+              environment_configs: dict = None
+             ) -> Levels:
     """
     Get the level object based on the level number.
     """
@@ -51,10 +64,10 @@ def get_level(level: int, space, collision_type=None, player_configs=None, platf
     space.damping = environment_configs[0].get("damping")
 
     if level == 1:
-        return Level1(space, collision_type, player_configs, platform_configs, level_cfg)
+        return Level1(space, collision_handler, collision_type, player_configs, platform_configs, level_cfg)
     elif level == 2:
-        return Level2(space, collision_type, player_configs, platform_configs, level_cfg)
+        return Level2(space, collision_handler, collision_type, player_configs, platform_configs, level_cfg)
     elif level == 3:
-        return Level3(space, collision_type, player_configs, platform_configs, level_cfg)
+        return Level3(space, collision_handler, collision_type, player_configs, platform_configs, level_cfg)
     else:
         raise ValueError(f"Invalid level number: {level}")

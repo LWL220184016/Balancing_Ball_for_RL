@@ -26,33 +26,6 @@
                 213,
                 79
             ]
-        },
-        {
-            "shape_type": "circle",
-            "size": [
-                0.03
-            ],
-            "shape_mass": 1,
-            "shape_friction": 100,
-            "shape_elasticity": 0.8,
-            "default_position": [
-                0.6,
-                0.2
-            ],
-            "default_velocity": [
-                0,
-                0
-            ],
-            "abilities": [
-                "Move",
-                "Jump",
-                "Collision"
-            ],
-            "color": [
-                194,
-                238,
-                84
-            ]
         }
     ],
     "collision_type": {
@@ -91,13 +64,16 @@
             {
                 "shape_type": "rectangle",
                 "size": [
-                    0.01,
-                    0.005
+                    0.05,
+                    0.05
                 ],
-                "shape_mass": 10,
+                "shape_mass": 0.5,
                 "shape_friction": 0.7,
-                "shape_elasticity": 0,
-                "default_position": [ "random" , 0.1],
+                "shape_elasticity": 0.1,
+                "default_position": [
+                    "random",
+                    -0.001
+                ],
                 "default_velocity": [
                     0,
                     0
@@ -121,7 +97,7 @@
                     0,
                     9810
                 ],
-                "damping": 0.9
+                "damping": 0.5
             }
         ]
     }

@@ -13,10 +13,12 @@ from io import BytesIO
 try:
     from record import Recorder
     from levels.get_levels import get_level
+    from levels.levels import Levels
     from collision_handle import CollisionHandler
 except ImportError:
     from game.record import Recorder
     from game.levels.get_levels import get_level
+    from game.levels.levels import Levels
     from game.collision_handle import CollisionHandler
 
 
@@ -79,11 +81,25 @@ class BalancingBallGame:
 
         # Initialize physics space
         self.space = pymunk.Space()
+        self.collision_handler = CollisionHandler(self.space)
 
-        self.level = get_level(level=level, space=self.space, collision_type=collision_type, player_configs=player_configs, platform_configs=platform_configs, environment_configs=environment_configs)
+
+        self.level: Levels = get_level(
+            level=level, 
+            space=self.space, 
+            collision_handler=self.collision_handler,
+            collision_type=collision_type, 
+            player_configs=player_configs, 
+            platform_configs=platform_configs, 
+            environment_configs=environment_configs
+        )
         self.players, self.platforms, self.entities = self.level.setup(self.window_x, self.window_y)
         self.num_players = len(self.players)
-        self.collision_handler = CollisionHandler(self.space, self.players, self.platforms)
+
+        self.collision_handler.set_players(self.players)
+        self.collision_handler.set_platforms(self.platforms)
+        self.collision_handler.set_entities(self.entities)
+        self.collision_handler.setup_default_collision_handlers() # 只调用一次！
 
         # Game state tracking
         self.steps = 0
@@ -160,10 +176,16 @@ class BalancingBallGame:
             pygame.mixer.init()
             self.sound_bounce = pygame.mixer.Sound("assets/bounce.wav") if os.path.exists("assets/bounce.wav") else None
             self.sound_fall = pygame.mixer.Sound("assets/fall.wav") if os.path.exists("assets/fall.wav") else None
+
+            if not self.sound_bounce or not self.sound_fall:
+                print("Sound files not found, disabling sound.")
+                self.sound_enabled = False
         except Exception:
             print("Sound loading error")
             self.sound_enabled = False
             pass
+
+        # 檢查未提交的代碼，合理化關卡數值和機制，完善獎勵函數
 
     def reset(self) -> np.ndarray:
         """Reset the game state and return the initial observation"""
@@ -195,8 +217,8 @@ class BalancingBallGame:
             terminated: Whether episode is done
             info: Additional information
         """
-        self.collision_handler.check_is_on_ground()
-        self.collision_handler.check_is_collision_player()
+        self.level.status_reset_step()
+
         # Step the physics simulation
         self.space.step(1/self.fps)
 

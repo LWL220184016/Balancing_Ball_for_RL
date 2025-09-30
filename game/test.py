@@ -70,7 +70,7 @@ if __name__ == "__main__":
     # rgb_array_and_human_in_colab
     run_standalone_game(render_mode="human", 
                         window_x=1000, 
-                        window_y=600, 
+                        window_y=1000, 
                         collision_type=collision_type,
                         player_configs=player_configs,
                         platform_configs=platform_configs,

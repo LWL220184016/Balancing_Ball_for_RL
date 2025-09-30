@@ -57,18 +57,6 @@ class Player(Role):
     def apply_force_at_world_point(self, force: pymunk.Vec2d, point: tuple[float, float]):
         self.shape.apply_force_at_world_point(force, point)
 
-    def get_is_alive(self):
-        return self.is_alive
-
-    def get_is_on_ground(self):
-        return self.is_on_ground
-
-    def set_is_alive(self, alive_status: bool):
-        self.is_alive = alive_status
-
-    def set_is_on_ground(self, on_ground: bool):
-        self.is_on_ground = on_ground
-
 class PlayerFactory:
     def __init__(self, collision_type_player: int):
         self.collision_type_player = collision_type_player
