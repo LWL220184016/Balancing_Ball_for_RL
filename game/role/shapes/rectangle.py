@@ -17,10 +17,9 @@ class Rectangle(Shape):
                 shape_mass: float = None,
                 shape_friction: float = None,
                 shape_elasticity: float = None,
-                position: Tuple[float, float] = None,
-                velocity: Tuple[float, float] = None,
                 body: Optional[pymunk.Body] = None,
                 collision_type: Optional[int] = None,
+                **kwargs
             ):
         """
         Initialize a rectangular physics object.
@@ -30,12 +29,10 @@ class Rectangle(Shape):
             shape_mass: Mass of the rectangle
             shape_friction: Friction coefficient for the rectangle
             shape_elasticity: Elasticity (bounciness) of the rectangle
-            position: Initial position (x, y) of the rectangle
-            velocity: Initial velocity (vx, vy) of the rectangle
             body: The pymunk Body to attach this rectangle to
         """
 
-        super().__init__(position, velocity, body)
+        super().__init__(body=body, **kwargs)
         self.shape_size = shape_size
         self.shape = pymunk.Poly.create_box(self.body, shape_size)
         self.shape.mass = shape_mass

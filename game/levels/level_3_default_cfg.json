@@ -75,7 +75,7 @@
                     -0.001
                 ],
                 "default_velocity": [
-                    0,
+                    "random",
                     0
                 ],
                 "abilities": [],

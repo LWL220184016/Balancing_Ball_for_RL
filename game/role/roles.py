@@ -8,7 +8,12 @@ from role.shapes.shape import Shape
 from role.abilities import *  # Import all abilities 
 
 class Role:
-    def __init__(self, shape: Shape, color: tuple, abilities: list[str]):
+    def __init__(self, **kwargs):
+
+        shape: Shape = kwargs.get("shape")
+        color: tuple = kwargs.get("color", (255, 0, 0))
+        abilities: list = kwargs.get("abilities", [])
+        
         self.shape = shape
         self.color = color
         # 使用列表推導式和 globals() 來動態實例化類別

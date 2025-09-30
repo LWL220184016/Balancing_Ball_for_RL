@@ -14,9 +14,8 @@ except ImportError:
     from game.role.shapes.rectangle import Rectangle
 
 class FallingRock(Role):
-    def __init__(self, shape: Shape, color: tuple, abilities: list[str]):
-        super().__init__(shape, color, abilities)
-        self.color = color
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def perform_action(self, action: list):
         raise NotImplementedError(f"This method '{self.perform_action.__name__}' not implemented.")
@@ -41,13 +40,7 @@ class FallingRock(Role):
         return state
 
     def reset(self, space: pymunk.Space, window_size: tuple = None):
-        if window_size:
-            # 在 x 軸上隨機選擇一個新位置，y 軸位置保持在頂部
-            new_x = random.uniform(0, window_size[0])
-            new_y = self.shape.get_default_position()[1] # 保持原來的 y 高度
 
-            self.shape.set_default_position((new_x, new_y))
-        
         super().reset(space)
 
 class FallingRockFactory:
@@ -67,14 +60,28 @@ class FallingRockFactory:
                            abilities: dict = None,
                            color: tuple = None
                           ) -> FallingRock:
-        """
-        Create the fallingRock with physics properties
-        fallingRock_shape_type: circle, rectangle
-        fallingRock_length: Length of a rectangle or Diameter of a circle
+        """Create the Falling Rock with physics properties.
+
+        Args:
+            window_x (int): Width of the game window.
+            window_y (int): Height of the game window.
+            shape_type (str): Type of the shape, e.g., "circle", "rectangle".
+            size (tuple): 
+                - If shape is Circle: It is a tuple (float,) and will be the radius of the ball as a proportion of window_x.
+                - If shape is Rectangle: It is a tuple (float, float, ...) and will be side lengths as a proportion of window_x and window_y.
+            shape_mass (float): Mass of the Falling Rock.
+            shape_friction (float): Friction of the Falling Rock.
+            shape_elasticity (float): Elasticity of the Falling Rock.
+            default_position (tuple(float, float)): Proportion of window_x and window_y.
+            default_velocity (tuple(float, float)): Initial velocity of the Falling Rock.
+            abilities (dict{str, str, ...}): Abilities of the Falling Rock.
+            color (tuple(int, int, int)): Color of the Falling Rock.
+
+        Returns:
+            Falling Rock: The created Falling Rock object.
         """
         
-        dynamic_body = pymunk.Body(body_type=pymunk.Body.DYNAMIC)  # Platform body
-        default_position = Shape.calculate_position(window_x, window_y, default_position)
+        dynamic_body = pymunk.Body(body_type=pymunk.Body.DYNAMIC)  # Falling Rock body
         
         if shape_type == "circle":
             length = int(window_x * size[0])
@@ -83,11 +90,15 @@ class FallingRockFactory:
                 shape_mass=shape_mass,
                 shape_friction=shape_friction,
                 shape_elasticity=shape_elasticity,
-                position=default_position,
-                velocity=default_velocity,
                 body=dynamic_body,
                 collision_type=self.collision_type_fallingRock,
-                is_draw_rotation_indicator=True
+                is_draw_rotation_indicator=True,
+
+                # **kwargs
+                window_x=window_x,
+                window_y=window_y,
+                default_position=default_position,
+                default_velocity=default_velocity
             )
 
 
@@ -98,15 +109,21 @@ class FallingRockFactory:
                 shape_mass=shape_mass,
                 shape_friction=shape_friction,
                 shape_elasticity=shape_elasticity,
-                position=default_position,
-                velocity=default_velocity,
                 body=dynamic_body,
-                collision_type=self.collision_type_fallingRock
+                collision_type=self.collision_type_fallingRock,
+
+                # **kwargs
+                window_x=window_x,
+                window_y=window_y,
+                default_position=default_position,
+                default_velocity=default_velocity
             )
 
         falling_rock = FallingRock(
-            shape, 
-            color,
+
+            # **kwargs
+            shape=shape,
+            color=color,
             abilities=abilities
         )
         self.collision_type_fallingRock += 1

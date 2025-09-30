@@ -17,11 +17,10 @@ class Circle(Shape):
                 shape_mass: float = None,
                 shape_friction: float = None,
                 shape_elasticity: float = None,
-                position: Tuple[float, float] = None,
-                velocity: Tuple[float, float] = None,
                 body: Optional[pymunk.Body] = None,
                 collision_type: Optional[int] = None,
                 is_draw_rotation_indicator: bool = None,
+                **kwargs
             ):
         """
         Initialize a circular physics object.
@@ -31,12 +30,10 @@ class Circle(Shape):
             shape_mass: Mass of the circle
             shape_friction: Friction coefficient for the circle
             shape_elasticity: Elasticity (bounciness) of the circle
-            position: Initial position (x, y) of the circle
-            velocity: Initial velocity (vx, vy) of the circle
             body: The pymunk Body to attach this circle to
         """
 
-        super().__init__(position, velocity, body)
+        super().__init__(body=body, **kwargs)
         self.shape_size = shape_size / 2  # radius
         self.shape = pymunk.Circle(self.body, self.shape_size)
         self.shape.mass = shape_mass

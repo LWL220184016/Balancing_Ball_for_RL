@@ -14,9 +14,8 @@ except ImportError:
     from game.role.shapes.rectangle import Rectangle
 
 class Platform(Role):
-    def __init__(self, shape: Shape, color: tuple, abilities: list[str]):
-        super().__init__(shape, color, abilities)
-        self.color = color
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def perform_action(self, action: list):
         raise NotImplementedError(f"This method '{self.perform_action.__name__}' not implemented.")
@@ -85,7 +84,6 @@ class PlatformFactory:
         """
         # Create game bodies
         kinematic_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)  # Platform body
-        default_position = Shape.calculate_position(window_x, window_y, default_position)
 
         if shape_type == "circle":
             length = int(window_x * size[0])
@@ -94,11 +92,15 @@ class PlatformFactory:
                 shape_mass=shape_mass,
                 shape_friction=shape_friction,
                 shape_elasticity=shape_elasticity,
-                position=default_position,
-                velocity=default_velocity,
                 body=kinematic_body,
                 collision_type=self.collision_type_platform,
-                is_draw_rotation_indicator=True
+                is_draw_rotation_indicator=True,
+
+                # **kwargs
+                window_x=window_x,
+                window_y=window_y,
+                default_position=default_position,
+                default_velocity=default_velocity
             )
 
 
@@ -109,15 +111,21 @@ class PlatformFactory:
                 shape_mass=shape_mass,
                 shape_friction=shape_friction,
                 shape_elasticity=shape_elasticity,
-                position=default_position,
-                velocity=default_velocity,
                 body=kinematic_body,
-                collision_type=self.collision_type_platform
+                collision_type=self.collision_type_platform,
+
+                # **kwargs
+                window_x=window_x,
+                window_y=window_y,
+                default_position=default_position,
+                default_velocity=default_velocity
             )
 
         platform = Platform(
-            shape, 
-            color,
+
+            # **kwargs
+            shape=shape,
+            color=color,
             abilities=abilities
         )
 

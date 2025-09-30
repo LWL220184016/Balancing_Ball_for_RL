@@ -11,9 +11,8 @@ except ImportError:
     from game.role.shapes.circle import Circle
 
 class Player(Role):
-    def __init__(self, shape: Shape, color: tuple, abilities: list = [str]):
-        super().__init__(shape, color, abilities)
-        self.color = color
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.is_alive = True
         self.is_on_ground = False
 
@@ -96,7 +95,6 @@ class PlayerFactory:
         """
 
         dynamic_body = pymunk.Body(body_type=pymunk.Body.DYNAMIC)  # Ball body
-        default_position = Shape.calculate_position(window_x, window_y, default_position)
         
         if shape_type == "circle":
             ball_radius = int(window_x * size[0])
@@ -105,16 +103,22 @@ class PlayerFactory:
                 shape_mass=shape_mass,
                 shape_friction=shape_friction,
                 shape_elasticity=shape_elasticity,
-                position=default_position,
-                velocity=default_velocity,
                 body=dynamic_body,
                 collision_type=self.collision_type_player,
-                is_draw_rotation_indicator=False
+                is_draw_rotation_indicator=False,
+
+                # **kwargs
+                window_x=window_x,
+                window_y=window_y,
+                default_position=default_position,
+                default_velocity=default_velocity
             )
         else:
             raise ValueError(f"Unsupported shape_type: {shape_type}. Currently, only 'circle' is supported.")
 
         player = Player(
+
+            # **kwargs
             shape=shape,
             color=color,
             abilities=abilities

@@ -12,6 +12,6 @@
     "Collision": {
         "force": 0,
         "speed": 4000,
-        "cooldown": 3
+        "cooldown": 0.5
     }
 }
