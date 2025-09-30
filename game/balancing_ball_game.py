@@ -185,8 +185,6 @@ class BalancingBallGame:
             self.sound_enabled = False
             pass
 
-        # 檢查未提交的代碼，合理化關卡數值和機制，完善獎勵函數
-
     def reset(self) -> np.ndarray:
         """Reset the game state and return the initial observation"""
         # Reset physics objects
