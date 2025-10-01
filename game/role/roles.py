@@ -8,21 +8,18 @@ from role.shapes.shape import Shape
 from role.abilities import *  # Import all abilities 
 
 class Role:
-    def __init__(self, **kwargs):
-
-        shape: Shape = kwargs.get("shape")
-        color: tuple = kwargs.get("color", (255, 0, 0))
-        abilities: list = kwargs.get("abilities", [])
-        
+    def __init__(self, shape: Shape = None, color: tuple = (255, 0, 0), abilities: list[str] = None):
         self.shape = shape
         self.color = color
+        self.collision_with = []
+        self.last_collision_with = -1  # 用於記錄最後一次碰撞的類型，會在 add_collision_with 中更新
+
         # 使用列表推導式和 globals() 來動態實例化類別
         if abilities:
             self.abilities: Dict[str, Ability] = {name: globals()[name]() for name in abilities if name in globals()}
             print(f"Initialized Role with abilities: {list(self.abilities.keys())}")
         else:
             self.abilities = {}
-            print("Initialized with no abilities.")
 
     def perform_action(self, action: list):
         raise NotImplementedError(f"This method '{self.perform_action.__name__}' should be overridden by subclasses.")
@@ -32,12 +29,18 @@ class Role:
 
     def reset(self, space: pymunk.Space):
         self.shape.reset()
+        self.set_collision_with([])
+        self.set_last_collision_with(-1)
 
         if self.abilities:
             for ability in self.abilities.values():
                 ability.reset()
         body = self.shape.get_physics_components()[0]
         space.reindex_shapes_for_body(body)
+
+    def add_collision_with(self, collision_with: int):
+        self.collision_with.append(collision_with)
+        self.last_collision_with = collision_with
 
     def get_state(self, window_size: tuple):
         """
@@ -103,6 +106,12 @@ class Role:
     def get_is_on_ground(self):
         return self.is_on_ground
 
+    def get_collision_with(self):
+        return self.collision_with
+
+    def get_last_collision_with(self):
+        return self.last_collision_with
+
     def set_velocity(self, velocity: pymunk.Vec2d):
         self.shape.set_velocity(velocity)
 
@@ -114,3 +123,9 @@ class Role:
 
     def set_is_on_ground(self, on_ground: bool):
         self.is_on_ground = on_ground
+
+    def set_collision_with(self, collision_with: list[int]):
+        self.collision_with = collision_with
+
+    def set_last_collision_with(self, collision_with: int):
+        self.last_collision_with = collision_with

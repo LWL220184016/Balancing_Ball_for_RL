@@ -30,39 +30,38 @@ class CollisionHandler:
                 self.space.on_collision(movable_object_ct, platform_ct, post_solve=self.check_is_on_ground)
 
         for player_ct in self.players.keys():
-            self.space.on_collision(player_ct, None, post_solve=self.check_is_collision_player_player)
-            for entity_ct in self.entities.keys():
-                self.space.on_collision(player_ct, entity_ct, post_solve=self.check_is_collision_player_entity)
-
+            self.space.on_collision(player_ct, None, post_solve=self.check_is_collision_player)
 
     def check_is_on_ground(self, arbiter: pymunk.Arbiter, space: pymunk.Space, data):
         """Check if the player ball is on the ground (platform)"""
         obj = self.movable_objects.get(arbiter.shapes[0].collision_type)
         obj.set_is_on_ground(True)
 
-    def check_is_collision_player_player(self, arbiter: pymunk.Arbiter, space: pymunk.Space, data):
+    def check_is_collision_player(self, arbiter: pymunk.Arbiter, space: pymunk.Space, data):
         """Handle collisions between objects"""
 
-        if arbiter.shapes[1].collision_type in self.players:  # Threshold for playing sound
-            # self.players[arbiter.shapes[0].collision_type].set_is_alive(False)
-            # self.players[arbiter.shapes[1].collision_type].set_is_alive(False)
+        self.players[arbiter.shapes[0].collision_type].add_collision_with(arbiter.shapes[1].collision_type)
+        if arbiter.shapes[1].collision_type in self.movable_objects:
+            self.movable_objects[arbiter.shapes[1].collision_type].add_collision_with(arbiter.shapes[0].collision_type)
+        
 
-            p1_v = self.players[arbiter.shapes[0].collision_type].get_velocity()
-            p2_v = self.players[arbiter.shapes[1].collision_type].get_velocity()
-            # TODO 速度更快的玩家將獲得獎勵
-            pass
+    def check_is_player(self, collision_type: int) -> bool:
+        return collision_type in self.players
 
-    def check_is_collision_player_entity(self, arbiter: pymunk.Arbiter, space: pymunk.Space, data):
-        """Handle collisions between objects"""
+    def check_is_platform(self, collision_type: int) -> bool:
+        return collision_type in self.platforms
 
-        if arbiter.shapes[1].collision_type in self.players:  # Threshold for playing sound
-            # self.players[arbiter.shapes[0].collision_type].set_is_alive(False)
-            # self.players[arbiter.shapes[1].collision_type].set_is_alive(False)
+    def check_is_entities(self, collision_type: int) -> bool:
+        return collision_type in self.entities
 
-            p1_v = self.players[arbiter.shapes[0].collision_type].get_velocity()
-            p2_v = self.players[arbiter.shapes[1].collision_type].get_velocity()
-            # TODO 速度更快的玩家將獲得獎勵
-            pass
+    def get_player_from_collision_type(self, collision_type: int) -> Player | None:
+        return self.players.get(collision_type, None)
+    
+    def get_platform_from_collision_type(self, collision_type: int) -> Platform | None:
+        return self.platforms.get(collision_type, None)
+    
+    def get_entity_from_collision_type(self, collision_type: int) -> Role | None:
+        return self.entities.get(collision_type, None)
 
     def set_players(self, players: list[Player]):
         self.players = {player.get_collision_type(): player for player in players}

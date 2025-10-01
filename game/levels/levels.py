@@ -17,6 +17,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     # 將導致循環導入的 import 語句移到這裡
     from game.collision_handle import CollisionHandler
+    from role.player import Player
+    from role.platform import Platform
     
 class Levels:
     def __init__(self, 
@@ -24,15 +26,20 @@ class Levels:
                  collision_handler: 'CollisionHandler' = None, 
                  collision_type: dict = None, 
                  player_configs: list = None, 
-                 platform_configs: list = None
+                 level_configs: list = None
                 ):
         self.space = space
         self.collision_handler = collision_handler
         self.collision_type = collision_type
         self.player_configs = player_configs
-        self.platform_configs = platform_configs
+        self.level_configs = level_configs
         self.players = []
         self.platforms = []
+
+        # define reward parameters
+        reward_config = self.level_configs.get("reward", {})
+        for key, value in reward_config.items():
+            setattr(self, key, value)
 
     def setup(self, 
               window_x: int, 
@@ -41,17 +48,16 @@ class Levels:
         """
         通用設置方法，用於創建和註冊遊戲對象。
         """
-        self.collision_type_player = self.collision_type.get("player")
-        self.collision_type_platform = self.collision_type.get("platform")
+        self.collision_type_player: int = self.collision_type.get("player")
+        self.collision_type_platform: int = self.collision_type.get("platform")
 
         player_factory = PlayerFactory(self.collision_type_player)
         platform_factory = PlatformFactory(self.collision_type_platform)
 
         if not self.collision_type_player or not self.collision_type_platform:
             raise ValueError(f"Invalid collision_type: {self.collision_type}, must contain 'player' and 'platform' keys with integer values")
-        self.players = [player_factory.create_player(window_x, window_y, **config) for config in self.player_configs]
-        self.platforms = [platform_factory.create_platform(window_x, window_y, **config) for config in self.platform_configs]
-
+        self.players: list['Player'] = [player_factory.create_player(window_x, window_y, **config) for config in self.player_configs]
+        self.platforms: list['Platform'] = [platform_factory.create_platform(window_x, window_y, **config) for config in self.level_configs.get("platform_configs")]
 
         print(f"Created {len(self.players)} players and {len(self.platforms)} platforms.")
 
@@ -72,14 +78,16 @@ class Levels:
         # Noting to do in base level
         pass
 
-    def reward(self, ball_x: float = None):
+    def reward(self):
         return 0
 
     def status_reset_step(self):
         """
         Reset status that needs to be reset every step.
         """
-        raise NotImplementedError(f"This method '{self.status_reset_step.__name__}' should be overridden by subclasses.")
+        
+        for player in self.players:
+            player.set_reward_per_step(0)
 
     def reset(self):
         """
@@ -91,23 +99,35 @@ class Levels:
         for platform in self.platforms:
             platform.reset(self.space)
 
+# Reward parameters getters
+# Check level config JSON file, define by self.__init__
+    def get_reward_per_step(self):
+        return self.reward_per_step
+
+    def get_fail_penalty(self):
+        return self.fail_penalty
+
+    def get_speed_reward_proportion(self):
+        return self.speed_reward_proportion
+
+    def get_opponent_fall_bonus(self):
+        return self.opponent_fall_bonus
+
+    def get_survival_bonus(self):
+        return self.survival_bonus
+
 class Level1(Levels):
     """
     Level 1: Basic setup with a dynamic body and a static kinematic body.
     """
     def __init__(self, 
-                 space: pymunk.Space, 
-                 collision_handler: 'CollisionHandler' = None, 
-                 collision_type: dict = None, 
-                 player_configs: list = None, 
-                 platform_configs: list = None,
-                 level_config: dict = None
+                 **kwargs
                 ):
-        super().__init__(space, collision_handler, collision_type, player_configs, platform_configs)
+        super().__init__(**kwargs)
         self.level_type = "Horizontal_viewing_angle"
 
 
-        if len(platform_configs) > 1:
+        if len(self.level_configs.get("platform_configs", [])) > 1:
             raise ValueError("Level 1 only supports one platform configuration.")
 
 
@@ -135,21 +155,22 @@ class Level1(Levels):
         # Noting to do in this level
         pass
 
-    def reward(self, ball_x: float):
-        center_reward = 0
+    def reward(self):
+        for player in self.players:
+            ball_x = player.get_position()[0]
 
-        distance_from_center = abs(ball_x - self.platform_center_x)
-        if distance_from_center < self.reward_width:
-            normalized_distance = distance_from_center / self.reward_width
-            center_reward = self.reward_ball_centered * (1.0 - normalized_distance)
-
-        return center_reward
+            distance_from_center = abs(ball_x - self.platform_center_x)
+            if distance_from_center < self.reward_width:
+                normalized_distance = distance_from_center / self.reward_width
+                center_reward = self.reward_ball_centered * (1.0 - normalized_distance)
+            player.add_reward_per_step(center_reward)
 
     def status_reset_step(self):
         """
         Reset status that needs to be reset every step.
         """
-        pass
+        
+        super().status_reset_step()
 
     def reset(self):
         """
@@ -166,19 +187,14 @@ class Level2(Levels):
     The kinematic body changes its angular velocity every few seconds.
     """
     def __init__(self, 
-                 space: pymunk.Space, 
-                 collision_handler: 'CollisionHandler' = None, 
-                 collision_type: dict = None, 
-                 player_configs: list = None, 
-                 platform_configs: list = None,
-                 level_config: dict = None
+                 **kwargs
                 ):
-        super().__init__(space, collision_handler, collision_type, player_configs, platform_configs)
+        super().__init__(**kwargs)
         self.level_type = "Horizontal_viewing_angle"
         self.last_angular_velocity_change_time = time.time()
         self.angular_velocity_change_timeout = 5 # sec
 
-        if len(platform_configs) > 1:
+        if len(self.level_configs.get("platform_configs", [])) > 1:
             raise ValueError("Level 2 only supports one platform configuration.")
 
     def setup(self, 
@@ -206,21 +222,22 @@ class Level2(Levels):
             self.platforms[0].set_angular_velocity(random.randrange(-1, 2, 2))
             self.last_angular_velocity_change_time = time.time()
 
-    def reward(self, ball_x: float):
-        center_reward = 0
+    def reward(self):
+        for player in self.players:
+            ball_x = player.get_position()[0]
 
-        distance_from_center = abs(ball_x - self.platform_center_x)
-        if distance_from_center < self.reward_width:
-            normalized_distance = distance_from_center / self.reward_width
-            center_reward = self.reward_ball_centered * (1.0 - normalized_distance)
-
-        return center_reward
+            distance_from_center = abs(ball_x - self.platform_center_x)
+            if distance_from_center < self.reward_width:
+                normalized_distance = distance_from_center / self.reward_width
+                center_reward = self.reward_ball_centered * (1.0 - normalized_distance)
+            player.add_reward_per_step(center_reward)
 
     def status_reset_step(self):
         """
         Reset status that needs to be reset every step.
         """
-        pass
+
+        super().status_reset_step()
 
     def reset(self):
         """
@@ -238,17 +255,10 @@ class Level3(Levels):
     Two players are introduced, each with their own dynamic body.
     """
     def __init__(self, 
-                 space: pymunk.Space, 
-                 collision_handler: 'CollisionHandler' = None, 
-                 collision_type: dict = None, 
-                 player_configs: list = None, 
-                 platform_configs: list = None,
-                 level_config: dict = None
+                 **kwargs
                 ):
-        super().__init__(space, collision_handler, collision_type, player_configs, platform_configs)
+        super().__init__(**kwargs)
         self.level_type = "Horizontal_viewing_angle"
-        self.collision_type = collision_type
-        self.level_config = level_config
         self.falling_rocks: list[FallingRock] = []
         self.window_size = None
 
@@ -256,11 +266,12 @@ class Level3(Levels):
               window_x: int, 
               window_y: int
              ):
+
         players, platforms = super().setup(window_x, window_y)
         self.window_size = (window_x, window_y)
 
-        falling_rock_configs = self.level_config.get("falling_rock_configs")
-        entities_configs = self.level_config.get("entities_configs")
+        falling_rock_configs = self.level_configs.get("falling_rock_configs")
+        entities_configs = self.level_configs.get("entities_configs")
 
         falling_rock_factory = FallingRockFactory(self.collision_type.get("fallingRock"))
 
@@ -279,20 +290,47 @@ class Level3(Levels):
         """
         shape state changes in the game
         """
+
+        # Noting to do in this level
+        pass
+    
+    # reward parameters defined in class Level self.__init__
+    def reward(self):
+        
         for rock in self.falling_rocks:
+            penalty = 0
+            if rock.get_is_on_ground():
+                penalty = self.falling_rock_fall_on_platform
+                rock.reset(self.space, self.window_size)
+                continue  # 如果石頭已經落地，跳過這次檢查
+
             pos_x, pos_y = rock.get_position()
-            if pos_y > self.window_size[1] or rock.get_is_on_ground(): # 檢查是否掉出視窗底部或者落在平臺上
+            if pos_x < 0 or pos_x > self.window_size[0] or pos_y > self.window_size[1]: # 檢查是否掉出視窗底部或者落在平臺上
+                collision_type = rock.get_last_collision_with()
+                player = self.collision_handler.get_player_from_collision_type(collision_type)
+                if player:
+                    player.add_reward_per_step(self.falling_rock_fall_outside_platform)
                 rock.reset(self.space, self.window_size)
 
-    def reward(self, ball_x: float = None):
-        return 0
+        for player in self.players:
+            player.add_reward_per_step(penalty)
+            collision_list = player.get_collision_with()
+            for collision in collision_list:
+                if self.collision_handler.check_is_entities(collision): # 假設 falling_rock 屬於 entities
+                    player.add_reward_per_step(self.collision_falling_rock)
+
+        
+            
 
     def status_reset_step(self):
         """
         Reset status that needs to be reset every step.
         """
+        
+        super().status_reset_step()
         for player in self.players:
             player.set_is_on_ground(False)
+            player.set_collision_with([])
 
         for rock in self.falling_rocks:
             rock.set_is_on_ground(False)

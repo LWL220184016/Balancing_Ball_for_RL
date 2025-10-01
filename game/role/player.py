@@ -15,6 +15,7 @@ class Player(Role):
         super().__init__(**kwargs)
         self.is_alive = True
         self.is_on_ground = False
+        self.reward_per_step = 0  # 每一步的獎勵
 
     def perform_action(self, action: list):
         # 遍歷所有玩家，並使用 .get() 安全地檢查能力是否存在
@@ -55,6 +56,15 @@ class Player(Role):
 
     def apply_force_at_world_point(self, force: pymunk.Vec2d, point: tuple[float, float]):
         self.shape.apply_force_at_world_point(force, point)
+
+    def get_reward_per_step(self):
+        return self.reward_per_step
+    
+    def set_reward_per_step(self, reward: float):
+        self.reward_per_step = reward
+    
+    def add_reward_per_step(self, reward: float):
+        self.reward_per_step += reward
 
 class PlayerFactory:
     def __init__(self, collision_type_player: int):

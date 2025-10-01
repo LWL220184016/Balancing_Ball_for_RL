@@ -7,8 +7,11 @@ class Shape:
 
     def __init__(
                 self,
-                body: Optional[pymunk.Body] = None,
-                **kwargs
+                body: pymunk.Body = None,
+                window_x: int = None,
+                window_y: int = None,
+                default_position: Tuple[float, float] = None,
+                default_velocity: Tuple[float, float] = None,
             ):
         """
         Initialize a physical shape with associated body.
@@ -22,10 +25,10 @@ class Shape:
 
         self.body = body
 
-        self.window_x = kwargs.pop('window_x')
-        self.window_y = kwargs.pop('window_y')
-        self.default_position = kwargs.pop('default_position')
-        self.default_velocity = kwargs.pop('default_velocity')
+        self.window_x = window_x
+        self.window_y = window_y
+        self.default_position = default_position
+        self.default_velocity = default_velocity
         self.default_angular_velocity = 0 # TODO Hard code
 
         if self.window_x is None or self.window_y is None or self.default_position is None or self.default_velocity is None:

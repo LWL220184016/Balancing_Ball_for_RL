@@ -42,14 +42,9 @@ class BalancingBallGame:
                  player_configs: dict = None,
                  platform_configs: dict = None,
                  environment_configs: dict = None,
-                 reward_staying_alive: float = 0.1,
-                 penalty_falling: float = -10.0,
                  level: int = None,
                  fps: int = 120,
                  capture_per_second: int = None,
-                 speed_reward_multiplier: float = 0.01,  # Reward for maintaining speed
-                 opponent_fall_bonus: float = 15.0,  # Bonus for causing opponent to fall
-                 survival_bonus: float = 0.5,  # Bonus for staying alive when opponent falls
                 ):
         """
         Initialize the balancing ball game.
@@ -58,22 +53,14 @@ class BalancingBallGame:
             render_mode: "human" for visible window, "rgb_array" for gym env, "headless" for no rendering
             sound_enabled: Whether to enable sound effects
             max_step: 1 step = 1/fps, if fps = 120, 1 step = 1/120
-            reward_staying_alive: float = 0.1,
-            penalty_falling: float = -10.0,
             fps: frame per second
             capture_per_second: save game screen as a image every second, None means no capture
-            speed_reward_multiplier: Multiplier for speed-based rewards
         """
         # Game parameters
         self.max_step = max_step
-        self.reward_staying_alive = reward_staying_alive
-        self.penalty_falling = penalty_falling
         self.fps = fps
         self.window_x = window_x
         self.window_y = window_y
-        self.speed_reward_multiplier = speed_reward_multiplier
-        self.opponent_fall_bonus = opponent_fall_bonus
-        self.survival_bonus = survival_bonus
 
         self.recorder = Recorder("game_history_record")
         self.render_mode = render_mode
@@ -93,6 +80,14 @@ class BalancingBallGame:
             platform_configs=platform_configs, 
             environment_configs=environment_configs
         )
+
+        # Reward parameters
+        self.reward_per_step = self.level.get_reward_per_step()
+        self.fail_penalty = self.level.get_fail_penalty()
+        self.speed_reward_proportion = self.level.get_speed_reward_proportion()
+        self.opponent_fall_bonus = self.level.get_opponent_fall_bonus()
+        self.survival_bonus = self.level.get_survival_bonus()
+
         self.players, self.platforms, self.entities = self.level.setup(self.window_x, self.window_y)
         self.num_players = len(self.players)
 
@@ -104,6 +99,7 @@ class BalancingBallGame:
         # Game state tracking
         self.steps = 0
         self.start_time = time.time()
+        self.end_time = self.start_time
         self.game_over = False
         self.score = [0] * self.num_players  # Score for each player
         self.winner = None
@@ -237,6 +233,7 @@ class BalancingBallGame:
         self.steps += 1
         rewards, terminated = self.reward()
         self.step_rewards = rewards
+        self.end_time = time.time()
 
         return self._get_observation(), rewards, terminated
 
@@ -244,7 +241,6 @@ class BalancingBallGame:
         """
         Calculate and return the reward for the current state.
         """
-        rewards = [0] * self.num_players
 
         # Check if balls fall off screen and calculate rewards
         alive_count = 0
@@ -261,7 +257,7 @@ class BalancingBallGame:
 
                 player.set_is_alive(False)
                 self.players_fell_this_step[i] = True
-                rewards[i] = self.penalty_falling
+                player.add_reward_per_step(self.fail_penalty)
 
                 if self.sound_enabled and self.sound_fall:
                     self.sound_fall.play()
@@ -269,18 +265,16 @@ class BalancingBallGame:
                 alive_count += 1
                 
                 # 基礎生存獎勵
-                survival_reward = self.reward_staying_alive
+                survival_reward = self.reward_per_step
 
                 # 速度獎勵 - 鼓勵保持移動
                 vx, vy = player.get_velocity()
                 current_speed = abs(vx) + abs(vy)
-                speed_reward = min(current_speed * self.speed_reward_multiplier, 0.1)  # 限制最大速度獎勵
+                speed_reward = min(current_speed * self.speed_reward_proportion, 0.1)  # 限制最大速度獎勵
 
-                # 不同關卡的特別獎勵
-                level_reward = self.level.reward(ball_x)
-
-                rewards[i] = survival_reward + speed_reward + level_reward
-                self.last_speeds[i] = current_speed
+                # 不同關卡的特別獎勵, level 獎勵直接通過 player.add_reward_per_step 加到 player 上
+                self.level.reward()
+                player.add_reward_per_step(survival_reward + speed_reward)
 
         # 處理對手掉落的獎勵
         for i, player in enumerate(self.players):
@@ -288,10 +282,10 @@ class BalancingBallGame:
                 # 檢查是否有對手在這步掉落
                 opponents_fell = any(self.players_fell_this_step[j] for j in range(self.num_players) if j != i)
                 if opponents_fell:
-                    rewards[i] += self.opponent_fall_bonus  # 獲得擊敗對手的獎勵
+                    player.add_reward_per_step(self.opponent_fall_bonus)  # 獲得擊敗對手的獎勵
                     print(f"Player {i+1} gets opponent fall bonus: {self.opponent_fall_bonus}")
 
-            self.score[i] += rewards[i]
+            self.score[i] += player.get_reward_per_step()
 
         # Check if game should end
         terminated = False
@@ -304,8 +298,8 @@ class BalancingBallGame:
             if alive_count == 1 and self.num_players > 1:
                 self.winner = next(i for i in range(self.num_players) if self.players[i].get_is_alive())
                 # Give bonus to winner
-                rewards[self.winner] += self.survival_bonus * self.steps / 100  # 生存時間越長獎勵越多
-                self.score[self.winner] += rewards[self.winner]
+                self.players[self.winner].add_reward_per_step(self.survival_bonus * self.steps / 100)  # 生存時間越長獎勵越多
+                self.score[self.winner] += self.players[self.winner].get_reward_per_step()
                 print(f"Winner: Player {self.winner + 1}")
             elif alive_count == 0:
                 self.winner = None  # Draw
@@ -322,6 +316,8 @@ class BalancingBallGame:
                 "steps": self.steps
             }
             self.recorder.add_no_limit(result)
+
+        rewards = [player.get_reward_per_step() for player in self.players]
 
         return rewards, terminated
 
@@ -405,11 +401,11 @@ class BalancingBallGame:
     def _draw_game_info(self):
         """Draw game information on screen"""
         # Create texts
-        time_text = f"Time: {time.time() - self.start_time:.1f}"
+        time_text = f"Time: {self.end_time - self.start_time:.1f}"
         score_texts = [f"P{i+1}: {self.score[i]:.1f} + {self.step_rewards[i]:.1f}" for i in range(self.num_players)]
 
         # Render texts
-        time_surface = self.font.render(time_text, True, (255, 255, 255))
+        time_surface = self.font.render(time_text, True, (255, 255, 255))  # TODO Hard code
         score_surfaces = [self.font.render(text, True, (255, 255, 255)) for text in score_texts]
 
         # Draw text backgrounds and texts

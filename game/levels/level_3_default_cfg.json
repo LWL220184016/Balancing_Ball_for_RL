@@ -88,7 +88,7 @@
         ],
         "entities_configs": {
             "quantity": {
-                "fallingRock": 3
+                "fallingRock": 1
             }
         },
         "environment_configs": [
@@ -99,6 +99,17 @@
                 ],
                 "damping": 0.5
             }
-        ]
+        ],
+        "reward": {
+            "reward_per_step": 0.01,
+            "fail_penalty": -5.0,
+            "speed_reward_proportion": 0.01,
+            "opponent_fall_bonus": 5.0, 
+            "survival_bonus": 0.5,
+            
+            "collision_falling_rock": 0.2,
+            "falling_rock_fall_outside_platform": 5.0,
+            "falling_rock_fall_on_platform": -3.0
+        }
     }
 }
