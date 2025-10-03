@@ -10,17 +10,26 @@ from typing import Dict, Tuple, Optional
 # from IPython.display import display, Image, clear_output
 from io import BytesIO
 
+
 try:
     from record import Recorder
     from levels.get_levels import get_level
     from levels.levels import Levels
     from collision_handle import CollisionHandler
+    from role.player import Player
+    from role.platform import Platform
+    from role.roles import Role
+    from levels.rewards.reward_calculator import RewardCalculator
+
 except ImportError:
     from game.record import Recorder
     from game.levels.get_levels import get_level
     from game.levels.levels import Levels
     from game.collision_handle import CollisionHandler
-
+    from game.role.player import Player
+    from game.role.platform import Platform
+    from game.role.roles import Role
+    from game.levels.rewards.reward_calculator import RewardCalculator
 
 class BalancingBallGame:
     """
@@ -30,7 +39,7 @@ class BalancingBallGame:
     # Game constants
 
     # Visual settings for indie style
-    BACKGROUND_COLOR = (41, 50, 65)  # Dark blue background
+    BACKGROUND_COLOR = (41, 50, 65)  # Dark blue background TODO Hard code
 
     def __init__(self,
                  render_mode: str = "human",
@@ -81,6 +90,10 @@ class BalancingBallGame:
             environment_configs=environment_configs
         )
 
+        self.players: list[Player]
+        self.platforms: list[Platform]
+        self.entities: list[Role]
+        self.reward_calculator: RewardCalculator
         self.players, self.platforms, self.entities, self.reward_calculator = self.level.setup(self.window_x, self.window_y)
         self.num_players = len(self.players)
 
@@ -177,6 +190,7 @@ class BalancingBallGame:
         """Reset the game state and return the initial observation"""
         # Reset physics objects
         self.level.reset()
+        self.reward_calculator.reset()
 
         # Reset game state
         self.steps = 0
@@ -217,7 +231,6 @@ class BalancingBallGame:
         for i, player in enumerate(self.players):
             player.perform_action(pactions[i])
         self.level.action()
-
 
         # Check game state
         self.steps += 1
@@ -357,7 +370,7 @@ class BalancingBallGame:
         """Draw game information on screen"""
         # Create texts
         time_text = f"Time: {self.end_time - self.start_time:.1f}"
-        score_texts = [f"P{i+1}: {self.score[i]:.1f} + {self.step_rewards[i]:.1f}" for i in range(self.num_players)]
+        score_texts = [f"P{i+1}: {self.score[i]:.1f} + {self.step_rewards[i]:.2f} Health: {player.get_health():.1f}" for i, player in enumerate(self.players)]
 
         # Render texts
         time_surface = self.font.render(time_text, True, (255, 255, 255))  # TODO Hard code
@@ -382,6 +395,8 @@ class BalancingBallGame:
         if self.game_over:
             if self.winner is not None:
                 game_over_text = f"WINNER: Player {self.winner + 1} - Press R to restart"
+            elif self.num_players == 1:
+                game_over_text = "GAME OVER - Press R to restart"
             else:
                 game_over_text = "DRAW - Press R to restart"
             game_over_surface = self.font.render(game_over_text, True, (255, 255, 255))

@@ -75,9 +75,6 @@ class Levels:
         # Noting to do in base level
         pass
 
-    def reward(self):
-        return 0
-
     def status_reset_step(self):
         """
         Reset status that needs to be reset every step.
@@ -94,6 +91,7 @@ class Levels:
 
         for platform in self.platforms:
             platform.reset()
+
 
 class Level1(Levels):
     """
@@ -113,19 +111,30 @@ class Level1(Levels):
     def setup(self, 
               window_x: int, 
               window_y: int, 
-              reward_ball_centered: float = 0.2
              ):
         players, platforms = super().setup(window_x, window_y)
         # Set initial random velocity after setup
         platform = platforms[0]
         platform.set_angular_velocity(random.randrange(-1, 2, 2))
 
-        self.platform_center_x = platform.get_position()[0]
-        # Reward parameters
-        self.reward_ball_centered = reward_ball_centered
-        self.reward_width = platform.get_reward_width()
+        from levels.rewards.player_reward import PlayerFallAndSurvivalReward, PlayerStayInPlatformCenterReward
 
-        return players, platforms, []
+        reward_calculator = RewardCalculator(
+            players=self.players, 
+            platforms=platforms,
+            entities=None, # useless in this level
+            collision_handler=self.collision_handler,
+            reward_components_terminates=[
+                PlayerFallAndSurvivalReward(self.level_configs.get("reward"))
+            ],
+            reward_components=[
+                PlayerStayInPlatformCenterReward(self.level_configs.get("reward"))
+            ], 
+            window_x=window_x,
+            window_y=window_y,
+        )
+
+        return players, platforms, [], reward_calculator
 
     def action(self):
         """
@@ -133,16 +142,6 @@ class Level1(Levels):
         """
         # Noting to do in this level
         pass
-
-    def reward(self):
-        for player in self.players:
-            ball_x = player.get_position()[0]
-
-            distance_from_center = abs(ball_x - self.platform_center_x)
-            if distance_from_center < self.reward_width:
-                normalized_distance = distance_from_center / self.reward_width
-                center_reward = self.reward_ball_centered * (1.0 - normalized_distance)
-            player.add_reward_per_step(center_reward)
 
     def status_reset_step(self):
         """
@@ -179,32 +178,27 @@ class Level2(Levels):
     def setup(self, 
               window_x: int, 
               window_y: int, 
-              reward_ball_centered: float = 0.2
              ):
         players, platforms = super().setup(window_x, window_y)
         # Set initial random velocity after setup
         platform = platforms[0]
         platform.set_angular_velocity(random.randrange(-1, 2, 2))
 
-        self.platform_center_x = platform.get_position()[0]
-        # Reward parameters
-        self.reward_ball_centered = reward_ball_centered
-        self.reward_width = platform.get_reward_width()
-
-        
         from levels.rewards.player_reward import PlayerFallAndSurvivalReward, PlayerStayInPlatformCenterReward
 
         reward_calculator = RewardCalculator(
-            players=self.players, also update in level 1 and 2 json config file and level one setup function
-            platforms=platforms,
+            players=self.players, 
+            platforms=platforms, 
             entities=None, # useless in this level
-            collision_handler=self.collision_handler,
-            reward_components=[
-                PlayerStayInPlatformCenterReward(self.level_configs.get("reward")),
+            collision_handler=self.collision_handler, 
+            reward_components_terminates=[
                 PlayerFallAndSurvivalReward(self.level_configs.get("reward"))
             ],
-            window_x=window_x,
-            window_y=window_y,
+            reward_components=[
+                PlayerStayInPlatformCenterReward(self.level_configs.get("reward"))
+            ], 
+            window_x=window_x, 
+            window_y=window_y, 
         )
 
         return players, platforms, [], reward_calculator
@@ -216,16 +210,6 @@ class Level2(Levels):
         if time.time() - self.last_angular_velocity_change_time > self.angular_velocity_change_timeout:
             self.platforms[0].set_angular_velocity(random.randrange(-1, 2, 2))
             self.last_angular_velocity_change_time = time.time()
-
-    def reward(self):
-        for player in self.players:
-            ball_x = player.get_position()[0]
-
-            distance_from_center = abs(ball_x - self.platform_center_x)
-            if distance_from_center < self.reward_width:
-                normalized_distance = distance_from_center / self.reward_width
-                center_reward = self.reward_ball_centered * (1.0 - normalized_distance)
-            player.add_reward_per_step(center_reward)
 
     def status_reset_step(self):
         """
@@ -287,8 +271,10 @@ class Level3(Levels):
             platforms=None, # useless in this level
             entities=self.falling_rocks,
             collision_handler=self.collision_handler,
+            reward_components_terminates=[
+                PlayerFallingRockCollisionReward(self.level_configs.get("reward"))
+            ],
             reward_components=[
-                PlayerFallingRockCollisionReward(self.level_configs.get("reward")),
                 PlayerFallAndSurvivalReward(self.level_configs.get("reward"))
             ],
             window_x=window_x,

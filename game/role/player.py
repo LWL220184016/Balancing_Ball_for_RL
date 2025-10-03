@@ -47,8 +47,8 @@ class Player(Role):
 
         return state
 
-    def reset(self):
-        super().reset()
+    def reset(self, **kwargs):
+        super().reset(**kwargs)
         self.is_alive = True
         self.is_on_ground = False
 

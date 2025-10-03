@@ -33,6 +33,7 @@ class Role:
         self.collision_with = []
         self.last_collision_with = -1  # 用於記錄最後一次碰撞的類型，會在 add_collision_with 中更新
         self.health = health  # 初始生命值
+        self.default_health = health  # 用於重置生命值
 
         # 使用列表推導式和 globals() 來動態實例化類別
         if abilities:
@@ -47,10 +48,11 @@ class Role:
     def _draw_indie_style(self, screen: pygame.Surface):
         self.shape._draw(screen, self.color)
 
-    def reset(self):
+    def reset(self, health: int = None):
         self.shape.reset()
         self.set_collision_with([])
         self.set_last_collision_with(-1)
+        self.set_health(health if health is not None else self.default_health)
 
         if self.abilities:
             for ability in self.abilities.values():
@@ -62,11 +64,37 @@ class Role:
         self.collision_with.append(collision_with)
         self.last_collision_with = collision_with
 
-    def increase_health(self, amount: int = 1):
-        self.health += amount
+    def increase_health(self, amount: int = 1) -> bool:
+        """
+        嘗試增加生命值。
 
-    def decrease_health(self, amount: int = 1):
-        self.health -= amount
+        Args:
+            amount (int): 增加的生命值數量。
+
+        Returns:
+            bool: 如果生命值是數字並成功增加，返回 True；如果生命值不是數字 (例如 'infinite'），返回 False。
+        """
+
+        if isinstance(self.get_health(), int):
+            self.health += amount
+            return True # True mean health is number
+        return False # False mean health is not number (e.g., 'infinite')
+
+    def decrease_health(self, amount: int = 1) -> bool:
+        """
+        嘗試減少生命值。
+        
+        Args:
+            amount (int): 減少的生命值數量。
+
+        Returns:
+            bool: 如果生命值是數字並成功減少，返回 True；如果生命值不是數字 (例如 'infinite'），返回 False。
+        """
+        
+        if isinstance(self.get_health(), int):
+            self.health -= amount
+            return True # True mean health is number
+        return False # False mean health is not number (e.g., 'infinite')
 
     def get_state(self, window_size: tuple):
         """

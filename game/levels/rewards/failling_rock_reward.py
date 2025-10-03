@@ -1,5 +1,4 @@
-
-from levels.rewards.reward_calculator import RewardComponent
+from levels.rewards.reward_calculator import RewardComponent, terminates_round
 
 from typing import TYPE_CHECKING
 
@@ -8,9 +7,18 @@ if TYPE_CHECKING:
     from game.role.falling_rock import FallingRock
     from game.collision_handle import CollisionHandler
 
+@terminates_round
 class PlayerFallingRockCollisionReward(RewardComponent):
     """處理與實體 (如落石) 的碰撞獎勵/懲罰"""
-    def calculate(self, players: list['Player'], falling_rocks: list['FallingRock'], collision_handler: 'CollisionHandler', window_x: int, window_y: int):
+    def calculate(self, 
+                  players: list['Player'], 
+                  falling_rocks: list['FallingRock'], 
+                  collision_handler: 'CollisionHandler', 
+                  window_x: int, 
+                  window_y: int,
+                  **kwargs
+                 ):
+                  
         
         for rock in falling_rocks:
             penalty = 0
@@ -32,6 +40,13 @@ class PlayerFallingRockCollisionReward(RewardComponent):
                 continue
             
             player.add_reward_per_step(penalty)
+            if penalty < 0:
+                
+                if self._terminates_round:
+                    if player.decrease_health(1) and player.get_health() <= 0:
+                        player.set_is_alive(False)
+                        continue  # 玩家死亡，處理下一個玩家
+                    
             collision_list = player.get_collision_with()
             for collision in collision_list:
                 if collision_handler.check_is_entities(collision): # 假設 falling_rock 屬於 entities

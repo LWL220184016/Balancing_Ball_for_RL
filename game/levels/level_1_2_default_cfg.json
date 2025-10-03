@@ -19,6 +19,7 @@
             "abilities": [
                 "Move"
             ],
+            "health": 2,
             "color": [
                 255,
                 213,
@@ -35,7 +36,9 @@
         "platform_configs": [
             {
                 "shape_type": "circle",
-                "size": [ 0.4 ],
+                "size": [
+                    0.4
+                ],
                 "shape_mass": 1,
                 "shape_friction": 0.7,
                 "shape_elasticity": 0.1,
@@ -48,6 +51,7 @@
                     0
                 ],
                 "abilities": [],
+                "health": "infinite",
                 "color": [
                     235,
                     64,
@@ -63,6 +67,18 @@
                 ],
                 "damping": 0.9
             }
-        ]
+        ],
+        "reward": {
+            "reward_per_step": 0.01,
+            "fail_penalty": -5.0,
+            "speed_reward_proportion": 0.01,
+            "opponent_fall_bonus": 5.0, 
+            "survival_bonus": 0.5,
+            "reward_ball_centered": 0.2,
+            
+            "collision_falling_rock": 0.0,
+            "falling_rock_fall_outside_platform": 0.0,
+            "falling_rock_fall_on_platform": 0.0
+        }
     }
 }
