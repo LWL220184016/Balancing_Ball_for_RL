@@ -5,7 +5,6 @@ from stable_baselines3.common.policies import ActorCriticPolicy, ActorCriticCnnP
 class model_config:
     model_obs_type="state_base"
     level=3  # Game level
-    frame_stack=4  # Number of frames to stack
     num_player=1
     fps=120
     
