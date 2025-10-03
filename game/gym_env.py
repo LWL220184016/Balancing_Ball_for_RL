@@ -92,7 +92,7 @@ class BalancingBallEnv(gym.Env):
             self.step = self.step_state_based
             self.reset = self.reset_state_based
         else:
-            raise ValueError("obs_type must be 'game_screen' or 'state_based'")
+            raise ValueError(f"obs_type: {obs_type} must be 'game_screen' or 'state_based'")
 
     def _preprocess_observation_game_screen(self, observation):
         """Process raw game observation for RL training

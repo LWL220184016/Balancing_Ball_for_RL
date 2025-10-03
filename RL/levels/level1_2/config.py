@@ -5,7 +5,7 @@ import torch
 from stable_baselines3.common.policies import ActorCriticPolicy, ActorCriticCnnPolicy  # MLP policy instead of CNN
 
 class model_config:
-    model_obs_type="state_base"
+    model_obs_type="state_based"
     level=1  # Game level
     frame_stack=4  # Number of frames to stack
     

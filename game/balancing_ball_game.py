@@ -4,31 +4,26 @@ import time
 import os
 import base64
 import numpy as np
+import sys
 # import IPython.display as ipd
 
 from typing import Dict, Tuple, Optional
 # from IPython.display import display, Image, clear_output
 from io import BytesIO
 
-try:
-    from record import Recorder
-    from levels.get_levels import get_level
-    from levels.levels import Levels
-    from collision_handle import CollisionHandler
-    from role.player import Player
-    from role.platform import Platform
-    from role.roles import Role
-    from levels.rewards.reward_calculator import RewardCalculator
+# Add project root to the Python path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
-except ImportError:
-    from game.record import Recorder
-    from game.levels.get_levels import get_level
-    from game.levels.levels import Levels
-    from game.collision_handle import CollisionHandler
-    from game.role.player import Player
-    from game.role.platform import Platform
-    from game.role.roles import Role
-    from game.levels.rewards.reward_calculator import RewardCalculator
+from game.record import Recorder
+from game.levels.get_levels import get_level
+from game.levels.levels import Levels
+from game.collision_handle import CollisionHandler
+from game.role.player import Player
+from game.role.platform import Platform
+from game.role.roles import Role
+from game.levels.rewards.reward_calculator import RewardCalculator
 
 class BalancingBallGame:
     """
@@ -237,7 +232,7 @@ class BalancingBallGame:
         self.step_rewards = rewards
         self.end_time = time.time()
 
-        return self._get_observation(), rewards, terminated # TODO self._get_observation() 是返回的 game_screen，state_base 是 _get_observation_state_base，需要改進
+        return self._get_observation(), rewards, terminated # TODO self._get_observation() 是返回的 game_screen，state_based 是 _get_observation_state_based，需要改進
 
     def reward(self):
         """

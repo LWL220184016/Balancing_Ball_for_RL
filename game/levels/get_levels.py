@@ -1,8 +1,13 @@
 import os
+import sys
 import json
 import pymunk
 
-from levels.levels import *
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+from game.levels.levels import *
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:

@@ -3,7 +3,7 @@ import torch
 from stable_baselines3.common.policies import ActorCriticPolicy, ActorCriticCnnPolicy  # MLP policy instead of CNN
 
 class model_config:
-    model_obs_type="state_base"
+    model_obs_type="state_based"
     level=3  # Game level
     num_player=1
     fps=120
@@ -13,7 +13,7 @@ class model_config:
     action_num = 3
 
     model_param={
-        # ActorCriticCnnPolicyif for game_screen, ActorCriticPolicy for state_base
+        # ActorCriticCnnPolicyif for game_screen, ActorCriticPolicy for state_based
         "policy": ActorCriticPolicy,  
 
         "learning_rate": 0.0001,
