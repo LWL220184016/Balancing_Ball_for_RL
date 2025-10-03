@@ -81,14 +81,7 @@ class BalancingBallGame:
             environment_configs=environment_configs
         )
 
-        # Reward parameters
-        self.reward_per_step = self.level.get_reward_per_step()
-        self.fail_penalty = self.level.get_fail_penalty()
-        self.speed_reward_proportion = self.level.get_speed_reward_proportion()
-        self.opponent_fall_bonus = self.level.get_opponent_fall_bonus()
-        self.survival_bonus = self.level.get_survival_bonus()
-
-        self.players, self.platforms, self.entities = self.level.setup(self.window_x, self.window_y)
+        self.players, self.platforms, self.entities, self.reward_calculator = self.level.setup(self.window_x, self.window_y)
         self.num_players = len(self.players)
 
         self.collision_handler.set_players(self.players)
@@ -101,10 +94,9 @@ class BalancingBallGame:
         self.start_time = time.time()
         self.end_time = self.start_time
         self.game_over = False
-        self.score = [0] * self.num_players  # Score for each player
+        self.score = [0] * self.num_players  # Total Score for each player
         self.winner = None
         self.last_speeds = [0] * self.num_players  # Track last speed for each player
-        self.players_fell_this_step = [False] * self.num_players  # Track who fell this step
 
         # Initialize Pygame if needed
         if self.render_mode in ["human", "rgb_array", "rgb_array_and_human", "rgb_array_and_human_in_colab"]:
@@ -193,7 +185,6 @@ class BalancingBallGame:
         self.score = [0] * self.num_players
         self.winner = None
         self.last_speeds = [0] * self.num_players
-        self.players_fell_this_step = [False] * self.num_players
 
         # Return initial observation
         return self._get_observation()
@@ -218,7 +209,6 @@ class BalancingBallGame:
 
         # 在物理糢擬后執行動作會導致環境數據過時，但是當 FPS 較高時，這種影響可以忽略不計
         # 而且不得不這麽做的原因是碰撞檢測的回調函數只能在 step 之後執行
-        self.players_fell_this_step = [False] * self.num_players
         
         # 需要保留直到移除舊模型，詳情看函數說明
         # actions = pactions if isinstance(pactions, list) else [pactions]
@@ -242,50 +232,12 @@ class BalancingBallGame:
         Calculate and return the reward for the current state.
         """
 
-        # Check if balls fall off screen and calculate rewards
-        alive_count = 0
-        
-        for i, player in enumerate(self.players):
-            if not player.get_is_alive():
-                continue
+        # 和玩家存活相關的檢查必須在最上面，因爲後續獎勵計算依賴於玩家是否存活
+        rewards, alive_count = self.reward_calculator.calculate_rewards()
+        # if self.sound_enabled and self.sound_fall and num_of_players_fell_this_step > 0:
+        #     self.sound_fall.play()
 
-            ball_x, ball_y = player.get_position()
-
-            # Check if player falls
-            if (ball_y > self.window_y or
-                ball_x < 0 or ball_x > self.window_x):
-
-                player.set_is_alive(False)
-                self.players_fell_this_step[i] = True
-                player.add_reward_per_step(self.fail_penalty)
-
-                if self.sound_enabled and self.sound_fall:
-                    self.sound_fall.play()
-            else:
-                alive_count += 1
-                
-                # 基礎生存獎勵
-                survival_reward = self.reward_per_step
-
-                # 速度獎勵 - 鼓勵保持移動
-                vx, vy = player.get_velocity()
-                current_speed = abs(vx) + abs(vy)
-                speed_reward = min(current_speed * self.speed_reward_proportion, 0.1)  # 限制最大速度獎勵
-
-                # 不同關卡的特別獎勵, level 獎勵直接通過 player.add_reward_per_step 加到 player 上
-                self.level.reward()
-                player.add_reward_per_step(survival_reward + speed_reward)
-
-        # 處理對手掉落的獎勵
-        for i, player in enumerate(self.players):
-            if player.get_is_alive():  # 如果這個玩家還活著
-                # 檢查是否有對手在這步掉落
-                opponents_fell = any(self.players_fell_this_step[j] for j in range(self.num_players) if j != i)
-                if opponents_fell:
-                    player.add_reward_per_step(self.opponent_fall_bonus)  # 獲得擊敗對手的獎勵
-                    print(f"Player {i+1} gets opponent fall bonus: {self.opponent_fall_bonus}")
-
-            self.score[i] += player.get_reward_per_step()
+        # 處理玩家與實體的碰撞獎勵，包含每個 Step 的狀態重設
 
         # Check if game should end
         terminated = False
@@ -296,9 +248,9 @@ class BalancingBallGame:
 
             # Determine winner (last player alive or highest score)
             if alive_count == 1 and self.num_players > 1:
-                self.winner = next(i for i in range(self.num_players) if self.players[i].get_is_alive())
+                self.winner = next(i for i in range(self.num_players) if self.players[i].get_is_alive()) 
                 # Give bonus to winner
-                self.players[self.winner].add_reward_per_step(self.survival_bonus * self.steps / 100)  # 生存時間越長獎勵越多
+                self.players[self.winner].add_reward_per_step(0.5 * self.steps / 100)  # 生存時間越長獎勵越多 TODO Hard code
                 self.score[self.winner] += self.players[self.winner].get_reward_per_step()
                 print(f"Winner: Player {self.winner + 1}")
             elif alive_count == 0:
@@ -317,7 +269,10 @@ class BalancingBallGame:
             }
             self.recorder.add_no_limit(result)
 
-        rewards = [player.get_reward_per_step() for player in self.players]
+        rewards = [0] * self.num_players
+        for i, player in enumerate(self.players):
+            rewards[i] = player.get_reward_per_step()
+            self.score[i] += rewards[i]
 
         return rewards, terminated
 

@@ -4,12 +4,10 @@ import random
 
 try:
     from role.roles import Role
-    from role.shapes.shape import Shape
     from role.shapes.circle import Circle
     from role.shapes.rectangle import Rectangle
 except ImportError:
     from game.role.roles import Role
-    from game.role.shapes.shape import Shape
     from game.role.shapes.circle import Circle
     from game.role.shapes.rectangle import Rectangle
 
@@ -39,9 +37,9 @@ class FallingRock(Role):
 
         return state
 
-    def reset(self, space: pymunk.Space, window_size: tuple = None):
+    def reset(self):
 
-        super().reset(space)
+        super().reset()
 
 class FallingRockFactory:
     def __init__(self, collision_type_fallingRock: int):
@@ -50,6 +48,7 @@ class FallingRockFactory:
     def create_fallingRock(self,
                            window_x: int = 1000,
                            window_y: int = 600,
+                           space: pymunk.Space = None,
                            shape_type: str = "circle",
                            size: tuple = None,
                            shape_mass: float = None,
@@ -58,6 +57,7 @@ class FallingRockFactory:
                            default_position: tuple = None,
                            default_velocity: tuple = None,
                            abilities: dict = None,
+                           health: int | str = None,
                            color: tuple = None
                           ) -> FallingRock:
         """Create the Falling Rock with physics properties.
@@ -75,6 +75,7 @@ class FallingRockFactory:
             default_position (tuple(float, float)): Proportion of window_x and window_y.
             default_velocity (tuple(float, float)): Initial velocity of the Falling Rock.
             abilities (dict{str, str, ...}): Abilities of the Falling Rock.
+            health (int | str): Initial health of the Falling Rock. Will be infinite health if it is a string.
             color (tuple(int, int, int)): Color of the Falling Rock.
 
         Returns:
@@ -123,8 +124,10 @@ class FallingRockFactory:
 
             # **kwargs
             shape=shape,
+            space=space,
             color=color,
-            abilities=abilities
+            abilities=abilities,
+            health=health
         )
         self.collision_type_fallingRock += 1
 

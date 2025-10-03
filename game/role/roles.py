@@ -8,11 +8,31 @@ from role.shapes.shape import Shape
 from role.abilities import *  # Import all abilities 
 
 class Role:
-    def __init__(self, shape: Shape = None, color: tuple = (255, 0, 0), abilities: list[str] = None):
+    def __init__(self, 
+                 shape: Shape = None, 
+                 space: pymunk.Space = None, 
+                 color: tuple = None, 
+                 abilities: list[str] = None, 
+                 health: int | str = None
+                ):
+        """
+        Base class for all roles.
+
+        Args:
+            shape (Shape): The shape object representing the role's physical form.
+            space (pymunk.Space): The physics space where the role exists.
+            color (tuple): RGB color of the role for rendering.
+            abilities (list[str]): List of ability class names as strings to be assigned to the role.
+            health (int | str): Initial health of the role. Will be infinite health if it is a string.
+        """
+
+
         self.shape = shape
+        self.space = space
         self.color = color
         self.collision_with = []
         self.last_collision_with = -1  # 用於記錄最後一次碰撞的類型，會在 add_collision_with 中更新
+        self.health = health  # 初始生命值
 
         # 使用列表推導式和 globals() 來動態實例化類別
         if abilities:
@@ -27,7 +47,7 @@ class Role:
     def _draw_indie_style(self, screen: pygame.Surface):
         self.shape._draw(screen, self.color)
 
-    def reset(self, space: pymunk.Space):
+    def reset(self):
         self.shape.reset()
         self.set_collision_with([])
         self.set_last_collision_with(-1)
@@ -36,11 +56,17 @@ class Role:
             for ability in self.abilities.values():
                 ability.reset()
         body = self.shape.get_physics_components()[0]
-        space.reindex_shapes_for_body(body)
+        self.space.reindex_shapes_for_body(body)
 
     def add_collision_with(self, collision_with: int):
         self.collision_with.append(collision_with)
         self.last_collision_with = collision_with
+
+    def increase_health(self, amount: int = 1):
+        self.health += amount
+
+    def decrease_health(self, amount: int = 1):
+        self.health -= amount
 
     def get_state(self, window_size: tuple):
         """
@@ -111,6 +137,9 @@ class Role:
 
     def get_last_collision_with(self):
         return self.last_collision_with
+    
+    def get_health(self):
+        return self.health
 
     def set_velocity(self, velocity: pymunk.Vec2d):
         self.shape.set_velocity(velocity)
@@ -129,3 +158,6 @@ class Role:
 
     def set_last_collision_with(self, collision_with: int):
         self.last_collision_with = collision_with
+
+    def set_health(self, health: int):
+        self.health = health

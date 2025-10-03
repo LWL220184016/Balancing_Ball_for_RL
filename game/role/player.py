@@ -3,11 +3,9 @@ import numpy as np
 
 try:
     from role.roles import Role
-    from role.shapes.shape import Shape
     from role.shapes.circle import Circle
 except ImportError:
     from game.role.roles import Role
-    from game.role.shapes.shape import Shape
     from game.role.shapes.circle import Circle
 
 class Player(Role):
@@ -49,8 +47,8 @@ class Player(Role):
 
         return state
 
-    def reset(self, space: pymunk.Space):
-        super().reset(space)
+    def reset(self):
+        super().reset()
         self.is_alive = True
         self.is_on_ground = False
 
@@ -73,6 +71,7 @@ class PlayerFactory:
     def create_player(self,
                       window_x: int = 1000,
                       window_y: int = 600,
+                      space: pymunk.Space = None,
                       shape_type: str = "circle",
                       size: tuple = None,
                       shape_mass: float = None,
@@ -81,6 +80,7 @@ class PlayerFactory:
                       default_position: tuple = None,
                       default_velocity: tuple = None,
                       abilities: dict = None,
+                      health: int | str = None,
                       color: tuple = None
                      ) -> Player:
         """Create the ball with physics properties.
@@ -98,6 +98,7 @@ class PlayerFactory:
             default_position (tuple(float, float)): Proportion of window_x and window_y.
             default_velocity (tuple(float, float)): Initial velocity of the player.
             abilities (dict{str, str, ...}): Abilities of the player.
+            health (int | str): Initial health of the player. Will be infinite health if it is a string.
             color (tuple(int, int, int)): Color of the player.
 
         Returns:
@@ -130,8 +131,10 @@ class PlayerFactory:
 
             # **kwargs
             shape=shape,
+            space=space,
             color=color,
-            abilities=abilities
+            abilities=abilities,
+            health=health
         )
         self.collision_type_player += 1
         # Store initial values for reset

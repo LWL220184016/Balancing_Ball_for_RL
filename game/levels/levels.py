@@ -7,11 +7,13 @@ try:
     from role.platform import PlatformFactory
     from role.falling_rock import FallingRockFactory
     from role.falling_rock import FallingRock
+    from levels.rewards.reward_calculator import RewardCalculator
 except ImportError:
     from game.role.player import PlayerFactory
     from game.role.platform import PlatformFactory
     from game.role.falling_rock import FallingRockFactory
     from game.role.falling_rock import FallingRock
+    from game.levels.rewards.reward_calculator import RewardCalculator
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -36,11 +38,6 @@ class Levels:
         self.players = []
         self.platforms = []
 
-        # define reward parameters
-        reward_config = self.level_configs.get("reward", {})
-        for key, value in reward_config.items():
-            setattr(self, key, value)
-
     def setup(self, 
               window_x: int, 
               window_y: int
@@ -56,8 +53,8 @@ class Levels:
 
         if not self.collision_type_player or not self.collision_type_platform:
             raise ValueError(f"Invalid collision_type: {self.collision_type}, must contain 'player' and 'platform' keys with integer values")
-        self.players: list['Player'] = [player_factory.create_player(window_x, window_y, **config) for config in self.player_configs]
-        self.platforms: list['Platform'] = [platform_factory.create_platform(window_x, window_y, **config) for config in self.level_configs.get("platform_configs")]
+        self.players: list['Player'] = [player_factory.create_player(window_x=window_x, window_y=window_y, space=self.space, **config) for config in self.player_configs]
+        self.platforms: list['Platform'] = [platform_factory.create_platform(window_x=window_x, window_y=window_y, space=self.space, **config) for config in self.level_configs.get("platform_configs")]
 
         print(f"Created {len(self.players)} players and {len(self.platforms)} platforms.")
 
@@ -85,36 +82,18 @@ class Levels:
         """
         Reset status that needs to be reset every step.
         """
-        
-        for player in self.players:
-            player.set_reward_per_step(0)
+
+        pass
 
     def reset(self):
         """
         Reset the level to its initial state.
         """
         for player in self.players:
-            player.reset(self.space)
+            player.reset()
 
         for platform in self.platforms:
-            platform.reset(self.space)
-
-# Reward parameters getters
-# Check level config JSON file, define by self.__init__
-    def get_reward_per_step(self):
-        return self.reward_per_step
-
-    def get_fail_penalty(self):
-        return self.fail_penalty
-
-    def get_speed_reward_proportion(self):
-        return self.speed_reward_proportion
-
-    def get_opponent_fall_bonus(self):
-        return self.opponent_fall_bonus
-
-    def get_survival_bonus(self):
-        return self.survival_bonus
+            platform.reset()
 
 class Level1(Levels):
     """
@@ -212,7 +191,23 @@ class Level2(Levels):
         self.reward_ball_centered = reward_ball_centered
         self.reward_width = platform.get_reward_width()
 
-        return players, platforms, []
+        
+        from levels.rewards.player_reward import PlayerFallAndSurvivalReward, PlayerStayInPlatformCenterReward
+
+        reward_calculator = RewardCalculator(
+            players=self.players, also update in level 1 and 2 json config file and level one setup function
+            platforms=platforms,
+            entities=None, # useless in this level
+            collision_handler=self.collision_handler,
+            reward_components=[
+                PlayerStayInPlatformCenterReward(self.level_configs.get("reward")),
+                PlayerFallAndSurvivalReward(self.level_configs.get("reward"))
+            ],
+            window_x=window_x,
+            window_y=window_y,
+        )
+
+        return players, platforms, [], reward_calculator
 
     def action(self):
         """
@@ -279,12 +274,28 @@ class Level3(Levels):
         quantities = entities_configs.get("quantity")
         for config in falling_rock_configs:
             for _ in range(quantities.get("fallingRock")):
-                rock = falling_rock_factory.create_fallingRock(window_x, window_y, **config)
+                rock = falling_rock_factory.create_fallingRock(window_x=window_x, window_y=window_y, space=self.space, **config)
                 self.falling_rocks.append(rock)
                 body, shape = rock.get_physics_components()
                 self.space.add(body, shape)
 
-        return players, platforms, [self.falling_rocks]
+        from levels.rewards.failling_rock_reward import PlayerFallingRockCollisionReward
+        from levels.rewards.player_reward import PlayerFallAndSurvivalReward
+
+        reward_calculator = RewardCalculator(
+            players=self.players,
+            platforms=None, # useless in this level
+            entities=self.falling_rocks,
+            collision_handler=self.collision_handler,
+            reward_components=[
+                PlayerFallingRockCollisionReward(self.level_configs.get("reward")),
+                PlayerFallAndSurvivalReward(self.level_configs.get("reward"))
+            ],
+            window_x=window_x,
+            window_y=window_y,
+        )
+
+        return players, platforms, [self.falling_rocks], reward_calculator
 
     def action(self):
         """
@@ -301,7 +312,7 @@ class Level3(Levels):
             penalty = 0
             if rock.get_is_on_ground():
                 penalty = self.falling_rock_fall_on_platform
-                rock.reset(self.space, self.window_size)
+                rock.reset()
                 continue  # 如果石頭已經落地，跳過這次檢查
 
             pos_x, pos_y = rock.get_position()
@@ -310,9 +321,12 @@ class Level3(Levels):
                 player = self.collision_handler.get_player_from_collision_type(collision_type)
                 if player:
                     player.add_reward_per_step(self.falling_rock_fall_outside_platform)
-                rock.reset(self.space, self.window_size)
+                rock.reset()
 
         for player in self.players:
+            if not player.get_is_alive():
+                continue
+            
             player.add_reward_per_step(penalty)
             collision_list = player.get_collision_with()
             for collision in collision_list:
@@ -341,5 +355,5 @@ class Level3(Levels):
         """
         super().reset()
         for rock in self.falling_rocks:
-            rock.reset(self.space, self.window_size)
+            rock.reset()
 

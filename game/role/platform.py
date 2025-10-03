@@ -4,12 +4,10 @@ import pymunk
 
 try:
     from role.roles import Role
-    from role.shapes.shape import Shape
     from role.shapes.circle import Circle
     from role.shapes.rectangle import Rectangle
 except ImportError:
     from game.role.roles import Role
-    from game.role.shapes.shape import Shape
     from game.role.shapes.circle import Circle
     from game.role.shapes.rectangle import Rectangle
 
@@ -42,8 +40,8 @@ class Platform(Role):
 
         return state
     
-    def reset(self, space: pymunk.Space):
-        super().reset(space)
+    def reset(self):
+        super().reset()
 
 class PlatformFactory:
     def __init__(self, collision_type_platform: int):
@@ -52,6 +50,7 @@ class PlatformFactory:
     def create_platform(self,
                         window_x: int = 1000,
                         window_y: int = 600,
+                        space: pymunk.Space = None,
                         shape_type: str = "circle",
                         size: tuple = None,
                         shape_mass: float = None,
@@ -60,6 +59,7 @@ class PlatformFactory:
                         default_position: tuple = None,
                         default_velocity: tuple = None,
                         abilities: dict = None,
+                        health: int | str = None,
                         color: tuple = None
                        ) -> Platform:
         """Create the platform with physics properties.
@@ -77,6 +77,7 @@ class PlatformFactory:
             default_position (tuple(float, float)): Proportion of window_x and window_y.
             default_velocity (tuple(float, float)): Initial velocity of the platform.
             abilities (dict{str, str, ...}): Abilities of the platform.
+            health (int | str): Initial health of the platform. Will be infinite health if it is a string.
             color (tuple(int, int, int)): Color of the platform.
 
         Returns:
@@ -125,8 +126,10 @@ class PlatformFactory:
 
             # **kwargs
             shape=shape,
+            space=space,
             color=color,
-            abilities=abilities
+            abilities=abilities,
+            health=health
         )
 
         return platform

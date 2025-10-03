@@ -21,6 +21,7 @@
                 "Jump",
                 "Collision"
             ],
+            "health": "infinite",
             "color": [
                 255,
                 213,
@@ -53,6 +54,7 @@
                     0
                 ],
                 "abilities": [],
+                "health": "infinite",
                 "color": [
                     235,
                     64,
@@ -79,6 +81,7 @@
                     0
                 ],
                 "abilities": [],
+                "health": "infinite",
                 "color": [
                     100,
                     100,
@@ -101,15 +104,17 @@
             }
         ],
         "reward": {
-            "reward_per_step": 0.01,
-            "fail_penalty": -5.0,
-            "speed_reward_proportion": 0.01,
-            "opponent_fall_bonus": 5.0, 
-            "survival_bonus": 0.5,
             
+            "reward_per_step": 0.0,
             "collision_falling_rock": 0.2,
             "falling_rock_fall_outside_platform": 5.0,
-            "falling_rock_fall_on_platform": -3.0
+            "falling_rock_fall_on_platform": -2.0,
+
+            
+            "fail_penalty": 0.0,
+            "speed_reward_proportion": 0.0,
+            "opponent_fell_reward": 0.0, 
+            "survival_bonus": 0.0
         }
     }
 }
