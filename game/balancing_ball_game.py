@@ -10,7 +10,6 @@ from typing import Dict, Tuple, Optional
 # from IPython.display import display, Image, clear_output
 from io import BytesIO
 
-
 try:
     from record import Recorder
     from levels.get_levels import get_level
@@ -238,7 +237,7 @@ class BalancingBallGame:
         self.step_rewards = rewards
         self.end_time = time.time()
 
-        return self._get_observation(), rewards, terminated
+        return self._get_observation(), rewards, terminated # TODO self._get_observation() 是返回的 game_screen，state_base 是 _get_observation_state_base，需要改進
 
     def reward(self):
         """
@@ -299,6 +298,12 @@ class BalancingBallGame:
 
         self.frame_count += 1
         return screen_data
+    
+    def _get_observation_state_base(self) -> np.ndarray:
+        """Public method to get the current observation without taking a step"""
+        obs = self.level._get_observation_state_base()
+
+        return obs
 
     def render(self) -> Optional[np.ndarray]:
         """Render the current game state"""

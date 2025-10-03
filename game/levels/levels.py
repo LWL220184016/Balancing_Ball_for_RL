@@ -1,6 +1,7 @@
 import random
 import time
 import pymunk
+import numpy as np
 
 try:
     from role.player import PlayerFactory
@@ -78,6 +79,13 @@ class Levels:
     def status_reset_step(self):
         """
         Reset status that needs to be reset every step.
+        """
+
+        pass
+
+    def _get_observation_state_base(self) -> np.ndarray:
+        """
+        Return the current observation without taking a step
         """
 
         pass
@@ -290,37 +298,6 @@ class Level3(Levels):
 
         # Noting to do in this level
         pass
-    
-    # reward parameters defined in class Level self.__init__
-    def reward(self):
-        
-        for rock in self.falling_rocks:
-            penalty = 0
-            if rock.get_is_on_ground():
-                penalty = self.falling_rock_fall_on_platform
-                rock.reset()
-                continue  # 如果石頭已經落地，跳過這次檢查
-
-            pos_x, pos_y = rock.get_position()
-            if pos_x < 0 or pos_x > self.window_size[0] or pos_y > self.window_size[1]: # 檢查是否掉出視窗底部或者落在平臺上
-                collision_type = rock.get_last_collision_with()
-                player = self.collision_handler.get_player_from_collision_type(collision_type)
-                if player:
-                    player.add_reward_per_step(self.falling_rock_fall_outside_platform)
-                rock.reset()
-
-        for player in self.players:
-            if not player.get_is_alive():
-                continue
-            
-            player.add_reward_per_step(penalty)
-            collision_list = player.get_collision_with()
-            for collision in collision_list:
-                if self.collision_handler.check_is_entities(collision): # 假設 falling_rock 屬於 entities
-                    player.add_reward_per_step(self.collision_falling_rock)
-
-        
-            
 
     def status_reset_step(self):
         """
@@ -334,6 +311,22 @@ class Level3(Levels):
 
         for rock in self.falling_rocks:
             rock.set_is_on_ground(False)
+
+    def _get_observation_state_base(self) -> np.ndarray:
+        """
+        Return the current observation without taking a step
+        """
+        obs = []
+        for player in self.players:
+            obs.extend(player.get_state(window_size=self.window_size, velocity_scale=200.0))
+
+        for platform in self.platforms:
+            obs.extend(platform.get_state(window_size=self.window_size, velocity_scale=20.0))
+
+        for rock in self.falling_rocks:
+            obs.extend(rock.get_state(window_size=self.window_size, velocity_scale=20.0))
+
+        return np.array(obs, dtype=np.float32)
 
     def reset(self):
         """

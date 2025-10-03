@@ -28,12 +28,13 @@ class FallingRock(Role):
         state = super().get_state(window_size=window_size, **kwargs)
 
         # 接著，添加正規化的速度
-        angular_v = self.get_angular_velocity()
+        vel_x, vel_y = self.get_velocity()
 
         # 使用 tanh 進行正規化，velocity_scale 是一個超參數，用於調整靈敏度
-        norm_angular_v = np.tanh(angular_v / velocity_scale)
+        norm_vx = np.tanh(vel_x / velocity_scale)
+        norm_vy = np.tanh(vel_y / velocity_scale)
 
-        state.extend([norm_angular_v])
+        state.extend([norm_vx, norm_vy])
 
         return state
 

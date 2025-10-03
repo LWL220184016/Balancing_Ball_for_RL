@@ -15,23 +15,24 @@ class BalancingBallEnv(gym.Env):
     metadata = {'render_modes': ['human', 'rgb_array', 'rgb_array_and_human_in_colab']}
 
     def __init__(self,
-                 render_mode="rgb_array",
-                 level=2,
-                 fps=30,
-                 obs_type="game_screen",
-                 image_size=(84, 84),
-                 window_x = 300,
-                 window_y = 180
+                 render_mode: str = None,
+                 level: int = None,
+                 fps: int = None,
+                 obs_type: str = None,  # "game_screen" or "state_based"
+                 image_size: tuple = (84, 84),  # (height, width)
+                 window_x: int = 300,
+                 window_y: int = 180
                 ):
         """
-        render_mode: how to render the environment
-            Example: "human" or "rgb_array"
-        fps: Frames per second,
-            Example: 30
-        obs_type: type of observation
-            Example: "game_screen" or "state_based"
-        image_size: Size to resize images to (height, width)
-            Example: (84, 84) - standard for many RL implementations
+        envonment initialization
+        Args:
+            render_mode (str): The mode to render the game. Options are 'human', 'rgb_array', 'rgb_array_and_human_in_colab'.
+            level (int): The game level to load.
+            fps (int): Frames per second for the game.
+            obs_type (str): Type of observation. "game_screen" for image-based, "state_based" for state vector.
+            image_size (tuple): Size to which game screen images are resized (height, width).
+            window_x (int): Width of the game window.
+            window_y (int): Height of the game window.
         """
 
         super(BalancingBallEnv, self).__init__()
@@ -60,10 +61,10 @@ class BalancingBallEnv(gym.Env):
         self.num_players = self.game.num_players
 
         # Action space: continuous - Box space for horizontal force [-1.0, 1.0] for each player
-        if self.num_players == 1:
-            self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32)
-        else:
-            self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(self.num_players,), dtype=np.float32)
+        self.action_space = spaces.Tuple((
+            spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32),
+            spaces.Box(low=-1.0, high=1.0, shape=(3,), dtype=np.float32)
+        ))
 
 
         if obs_type == "game_screen":
@@ -75,6 +76,7 @@ class BalancingBallEnv(gym.Env):
                 shape=(self.image_size[0], self.image_size[1], channels * self.stack_size),
                 dtype=np.uint8,
             )
+            self._preprocess_observation = self._preprocess_observation_game_screen
             self.step = self.step_game_screen
             self.reset = self.reset_game_screen
         elif obs_type == "state_based":
@@ -86,12 +88,13 @@ class BalancingBallEnv(gym.Env):
                 high=np.full(obs_size, 1.0),
                 dtype=np.float32
             )
+            self._preprocess_observation = self._preprocess_observation_state_base
             self.step = self.step_state_based
             self.reset = self.reset_state_based
         else:
             raise ValueError("obs_type must be 'game_screen' or 'state_based'")
 
-    def _preprocess_observation(self, observation):
+    def _preprocess_observation_game_screen(self, observation):
         """Process raw game observation for RL training
 
         Args:
@@ -120,14 +123,7 @@ class BalancingBallEnv(gym.Env):
     def step_game_screen(self, action):
         """Take a step in the environment with continuous actions"""
         # Ensure action is the right shape
-        if isinstance(action, (int, float)):
-            action = [action]
-        elif len(action) != self.num_players:
-            # Pad or truncate action to match number of players
-            if len(action) < self.num_players:
-                action = list(action) + [0.0] * (self.num_players - len(action))
-            else:
-                action = action[:self.num_players]
+        print("action: ", action)
 
         # Take step in the game
         obs, step_rewards, terminated = self.game.step(action)
@@ -181,19 +177,11 @@ class BalancingBallEnv(gym.Env):
         info = {}
         return stacked_obs, info
 
-    def _get_state_based_observation(self):
+    def _preprocess_observation_state_base(self):
         """Convert game state to state-based observation for RL agent"""
-        obs = []
+        obs = self.game._get_observation_state_base()
 
-        # 從每個玩家獲取狀態
-        for player in self.game.get_players():
-            obs.extend(player.get_state(window_size=(self.window_x, self.window_y), velocity_scale=200.0))
-
-        # 從每個平台獲取狀態
-        for platform in self.game.get_platforms():
-            obs.extend(platform.get_state(window_size=(self.window_x, self.window_y), velocity_scale=20.0))
-
-        return np.array(obs, dtype=np.float32)
+        return obs
 
     def step_state_based(self, action):
         """Take a step in the environment with state-based observations"""
@@ -201,17 +189,13 @@ class BalancingBallEnv(gym.Env):
         if isinstance(action, (int, float)):
             action = [action]
         elif len(action) != self.num_players:
-            # Pad or truncate action to match number of players
-            if len(action) < self.num_players:
-                action = list(action) + [0.0] * (self.num_players - len(action))
-            else:
-                action = action[:self.num_players]
+            raise ValueError(f"Action: {action} length {len(action)} does not match number of players {self.num_players}")
 
         # Take step in the game
         _, step_rewards, terminated = self.game.step(action)
 
         # Get state-based observation
-        observation = self._get_state_based_observation()
+        observation = self._preprocess_observation_state_base()
 
         # For multi-agent, return sum of rewards
         total_reward = sum(step_rewards) if isinstance(step_rewards, list) else step_rewards

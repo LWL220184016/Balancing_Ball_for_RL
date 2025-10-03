@@ -1,9 +1,13 @@
 import torch
 
+# 這個不是成功訓練的版本，那個版本試試離散動作空間
+
 from stable_baselines3.common.policies import ActorCriticPolicy, ActorCriticCnnPolicy  # MLP policy instead of CNN
 
 class model_config:
-    model_obs_type="game_screen"
+    model_obs_type="state_base"
+    level=1  # Game level
+    frame_stack=4  # Number of frames to stack
     
     action_space_low=-1.0  # Minimum action value
     action_space_high=1.0   # Maximum action value

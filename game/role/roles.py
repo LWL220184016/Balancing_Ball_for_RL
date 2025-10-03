@@ -99,6 +99,10 @@ class Role:
     def get_state(self, window_size: tuple):
         """
         返回該角色的正規化狀態向量。
+        Args:
+            window_size (tuple): The size of the game window for normalizing position.
+        Returns:
+            list: A list representing the normalized state of the role, including position and ability cooldowns
         """
 
         win_x, win_y = window_size
