@@ -36,17 +36,17 @@ class BalancingBallGame:
     BACKGROUND_COLOR = (41, 50, 65)  # Dark blue background TODO Hard code
 
     def __init__(self,
-                 render_mode: str = "human",
+                 render_mode: str = None,
                  sound_enabled: bool = True,
-                 window_x: int = 1000,
-                 window_y: int = 600,
-                 max_step: int = 30000,
+                 window_x: int = None,
+                 window_y: int = None,
+                 max_step: int = None,
                  collision_type: dict = None,
                  player_configs: dict = None,
                  platform_configs: dict = None,
                  environment_configs: dict = None,
                  level: int = None,
-                 fps: int = 120,
+                 fps: int = None,
                  capture_per_second: int = None,
                 ):
         """

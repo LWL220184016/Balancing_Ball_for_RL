@@ -6,13 +6,15 @@ class model_config:
     model_obs_type="state_based"
     level=3  # Game level
     num_player=1
-    fps=120
+    fps=360
     
     action_space_low=-1.0  # Minimum action value
     action_space_high=1.0   # Maximum action value
     action_num = 3 # now many actions model can choose
     action_size = 4 # how many values model need to output (might be 2 values for one action)
     obs_size = 14 
+
+    image_size=(84, 84) if model_obs_type == "game_screen" else None  # Observation image size
 
     if model_obs_type == "game_screen":
         policy_kwargs={
@@ -22,7 +24,7 @@ class model_config:
                 }
     elif model_obs_type == "state_based":
         policy_kwargs={
-                    "net_arch": [256, 256, 128],  # 增加網絡深度以處理複雜策略
+                    "net_arch": [1024, 512, 512, 256],  # 增加網絡深度以處理複雜策略
                     "activation_fn": torch.nn.ReLU,
                 }
 
@@ -31,7 +33,7 @@ class model_config:
         "policy": ActorCriticPolicy,  
 
         "learning_rate": 0.0001,
-        "n_steps": 2048,
+        "n_steps": 4096,
         "batch_size": 64,
         "n_epochs": 10,
         "gamma": 0.995,
@@ -52,3 +54,4 @@ class train_config:
     agent_num=2
     tensorboard_log="./logs/"
     model_dir="./models/"
+    render_mode=None  

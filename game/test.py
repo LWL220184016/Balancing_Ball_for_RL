@@ -1,7 +1,7 @@
 from balancing_ball_game import BalancingBallGame
 from gym_env import BalancingBallEnv
 
-def run_standalone_game(render_mode="human", capture_per_second=None, window_x=1000, window_y=600, collision_type=None, player_configs=None, platform_configs=None, environment_configs=None, level=2, fps=120):
+def run_standalone_game(render_mode="human", capture_per_second=None, window_x=None, window_y=None, max_step=None, collision_type=None, player_configs=None, platform_configs=None, environment_configs=None, level=None, fps=None):
     """Run the game in standalone mode with visual display"""
 
 
@@ -9,6 +9,7 @@ def run_standalone_game(render_mode="human", capture_per_second=None, window_x=1
         render_mode = render_mode,
         window_x = window_x,
         window_y = window_y,
+        max_step = max_step,
         collision_type = collision_type,
         player_configs = player_configs,
         platform_configs = platform_configs,
@@ -71,6 +72,7 @@ if __name__ == "__main__":
     run_standalone_game(render_mode="human", 
                         window_x=1000, 
                         window_y=1000, 
+                        max_step=30000,
                         collision_type=collision_type,
                         player_configs=player_configs,
                         platform_configs=platform_configs,

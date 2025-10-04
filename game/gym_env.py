@@ -17,7 +17,7 @@ class BalancingBallEnv(gym.Env):
     def __init__(self,
                  render_mode: str = None,
                  model_cfg: str = None,
-                 image_size: tuple = (84, 84),  # (height, width)
+                 image_size: tuple = None,  # (height, width)
                  window_x: int = 300,
                  window_y: int = 180
                 ):
