@@ -16,9 +16,7 @@ class BalancingBallEnv(gym.Env):
 
     def __init__(self,
                  render_mode: str = None,
-                 level: int = None,
-                 fps: int = None,
-                 obs_type: str = None,  # "game_screen" or "state_based"
+                 model_cfg: str = None,
                  image_size: tuple = (84, 84),  # (height, width)
                  window_x: int = 300,
                  window_y: int = 180
@@ -44,6 +42,7 @@ class BalancingBallEnv(gym.Env):
 
         # Image preprocessing settings
         self.image_size = image_size
+        self.action_size = model_cfg.action_size
 
         self.stack_size = 3  # Number of frames to stack
         self.observation_stack = []  # Initialize the stack
@@ -54,20 +53,16 @@ class BalancingBallEnv(gym.Env):
             sound_enabled=(render_mode == "human"),
             window_x = self.window_x,
             window_y = self.window_y,
-            level = level,
-            fps = fps,
+            level = model_cfg.level,
+            fps = model_cfg.fps,
         )
 
         self.num_players = self.game.num_players
 
         # Action space: continuous - Box space for horizontal force [-1.0, 1.0] for each player
-        self.action_space = spaces.Tuple((
-            spaces.Box(low=-1.0, high=1.0, shape=(1,), dtype=np.float32),
-            spaces.Box(low=-1.0, high=1.0, shape=(3,), dtype=np.float32)
-        ))
+        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(model_cfg.action_size,), dtype=np.float32)
 
-
-        if obs_type == "game_screen":
+        if model_cfg.model_obs_type == "game_screen":
             channels = 1
 
             # Image observation space with stacked frames
@@ -79,10 +74,10 @@ class BalancingBallEnv(gym.Env):
             self._preprocess_observation = self._preprocess_observation_game_screen
             self.step = self.step_game_screen
             self.reset = self.reset_game_screen
-        elif obs_type == "state_based":
+        elif model_cfg.model_obs_type == "state_based":
             # State-based observation space for multi-player:
             # [ball1_x, ball1_y, ball1_vx, ball1_vy, ball2_x, ball2_y, ball2_vx, ball2_vy, platform_x, platform_y, platform_angular_velocity]
-            obs_size = 4 * self.num_players + 3  # 4 values per player + 3 platform values
+            obs_size = model_cfg.obs_size
             self.observation_space = spaces.Box(
                 low=np.full(obs_size, -1.0),
                 high=np.full(obs_size, 1.0),
@@ -92,7 +87,7 @@ class BalancingBallEnv(gym.Env):
             self.step = self.step_state_based
             self.reset = self.reset_state_based
         else:
-            raise ValueError(f"obs_type: {obs_type} must be 'game_screen' or 'state_based'")
+            raise ValueError(f"obs_type: {model_cfg.model_obs_type} must be 'game_screen' or 'state_based'")
 
     def _preprocess_observation_game_screen(self, observation):
         """Process raw game observation for RL training
@@ -188,11 +183,12 @@ class BalancingBallEnv(gym.Env):
         # Ensure action is the right shape
         if isinstance(action, (int, float)):
             action = [action]
-        elif len(action) != self.num_players:
+        elif len(action) / self.action_size != self.num_players:
             raise ValueError(f"Action: {action} length {len(action)} does not match number of players {self.num_players}")
 
         # Take step in the game
-        _, step_rewards, terminated = self.game.step(action)
+        transformed_action = [[action[0], action[1], (action[2], action[3])]] # TODO 因爲 game 的 step 是根據玩家人數遍歷 action 的 list，如果只有一層 list，就會把一個玩家的 action 拆分而不是完整的 action 傳進去
+        _, step_rewards, terminated = self.game.step(transformed_action)
 
         # Get state-based observation
         observation = self._preprocess_observation_state_base()
@@ -214,7 +210,7 @@ class BalancingBallEnv(gym.Env):
         super().reset(seed=seed)  # This properly seeds the environment in Gymnasium
 
         self.game.reset()
-        observation = self._get_state_based_observation()
+        observation = self._preprocess_observation_state_base()
 
         info = {}
         return observation, info

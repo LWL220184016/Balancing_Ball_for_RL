@@ -11,14 +11,14 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "game_b
 
 from gym_env import BalancingBallEnv
 
-def make_env(render_mode="human", level=1):
+def make_env(render_mode="human", model_cfg=None):
     """Create an environment function"""
     def _init():
-        env = BalancingBallEnv(render_mode=render_mode, obs_type="game_screen", level=level, window_x=1000, window_y=600, fps=120)
+        env = BalancingBallEnv(render_mode=render_mode, model_cfg=model_cfg, window_x=1000, window_y=600)
         return env
     return _init
 
-def play_game(model_path, level=1, episodes=5):
+def play_game(model_path, model_cfg=None, episodes=5):
     """
     Play the game using a trained model
     

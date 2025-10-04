@@ -10,10 +10,24 @@ class model_config:
     
     action_space_low=-1.0  # Minimum action value
     action_space_high=1.0   # Maximum action value
-    action_num = 3
+    action_num = 3 # now many actions model can choose
+    action_size = 4 # how many values model need to output (might be 2 values for one action)
+    obs_size = 14 
+
+    if model_obs_type == "game_screen":
+        policy_kwargs={
+                    "features_extractor_kwargs": {"features_dim": 512},
+                    "net_arch": [512, 512, 256],  # 增加網絡深度以處理複雜策略
+                    "activation_fn": torch.nn.ReLU,
+                }
+    elif model_obs_type == "state_based":
+        policy_kwargs={
+                    "net_arch": [256, 256, 128],  # 增加網絡深度以處理複雜策略
+                    "activation_fn": torch.nn.ReLU,
+                }
 
     model_param={
-        # ActorCriticCnnPolicyif for game_screen, ActorCriticPolicy for state_based
+        # ActorCriticCnnPolicy if for game_screen, ActorCriticPolicy for state_based
         "policy": ActorCriticPolicy,  
 
         "learning_rate": 0.0001,
@@ -26,11 +40,7 @@ class model_config:
         "ent_coef": 0.02,
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
-        "policy_kwargs": {
-                "features_extractor_kwargs": {"features_dim": 512},
-                "net_arch": [512, 512, 256],  # 增加網絡深度以處理複雜策略
-                "activation_fn": torch.nn.ReLU,
-            },
+        "policy_kwargs": policy_kwargs,
         "verbose": 1,
     }
 

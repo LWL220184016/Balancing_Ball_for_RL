@@ -75,7 +75,7 @@ if __name__ == "__main__":
                         player_configs=player_configs,
                         platform_configs=platform_configs,
                         environment_configs=environment_configs,
-                        level=1, 
+                        level=3, 
                         fps=360,
                         capture_per_second=None
                        )

@@ -1,3 +1,4 @@
+import pymunk
 from levels.rewards.reward_calculator import RewardComponent, terminates_round
 
 from typing import TYPE_CHECKING
@@ -52,3 +53,22 @@ class PlayerFallingRockCollisionReward(RewardComponent):
                 if collision_handler.check_is_entities(collision): # 假設 falling_rock 屬於 entities
                     player.add_reward_per_step(self.collision_falling_rock)
 
+class PlayerFallingRockNearReward(RewardComponent):
+    """當玩家接近落石時給予獎勵"""
+    def calculate(self, 
+                  players: list['Player'], 
+                  falling_rocks: list['FallingRock'], 
+                  **kwargs
+                 ):
+        for player in players:
+            if not player.get_is_alive():
+                continue
+            px, py = player.get_position()
+            player_pos = pymunk.Vec2d(px, py)
+            for rock in falling_rocks:
+                rx, ry = rock.get_position()
+                rock_pos = pymunk.Vec2d(rx, ry)
+                distance = player_pos.get_distance(rock_pos)
+                
+                reward = self.falling_rock_near / distance  # 線性減少的獎勵
+                player.add_reward_per_step(reward)
