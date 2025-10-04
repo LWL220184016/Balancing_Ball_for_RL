@@ -28,6 +28,7 @@ class Collision(Ability):
             if direction_vector.length > 0:
                 # 正規化向量（使其長度為1）並乘以速度
                 velocity_vector = direction_vector.normalized() * self.speed
+                print(f"Collision ability used. Setting velocity to: {velocity_vector}")
                 # 直接設置速度
                 player.set_velocity(velocity_vector)
 

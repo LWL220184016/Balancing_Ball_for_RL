@@ -104,6 +104,7 @@ class BalancingBallGame:
         self.score = [0] * self.num_players  # Total Score for each player
         self.winner = None
         self.last_speeds = [0] * self.num_players  # Track last speed for each player
+        self.step_rewards = [0] * self.num_players  # Rewards obtained in the last step
 
         # Initialize Pygame if needed
         if self.render_mode in ["human", "rgb_array", "rgb_array_and_human", "rgb_array_and_human_in_colab"]:
@@ -159,7 +160,7 @@ class BalancingBallGame:
 
 
         else:
-            print("Invalid render mode. Using headless mode.")
+            raise ValueError("Invalid render mode. Choose from 'human', 'rgb_array', 'rgb_array_and_human', 'rgb_array_and_human_in_colab'.")
 
         self.clock = pygame.time.Clock()
 

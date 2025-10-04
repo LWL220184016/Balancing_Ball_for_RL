@@ -17,9 +17,8 @@ class BalancingBallEnv(gym.Env):
     def __init__(self,
                  render_mode: str = None,
                  model_cfg: str = None,
-                 image_size: tuple = None,  # (height, width)
-                 window_x: int = 300,
-                 window_y: int = 180
+                 window_x: int = None,
+                 window_y: int = None
                 ):
         """
         envonment initialization
@@ -34,6 +33,7 @@ class BalancingBallEnv(gym.Env):
         """
 
         super(BalancingBallEnv, self).__init__()
+        print("Initializing BalancingBallEnv...")
 
         
         # Initialize game
@@ -41,7 +41,7 @@ class BalancingBallEnv(gym.Env):
         self.window_y = window_y
 
         # Image preprocessing settings
-        self.image_size = image_size
+        self.image_size = model_cfg.image_size
         self.action_size = model_cfg.action_size
 
         self.stack_size = 3  # Number of frames to stack
@@ -53,6 +53,7 @@ class BalancingBallEnv(gym.Env):
             sound_enabled=(render_mode == "human"),
             window_x = self.window_x,
             window_y = self.window_y,
+            max_step = 300000,
             level = model_cfg.level,
             fps = model_cfg.fps,
         )
@@ -75,8 +76,6 @@ class BalancingBallEnv(gym.Env):
             self.step = self.step_game_screen
             self.reset = self.reset_game_screen
         elif model_cfg.model_obs_type == "state_based":
-            # State-based observation space for multi-player:
-            # [ball1_x, ball1_y, ball1_vx, ball1_vy, ball2_x, ball2_y, ball2_vx, ball2_vy, platform_x, platform_y, platform_angular_velocity]
             obs_size = model_cfg.obs_size
             self.observation_space = spaces.Box(
                 low=np.full(obs_size, -1.0),
@@ -187,7 +186,8 @@ class BalancingBallEnv(gym.Env):
             raise ValueError(f"Action: {action} length {len(action)} does not match number of players {self.num_players}")
 
         # Take step in the game
-        transformed_action = [[action[0], action[1], (action[2], action[3])]] # TODO 因爲 game 的 step 是根據玩家人數遍歷 action 的 list，如果只有一層 list，就會把一個玩家的 action 拆分而不是完整的 action 傳進去
+        # transformed_action = [[action[0], action[1], (abs(action[2] * self.window_x), abs(action[3] * self.window_y))]] !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        transformed_action = [[action[0], action[1], (abs(float(action[2] * self.window_x)), abs(float(action[3] * self.window_y)))]] # TODO 因爲 game 的 step 是根據玩家人數遍歷 action 的 list，如果只有一層 list，就會把一個玩家的 action 拆分而不是完整的 action 傳進去
         _, step_rewards, terminated = self.game.step(transformed_action)
 
         # Get state-based observation

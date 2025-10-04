@@ -54,4 +54,4 @@ class train_config:
     agent_num=2
     tensorboard_log="./logs/"
     model_dir="./models/"
-    render_mode=None  
+    render_mode="rgb_array_and_human_in_colab"  
