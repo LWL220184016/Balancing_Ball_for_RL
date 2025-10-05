@@ -45,6 +45,34 @@ class model_config:
         "policy_kwargs": policy_kwargs,
         "verbose": 1,
     }
+    player_configs = [
+        {
+            "shape_type": "circle",
+            "size": [
+                0.03
+            ],
+            "shape_mass": 1,
+            "shape_friction": 100,
+            "shape_elasticity": 0.8,
+            "default_position": [
+                0.5,
+                0.6
+            ],
+            "default_velocity": [
+                0,
+                0
+            ],
+            "abilities": [
+                "Collision"
+            ],
+            "health": 10,
+            "color": [
+                255,
+                213,
+                79
+            ]
+        }
+    ]
 
 class train_config:
     total_timesteps=1000000

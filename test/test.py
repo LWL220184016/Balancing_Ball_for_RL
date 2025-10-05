@@ -1,6 +1,3 @@
-import pymunk
-
-space = pymunk.Space()
-
-# 列出所有屬性和方法
-print(dir(space))
+text = "Hello, World!"
+for i in range(256):
+    print(f"\n\033[38;5;{i}m{text}{i}m\033[0m")

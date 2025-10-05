@@ -54,6 +54,7 @@ class BalancingBallEnv(gym.Env):
             window_x = self.window_x,
             window_y = self.window_y,
             max_step = 300000,
+            player_configs=model_cfg.player_configs,
             level = model_cfg.level,
             fps = model_cfg.fps,
         )
@@ -61,7 +62,7 @@ class BalancingBallEnv(gym.Env):
         self.num_players = self.game.num_players
 
         # Action space: continuous - Box space for horizontal force [-1.0, 1.0] for each player
-        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(model_cfg.action_size,), dtype=np.float32)
+        self.action_space = spaces.Box(low=model_cfg.action_space_low, high=model_cfg.action_space_high, shape=(model_cfg.action_size,), dtype=np.float32)
 
         if model_cfg.model_obs_type == "game_screen":
             channels = 1

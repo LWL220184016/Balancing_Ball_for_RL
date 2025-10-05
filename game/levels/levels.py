@@ -249,6 +249,7 @@ class Level3(Levels):
         self.falling_rocks: list[FallingRock] = []
         self.window_size = None
 
+
     def setup(self, 
               window_x: int, 
               window_y: int
@@ -291,6 +292,9 @@ class Level3(Levels):
             window_y=window_y,
         )
 
+        if len(self.players) != 1 or len(self.falling_rocks) != 1:
+            print(f"\n\033[38;5;196mLevel 3 only supports 1 player and 1 falling rock in RL.196m\033[0m")
+
         return players, platforms, [self.falling_rocks], reward_calculator
 
     def action(self):
@@ -316,17 +320,40 @@ class Level3(Levels):
 
     def _get_observation_state_base(self) -> np.ndarray:
         """
-        Return the current observation without taking a step
+        Return the current observation without taking a step.
+        This version uses relative positions and velocities for better learning.
         """
-        obs = []
-        for player in self.players:
-            obs.extend(player.get_state(window_size=self.window_size, velocity_scale=200.0))
+        
+        # Assuming one player and one rock for this level
+        player = self.players[0]
+        rock = self.falling_rocks[0]
 
-        # for platform in self.platforms:
-        #     obs.extend(platform.get_state(window_size=self.window_size, velocity_scale=20.0))
+        # Get normalized states for both
+        player_state = player.get_state(window_size=self.window_size, velocity_scale=200.0)
+        rock_state = rock.get_state(window_size=self.window_size, velocity_scale=20.0)
 
-        for rock in self.falling_rocks:
-            obs.extend(rock.get_state(window_size=self.window_size, velocity_scale=20.0))
+        # player_state = [player_norm_x, player_norm_y, player_norm_vx, player_norm_vy]
+        # rock_state   = [rock_norm_x,   rock_norm_y,   rock_norm_vx,   rock_norm_vy]
+
+        # Calculate relative position and velocity
+        relative_pos_x = rock_state[0] - player_state[0]
+        relative_pos_y = rock_state[1] - player_state[1]
+        relative_vel_x = rock_state[2] - player_state[2]
+        relative_vel_y = rock_state[3] - player_state[3]
+
+        # The observation is the player's own velocity and the relative info to the target.
+        # This tells the agent "here is your current momentum" and "here is where the target is relative to you".
+        obs = [
+            player_state[2],  # player_norm_vx
+            player_state[3],  # player_norm_vy
+            relative_pos_x,
+            relative_pos_y,
+            relative_vel_x,
+            relative_vel_y,
+            # You can also include the absolute position of the player if boundary awareness is important
+            player_state[0], # player_norm_x
+            player_state[1], # player_norm_y
+        ]
 
         return np.array(obs, dtype=np.float32)
 
