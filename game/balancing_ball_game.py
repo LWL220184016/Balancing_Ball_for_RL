@@ -5,7 +5,7 @@ import os
 import base64
 import numpy as np
 import sys
-# import IPython.display as ipd
+import IPython.display as ipd
 
 from typing import Dict, Tuple, Optional
 # from IPython.display import display, Image, clear_output
@@ -15,7 +15,7 @@ from io import BytesIO
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
-
+ 
 from game.record import Recorder
 from game.levels.get_levels import get_level
 from game.levels.levels import Levels
@@ -299,10 +299,10 @@ class BalancingBallGame:
         # update particles and draw them
         screen_data = self.render() # 获取数据
 
-        if self.capture_per_second is not None and self.frame_count % self.capture_per_second == 0:  # Every second at 60 FPS
+        if isinstance(self.capture_per_second, int) and self.frame_count % self.capture_per_second == 0:  # Every second at 60 FPS
             pygame.image.save(self.screen, f"capture/frame_{self.frame_count/60}.png")
 
-        self.frame_count += 1
+            self.frame_count += 1
         return screen_data
     
     def _get_observation_state_base(self) -> np.ndarray:

@@ -34,6 +34,7 @@ def test_gym_env(episodes=3, window_x:int=None, window_y:int=None):
     env = BalancingBallEnv(
         render_mode="human",
         model_cfg=model_cfg,
+        train_cfg=train_cfg,
         window_x=1000,
         window_y=1000
     )
@@ -92,22 +93,22 @@ if __name__ == "__main__":
     #             }
     #         ]
 
-    # rgb_array_and_human_in_colab
-    run_standalone_game(render_mode="human", 
-                        window_x=1000, 
-                        window_y=1000, 
-                        max_episode_step=30000,
-                        collision_type=collision_type,
-                        player_configs=player_configs,
-                        platform_configs=platform_configs,
-                        environment_configs=environment_configs,
-                        level=3, 
-                        fps=360,
-                        capture_per_second=None
-                       )
+    # # rgb_array_and_human_in_colab
+    # run_standalone_game(render_mode="human", 
+    #                     window_x=1000, 
+    #                     window_y=1000, 
+    #                     max_episode_step=30000,
+    #                     collision_type=collision_type,
+    #                     player_configs=player_configs,
+    #                     platform_configs=platform_configs,
+    #                     environment_configs=environment_configs,
+    #                     level=3, 
+    #                     fps=360,
+    #                     capture_per_second=None
+    #                    )
     
     
-    # test_gym_env(episodes=1,
-    #              window_x=1000,
-    #              window_y=1000
-    #             )
+    test_gym_env(episodes=1,
+                 window_x=1000,
+                 window_y=1000
+                )
