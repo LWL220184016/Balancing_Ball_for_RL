@@ -1,3 +1,4 @@
+from game.role import player
 from levels.rewards.reward_calculator import RewardComponent, terminates_round
 
 from typing import TYPE_CHECKING
@@ -89,3 +90,27 @@ class PlayerStayInPlatformCenterReward(RewardComponent):
                 normalized_distance = distance_from_center / reward_width
                 center_reward = self.reward_ball_centered * (1.0 - normalized_distance) # TODO Hard code
             player.add_reward_per_step(center_reward)
+
+class PlayerMovementDirectionPenalty(RewardComponent):
+    """處理玩家一直向同一個方向移動的懲罰"""
+
+    def calculate(self, players: list['Player'], **kwargs):
+        for player in players:
+            if not player.get_is_alive():
+                continue
+            
+            vx, vy = player.get_velocity()
+            if abs(vx) > 0.1:  # 假設0.1是速度的閾值
+                if player.get_last_direction() is None:
+                    player.set_last_direction('right' if vx > 0 else 'left')
+                    player.set_direction_count(1)
+                else:
+                    current_direction = 'right' if vx > 0 else 'left'
+                    if current_direction == player.get_last_direction():
+                        player.add_direction_count(1)
+                    else:
+                        player.set_last_direction(current_direction)
+                        player.set_direction_count(1)
+
+                if player.get_direction_count() > 720:  # 如果連續 720 個 step 以上向同一方向移動，扣分 TODO Hard code
+                    player.add_reward_per_step(self.movement_penalty)

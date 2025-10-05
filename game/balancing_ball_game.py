@@ -261,6 +261,10 @@ class BalancingBallGame:
                 self.players[self.winner].add_reward_per_step(0.5 * self.steps / 100)  # 生存時間越長獎勵越多 TODO Hard code
                 self.score[self.winner] += self.players[self.winner].get_reward_per_step()
                 print(f"Winner: Player {self.winner + 1}")
+            elif self.num_players == 1:
+                self.winner = None  # No winner in single player if fell
+                print("Game Over - Player fell")
+
             elif alive_count == 0:
                 self.winner = None  # Draw
                 print("Draw - all players fell")

@@ -272,7 +272,7 @@ class Level3(Levels):
                 self.space.add(body, shape)
 
         from levels.rewards.failling_rock_reward import PlayerFallingRockCollisionReward, PlayerFallingRockNearReward
-        from levels.rewards.player_reward import PlayerFallAndSurvivalReward
+        from levels.rewards.player_reward import PlayerFallAndSurvivalReward, PlayerMovementDirectionPenalty
 
         reward_calculator = RewardCalculator(
             players=self.players,
@@ -285,6 +285,7 @@ class Level3(Levels):
             reward_components=[
                 PlayerFallAndSurvivalReward(self.level_configs.get("reward")),
                 PlayerFallingRockNearReward(self.level_configs.get("reward")),
+                PlayerMovementDirectionPenalty(self.level_configs.get("reward")),
             ],
             window_x=window_x,
             window_y=window_y,

@@ -13,6 +13,8 @@ class Player(Role):
         super().__init__(**kwargs)
         self.is_alive = True
         self.is_on_ground = False
+        self.last_direction = None  # 用於追踪玩家上一次移動的方向
+        self.direction_count = 0  # 用於追踪玩家是否一直向同一方向移動
         self.reward_per_step = 0  # 每一步的獎勵
 
     def perform_action(self, action: list):
@@ -51,6 +53,9 @@ class Player(Role):
         super().reset(**kwargs)
         self.is_alive = True
         self.is_on_ground = False
+        
+        self.set_last_direction(None)
+        self.set_direction_count(0)
 
     def apply_force_at_world_point(self, force: pymunk.Vec2d, point: tuple[float, float]):
         self.shape.apply_force_at_world_point(force, point)
@@ -58,11 +63,26 @@ class Player(Role):
     def get_reward_per_step(self):
         return self.reward_per_step
     
+    def get_last_direction(self):
+        return self.last_direction
+
+    def get_direction_count(self):
+        return self.direction_count
+    
     def set_reward_per_step(self, reward: float):
         self.reward_per_step = reward
     
     def add_reward_per_step(self, reward: float):
         self.reward_per_step += reward
+
+    def set_last_direction(self, direction: str):
+        self.last_direction = direction
+
+    def set_direction_count(self, count: int):
+        self.direction_count = count
+
+    def add_direction_count(self, count: int):
+        self.direction_count += count
 
 class PlayerFactory:
     def __init__(self, collision_type_player: int):
