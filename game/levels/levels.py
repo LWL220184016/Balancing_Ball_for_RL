@@ -54,8 +54,12 @@ class Levels:
 
         if not self.collision_type_player or not self.collision_type_platform:
             raise ValueError(f"Invalid collision_type: {self.collision_type}, must contain 'player' and 'platform' keys with integer values")
+        
+        
         self.players: list['Player'] = [player_factory.create_player(window_x=window_x, window_y=window_y, space=self.space, **config) for config in self.player_configs]
-        self.platforms: list['Platform'] = [platform_factory.create_platform(window_x=window_x, window_y=window_y, space=self.space, **config) for config in self.level_configs.get("platform_configs")]
+        
+        if self.level_configs.get("platform_configs") is not None:
+            self.platforms: list['Platform'] = [platform_factory.create_platform(window_x=window_x, window_y=window_y, space=self.space, **config) for config in self.level_configs.get("platform_configs")]
 
         print(f"Created {len(self.players)} players and {len(self.platforms)} platforms.")
 

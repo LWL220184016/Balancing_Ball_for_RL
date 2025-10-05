@@ -1,3 +1,4 @@
+問題1：
 在 Balancing_Ball_for_RL\game\gym_env.py 的 Function step_state_based 中的這行代碼：
 transformed_action = [[action[0], action[1], (abs(action[2] * self.window_x), abs(action[3] * self.window_y))]] 
 transformed_action = [[action[0], action[1], (abs(float(action[2] * self.window_x)), abs(float(action[3] * self.window_y)))]]
@@ -66,3 +67,4 @@ Collision ability used. Setting velocity to: Vec2d(-2444.2869025928735, 5479.549
 Collision ability used. Setting velocity to: Vec2d(4670.442702548998, 3766.558769249035)
 Collision ability used. Setting velocity to: Vec2d(-4717.129615893241, 3707.9223544813995)
 Collision ability used. Setting velocity to: Vec2d(5911.405651096633, -1027.2697932786668)
+

@@ -16,7 +16,8 @@ class BalancingBallEnv(gym.Env):
 
     def __init__(self,
                  render_mode: str = None,
-                 model_cfg: str = None,
+                 model_cfg: str = None,  # <class 'RL.levels.level3.config.model_config'>
+                 train_cfg: str = None,  # <class 'RL.levels.level3.config.train_config'>
                  window_x: int = None,
                  window_y: int = None
                 ):
@@ -35,7 +36,6 @@ class BalancingBallEnv(gym.Env):
         super(BalancingBallEnv, self).__init__()
         print("Initializing BalancingBallEnv...")
 
-        
         # Initialize game
         self.window_x = window_x
         self.window_y = window_y
@@ -53,7 +53,7 @@ class BalancingBallEnv(gym.Env):
             sound_enabled=(render_mode == "human"),
             window_x = self.window_x,
             window_y = self.window_y,
-            max_step = 300000,
+            max_episode_step = train_cfg.max_episode_step,
             player_configs=model_cfg.player_configs,
             level = model_cfg.level,
             fps = model_cfg.fps,
@@ -118,7 +118,6 @@ class BalancingBallEnv(gym.Env):
     def step_game_screen(self, action):
         """Take a step in the environment with continuous actions"""
         # Ensure action is the right shape
-        print("action: ", action)
 
         # Take step in the game
         obs, step_rewards, terminated = self.game.step(action)

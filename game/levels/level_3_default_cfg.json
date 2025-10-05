@@ -96,14 +96,14 @@
             {
                 "gravity": [
                     0,
-                    9810
+                    4000
                 ],
                 "damping": 0.5
             }
         ],
         "reward": {
             "reward_per_step": 0.0,
-            "collision_falling_rock": 15,
+            "collision_falling_rock": 10,
             "falling_rock_fall_outside_platform": 0.0,
             "falling_rock_fall_on_platform": -2.5,
 

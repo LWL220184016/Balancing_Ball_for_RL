@@ -8,7 +8,7 @@ class model_config:
     num_player=1
     fps=360
     
-    action_space_low=-1.0  # Minimum action value
+    action_space_low=0  # Minimum action value
     action_space_high=1.0   # Maximum action value
     action_num = 1 # now many actions model can choose
     action_size = 2 # how many values model need to output (might be 2 values for one action)
@@ -76,10 +76,11 @@ class model_config:
 
 class train_config:
     total_timesteps=1000000
+    max_episode_step=50000  # Maximum steps per episode
     save_freq=10000
     eval_freq=10000
     eval_episodes=5
     agent_num=2
     tensorboard_log="./logs/"
     model_dir="./models/"
-    render_mode="rgb_array_and_human_in_colab"  
+    render_mode="human"  

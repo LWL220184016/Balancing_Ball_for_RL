@@ -21,8 +21,8 @@ class PlayerFallingRockCollisionReward(RewardComponent):
                  ):
                   
         
+        penalty = 0
         for rock in falling_rocks:
-            penalty = 0
             if rock.get_is_on_ground():
                 penalty = self.falling_rock_fall_on_platform
                 rock.reset()

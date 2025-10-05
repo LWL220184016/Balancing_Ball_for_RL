@@ -40,7 +40,7 @@ class BalancingBallGame:
                  sound_enabled: bool = True,
                  window_x: int = None,
                  window_y: int = None,
-                 max_step: int = None,
+                 max_episode_step: int = None,
                  collision_type: dict = None,
                  player_configs: dict = None,
                  platform_configs: dict = None,
@@ -55,12 +55,12 @@ class BalancingBallGame:
         Args:
             render_mode: "human" for visible window, "rgb_array" for gym env, "headless" for no rendering
             sound_enabled: Whether to enable sound effects
-            max_step: 1 step = 1/fps, if fps = 120, 1 step = 1/120
+            max_episode_step: 1 step = 1/fps, if fps = 120, 1 step = 1/120
             fps: frame per second
             capture_per_second: save game screen as a image every second, None means no capture
         """
         # Game parameters
-        self.max_step = max_step
+        self.max_episode_step = max_episode_step
         self.fps = fps
         self.window_x = window_x
         self.window_y = window_y
@@ -255,7 +255,7 @@ class BalancingBallGame:
 
         # Check if game should end
         terminated = False
-        if alive_count == 0 or (alive_count == 1 and self.num_players > 1) or self.steps >= self.max_step:
+        if alive_count == 0 or (alive_count == 1 and self.num_players > 1) or self.steps >= self.max_episode_step:
             print("Final Scores: ", self.score)
             terminated = True
             self.game_over = True
@@ -380,7 +380,7 @@ class BalancingBallGame:
     def _draw_game_info(self):
         """Draw game information on screen"""
         # Create texts
-        time_text = f"Time: {self.end_time - self.start_time:.1f}"
+        time_text = f"Time: {self.end_time - self.start_time:.1f}, steps: {self.steps}/{self.max_episode_step}"
         score_texts = [f"P{i+1}: {self.score[i]:.1f} + {self.step_rewards[i]:.2f} Health: {player.get_health():.1f}" for i, player in enumerate(self.players)]
 
         # Render texts

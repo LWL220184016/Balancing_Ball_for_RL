@@ -109,7 +109,7 @@ class Role:
         pos_x, pos_y = self.get_position()
 
         norm_x = pos_x / win_x * 2 - 1
-        norm_y = (1 - pos_y / win_y) * 2 - 1
+        norm_y = pos_y / win_y * 2 - 1
 
         state = [norm_x, norm_y]
 

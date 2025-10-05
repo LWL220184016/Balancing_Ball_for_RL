@@ -27,14 +27,18 @@ def play_game(model_path, episodes=5):
         episodes: Number of episodes to play
     """
     # Create environment
-    from RL.levels.level3.config import model_config
+    from RL.levels.level3.config import model_config, train_config
     import pygame  # 導入 pygame
 
+    model_cfg = model_config()
+    train_cfg = train_config()
+
     env = BalancingBallEnv(
-        render_mode="human",
-        model_cfg=model_config,
+        render_mode=train_cfg.render_mode,
+        model_cfg=model_cfg,
+        train_cfg=train_cfg,
         window_x=1000,
-        window_y=1000
+        window_y=1000,
     )
     # Load the model
     model = PPO.load(model_path)
@@ -56,6 +60,8 @@ def play_game(model_path, episodes=5):
                 if done: # 檢查是否需要提前退出
                     break
             # Get model action
+
+            # deterministic: 讓模型每次都選擇它認爲的最優動作，而不是隨機選擇，可能導致模型持續輸出極其相近的數字
             action, _ = model.predict(obs, deterministic=True)
             
             # Take step in the environment
@@ -77,7 +83,7 @@ if __name__ == "__main__":
 
 
     play_game(
-        model_path="./ppo_balancing_ball_state_based_80000_steps",
+        model_path="./ppo_balancing_ball_state_based_10000_steps",
         episodes=5
     )
 
