@@ -77,8 +77,8 @@ if __name__ == "__main__":
 
 
     play_game(
-        model_path="./ppo_balancing_ball_state_based_130000_steps",
-        episodes=10
+        model_path="./ppo_balancing_ball_state_based_50000_steps",
+        episodes=1
     )
 
     

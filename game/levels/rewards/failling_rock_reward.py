@@ -71,4 +71,6 @@ class PlayerFallingRockNearReward(RewardComponent):
                 distance = player_pos.get_distance(rock_pos)
                 
                 reward = self.falling_rock_near / distance  # 線性減少的獎勵
+                if distance < self.falling_rock_near_distance_threshold:
+                    reward *= self.falling_rock_near_distance_reward_multiplier
                 player.add_reward_per_step(reward)

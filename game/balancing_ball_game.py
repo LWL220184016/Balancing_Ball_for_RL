@@ -233,6 +233,12 @@ class BalancingBallGame:
         self.step_rewards = rewards
         self.end_time = time.time()
 
+        for event in pygame.event.get(): # TODO 這部分代碼應該和 human control 的代碼合並
+            if event.type == pygame.QUIT:
+                terminated = True # 如果點擊關閉按鈕，則結束迴圈
+                break
+            
+
         return self._get_observation(), rewards, terminated # TODO self._get_observation() 是返回的 game_screen，state_based 是 _get_observation_state_based，需要改進
 
     def reward(self):

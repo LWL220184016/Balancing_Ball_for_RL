@@ -105,13 +105,18 @@
         ],
         "reward": {
             "reward_per_step": 0.0,
-            "collision_falling_rock": 0.4,
-            "falling_rock_fall_outside_platform": 5.0,
+            "collision_falling_rock": 5,
+            "falling_rock_fall_outside_platform": 0.0,
             "falling_rock_fall_on_platform": -5.0,
+
             "falling_rock_near": 0.2,
+            "falling_rock_near_distance_threshold": 200,
+            "falling_rock_near_distance_reward_multiplier": 5,
+
+            "steps_limit_for_movement_penalty": 200,
             "movement_penalty": -0.08,
             
-            "fail_penalty": 0.0,
+            "fail_penalty": 1.0,
             "speed_reward_proportion": 0.0,
             "opponent_fell_reward": 0.0, 
             "survival_bonus": 0.0

@@ -50,10 +50,18 @@ class Player(Role):
         return state
 
     def reset(self, **kwargs):
+        """Reset the player when dropped."""
+
         super().reset(**kwargs)
         self.is_alive = True
         self.is_on_ground = False
         
+
+    def reset_episodes(self, **kwargs):
+        """Reset the player at the start of each episode."""
+
+        self.reset(**kwargs)
+
         self.set_last_direction(None)
         self.set_direction_count(0)
 

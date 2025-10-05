@@ -14,7 +14,8 @@ class PlayerFallAndSurvivalReward(RewardComponent):
     def _is_fallen(self, player: 'Player', window_x: int, window_y: int) -> bool:
         """檢查玩家是否墜落"""
         ball_x, ball_y = player.get_position()
-        return ball_y > window_y or ball_x < 0 or ball_x > window_x
+        return ball_y < 0 or ball_y > window_y or \
+               ball_x < 0 or ball_x > window_x
 
     def calculate(self, players: list['Player'], window_x: int, window_y: int, **kwargs):
         for player in players:
@@ -112,5 +113,5 @@ class PlayerMovementDirectionPenalty(RewardComponent):
                         player.set_last_direction(current_direction)
                         player.set_direction_count(1)
 
-                if player.get_direction_count() > 720:  # 如果連續 720 個 step 以上向同一方向移動，扣分 TODO Hard code
+                if player.get_direction_count() > self.steps_limit_for_movement_penalty:  # 如果連續 720 個 step 以上向同一方向移動，扣分 TODO Hard code
                     player.add_reward_per_step(self.movement_penalty)

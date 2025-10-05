@@ -1,3 +1,4 @@
+from stable_baselines3 import PPO
 from balancing_ball_game import BalancingBallGame
 from gym_env import BalancingBallEnv
 
@@ -24,15 +25,28 @@ def run_standalone_game(render_mode="human", capture_per_second=None, window_x=N
 def test_gym_env(episodes=3, window_x:int=None, window_y:int=None):
     """Test the OpenAI Gym environment"""
     # from gym_env import BalancingBallEnv
-    from RL.levels.level3.config import model_config
+    from RL.levels.level3.config import model_config, train_config
     import pygame  # 導入 pygame
+
+    model_cfg = model_config()
+    train_cfg = train_config()
 
     env = BalancingBallEnv(
         render_mode="human",
-        model_cfg=model_config,
+        model_cfg=model_cfg,
         window_x=1000,
         window_y=1000
     )
+
+    model = PPO(
+        env=env,
+        tensorboard_log=train_cfg.tensorboard_log,
+        **model_cfg.model_param
+    )
+
+    model.learn(total_timesteps=50000)
+
+    
 
     for episode in range(episodes):
         observation, info = env.reset()
@@ -78,22 +92,22 @@ if __name__ == "__main__":
     #             }
     #         ]
 
-    # # rgb_array_and_human_in_colab
-    # run_standalone_game(render_mode="human", 
-    #                     window_x=1000, 
-    #                     window_y=1000, 
-    #                     max_step=30000,
-    #                     collision_type=collision_type,
-    #                     player_configs=player_configs,
-    #                     platform_configs=platform_configs,
-    #                     environment_configs=environment_configs,
-    #                     level=3, 
-    #                     fps=360,
-    #                     capture_per_second=None
-    #                    )
+    # rgb_array_and_human_in_colab
+    run_standalone_game(render_mode="human", 
+                        window_x=1000, 
+                        window_y=1000, 
+                        max_step=30000,
+                        collision_type=collision_type,
+                        player_configs=player_configs,
+                        platform_configs=platform_configs,
+                        environment_configs=environment_configs,
+                        level=3, 
+                        fps=360,
+                        capture_per_second=None
+                       )
     
     
-    test_gym_env(episodes=1,
-                 window_x=1000,
-                 window_y=1000
-                )
+    # test_gym_env(episodes=1,
+    #              window_x=1000,
+    #              window_y=1000
+    #             )

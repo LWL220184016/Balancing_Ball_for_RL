@@ -95,7 +95,7 @@ class Levels:
         Reset the level to its initial state.
         """
         for player in self.players:
-            player.reset()
+            player.reset_episodes()
 
         for platform in self.platforms:
             platform.reset()
