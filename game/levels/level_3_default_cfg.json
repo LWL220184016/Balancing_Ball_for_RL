@@ -17,8 +17,6 @@
                 0
             ],
             "abilities": [
-                "Move",
-                "Jump",
                 "Collision"
             ],
             "health": 10,
@@ -105,15 +103,15 @@
         ],
         "reward": {
             "reward_per_step": 0.0,
-            "collision_falling_rock": 5,
+            "collision_falling_rock": 15,
             "falling_rock_fall_outside_platform": 0.0,
-            "falling_rock_fall_on_platform": -5.0,
+            "falling_rock_fall_on_platform": -2.5,
 
-            "falling_rock_near": 0.2,
+            "falling_rock_near": 0.4,
             "falling_rock_near_distance_threshold": 200,
             "falling_rock_near_distance_reward_multiplier": 5,
 
-            "steps_limit_for_movement_penalty": 200,
+            "steps_limit_for_movement_penalty": 100,
             "movement_penalty": -0.08,
             
             "fail_penalty": 1.0,

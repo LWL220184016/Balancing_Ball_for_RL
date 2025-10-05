@@ -187,7 +187,7 @@ class BalancingBallEnv(gym.Env):
 
         # Take step in the game
         # transformed_action = [[action[0], action[1], (abs(action[2] * self.window_x), abs(action[3] * self.window_y))]] !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        transformed_action = [[action[0], action[1], (abs(float(action[2] * self.window_x)), abs(float(action[3] * self.window_y)))]] # TODO 因爲 game 的 step 是根據玩家人數遍歷 action 的 list，如果只有一層 list，就會把一個玩家的 action 拆分而不是完整的 action 傳進去
+        transformed_action = [[0, 0, (abs(float(action[0] * self.window_x)), abs(float(action[1] * self.window_y)))]] # TODO 因爲 game 的 step 是根據玩家人數遍歷 action 的 list，如果只有一層 list，就會把一個玩家的 action 拆分而不是完整的 action 傳進去
         _, step_rewards, terminated = self.game.step(transformed_action)
 
         # Get state-based observation

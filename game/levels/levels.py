@@ -322,8 +322,8 @@ class Level3(Levels):
         for player in self.players:
             obs.extend(player.get_state(window_size=self.window_size, velocity_scale=200.0))
 
-        for platform in self.platforms:
-            obs.extend(platform.get_state(window_size=self.window_size, velocity_scale=20.0))
+        # for platform in self.platforms:
+        #     obs.extend(platform.get_state(window_size=self.window_size, velocity_scale=20.0))
 
         for rock in self.falling_rocks:
             obs.extend(rock.get_state(window_size=self.window_size, velocity_scale=20.0))
