@@ -56,11 +56,13 @@ class PlayerFallingRockCollisionReward(RewardComponent):
 class PlayerFallingRockNearReward(RewardComponent):
     """
     當玩家朝著最近的落石移動時，根據其接近速度給予獎勵。
+    如果玩家遠離落石前沒有與其碰撞，則給予懲罰。
     """
     
     def calculate(self, 
                   players: list['Player'], 
                   falling_rocks: list['FallingRock'], 
+                  collision_handler: 'CollisionHandler', 
                   **kwargs
                  ):
         
@@ -96,6 +98,7 @@ class PlayerFallingRockNearReward(RewardComponent):
             # 3. 計算徑向速度 (玩家速度在朝向石頭方向上的分量)
             # 這是玩家速度向量在相對位置向量上的投影
             # 如果 direction_to_rock 的長度為 0，則不計算
+            reward = 0
             if direction_to_rock.length > 0:
                 # 我們只需要投影的純量值: player_vel · direction_to_rock / ||direction_to_rock||
                 approach_velocity = player_vel.dot(direction_to_rock) / direction_to_rock.length
@@ -110,6 +113,16 @@ class PlayerFallingRockNearReward(RewardComponent):
                     # 為了防止獎勵值過大，可以進行縮放或裁剪
                     # 例如，將獎勵縮放到一個合理的範圍
                     reward *= self.falling_rock_near_proportion
-                    # print(f"Falling Rock Near Reward: {reward:.4f}")
-
-                    player.add_reward_per_step(reward)
+                    if direction_to_rock.length < self.falling_rock_near_distance_threshold:
+                        reward *= self.falling_rock_near_distance_reward_multiplier
+                
+                else:
+                    collision_type = closest_rock.get_last_collision_with() # Reset last collision to avoid multiple penalty
+                    _player = collision_handler.get_player_from_collision_type(collision_type)
+                    
+                    if _player is None and not player.get_special_status("stay_away_from_falling_rock_without_collision") and player_pos.x != player.get_default_position()[0]:
+                        player.set_special_status("stay_away_from_falling_rock_without_collision", True)
+                        reward = self.stay_away_from_falling_rock_without_collision
+                
+                player.add_reward_per_step(reward)
+                    

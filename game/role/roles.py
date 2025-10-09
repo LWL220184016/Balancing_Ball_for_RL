@@ -120,7 +120,7 @@ class Role:
             cooldown_duration = ability.get_cooldown()
             last_used_step = ability.get_last_used_step()
 
-            if cooldown_duration > 0:
+            if cooldown_duration > 0 and last_used_step is not None:
                 step_since_last_use = current_time - last_used_step
                 remaining_cooldown = max(0, cooldown_duration - step_since_last_use)
                 # 正規化到 [0, 1] 範圍

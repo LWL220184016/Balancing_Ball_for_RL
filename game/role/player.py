@@ -17,6 +17,9 @@ class Player(Role):
         self.direction_count = 0  # 用於追踪玩家是否一直向同一方向移動
         self.reward_per_step = 0  # 每一步的獎勵
 
+        # 用於記錄狀態比如是否已經受到在重置前只能受到一次的懲罰
+        self.special_status = {}  # 特殊狀態
+
     def perform_action(self, action: list, current_step: int):
         # 遍歷所有玩家，並使用 .get() 安全地檢查能力是否存在
         if action[0] != 0 and self.abilities.get("Move"):
@@ -55,7 +58,7 @@ class Player(Role):
         super().reset(**kwargs)
         self.is_alive = True
         self.is_on_ground = False
-        
+        self.special_status = {}
 
     def reset_episodes(self, **kwargs):
         """Reset the player at the start of each episode."""
@@ -77,6 +80,9 @@ class Player(Role):
     def get_direction_count(self):
         return self.direction_count
     
+    def get_special_status(self, status_key: str):
+        return self.special_status.get(status_key, False)
+    
     def set_reward_per_step(self, reward: float):
         self.reward_per_step = reward
     
@@ -88,6 +94,9 @@ class Player(Role):
 
     def set_direction_count(self, count: int):
         self.direction_count = count
+
+    def set_special_status(self, status_key: str, status_value):
+        self.special_status[status_key] = status_value
 
     def add_direction_count(self, count: int):
         self.direction_count += count

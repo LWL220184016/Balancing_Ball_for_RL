@@ -27,7 +27,10 @@ class Shape:
 
         self.window_x = window_x
         self.window_y = window_y
-        self.default_position = default_position
+        self.default_position = (
+            self.window_x * default_position[0] if isinstance(default_position[0], float) else default_position[0],
+            self.window_y * default_position[1] if isinstance(default_position[1], float) else default_position[1]
+        )
         self.default_velocity = default_velocity
         self.default_angular_velocity = 0 # TODO Hard code
 
@@ -38,14 +41,14 @@ class Shape:
             print("default_velocity:", self.default_velocity)
             raise ValueError("window_x, window_y, default_position, and default_velocity must be provided as keyword arguments.")
 
-        self.set_position(self.default_position)
+        self.set_position_absolute_value(self.default_position)
         self.set_velocity(self.default_velocity)
         self.set_angular_velocity(0) # TODO Hard code
 
     def reset(self):
         """Reset the body to its default position, velocity and angular velocity."""
 
-        self.set_position(self.default_position)
+        self.set_position_absolute_value(self.default_position)
         self.set_velocity(self.default_velocity)
         self.set_angular_velocity(self.default_angular_velocity)
 
@@ -95,7 +98,21 @@ class Shape:
         
         return self.body, self.shape
 
-    def set_position(self, position: tuple):
+    def set_position_absolute_value(self, position: tuple):
+        """
+        Set position using absolute values.
+        position: (x, y) where x and y can be float (absolute value) or others (random value)
+        """
+        self.body.position = (
+            position[0] if isinstance(position[0], float) else random.randint(0, self.window_x), # TODO Hard code
+            position[1] if isinstance(position[1], float) else random.randint(0, self.window_y)
+        )
+
+    def set_position_proportion(self, position: tuple):
+        """
+        Set position using proportion values.
+        position: (x, y) where x and y are floats representing the proportion of the window size
+        """
         self.body.position = (
             self.window_x * position[0] if isinstance(position[0], float) else random.randint(0, self.window_x), # TODO Hard code
             self.window_y * position[1] if isinstance(position[1], float) else random.randint(0, self.window_y)

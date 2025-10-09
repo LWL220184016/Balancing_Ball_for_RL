@@ -115,7 +115,7 @@ class Train:
         print("Training completed!")
         return self.model
 
-    def evaluate(self, n_episodes=10):
+    def evaluate(self, n_episodes=10, deterministic: bool = None):
         """
         Evaluate a trained model
 
@@ -130,7 +130,7 @@ class Train:
             self.model,
             self.env,
             n_eval_episodes=n_episodes,
-            deterministic=True,
+            deterministic=deterministic,
             render=True
         )
 

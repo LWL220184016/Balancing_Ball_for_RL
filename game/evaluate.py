@@ -43,7 +43,7 @@ def play_game(model_path: str = None, episodes: int = None):
         load_model=model_path,
     )
 
-    evaluater.evaluate(episodes)
+    evaluater.evaluate(episodes, deterministic=True)
 
 if __name__ == "__main__":
     # play_game(
@@ -53,7 +53,7 @@ if __name__ == "__main__":
 
 
     play_game(
-        model_path="./trained_model/level3/best_model.zip",
+        model_path="./trained_model/level3/ppo_balancing_ball_state_based_1310000_steps.zip",
         episodes=1
     )
 
