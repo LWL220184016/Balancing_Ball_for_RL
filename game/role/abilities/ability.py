@@ -41,12 +41,12 @@ class Ability:
             config_path = os.path.join(dir_path, './abilities_default_cfg.json')
             raise ValueError(f"Default config for ability '{self.ability_name}' not found in {config_path}")
 
-        self.last_used_step = 0  # Track the last time the ability was used
+        self.last_used_step = None  # Track the last time the ability was used
 
     def check_cooldowns(self, current_step: int) -> bool:
         """Check and update action cooldowns"""
 
-        if (current_step - self.last_used_step) > self.cooldown:
+        if self.last_used_step is None or (current_step - self.last_used_step) > self.cooldown:
             self.last_used_step = current_step
             return True
         return False
@@ -56,7 +56,7 @@ class Ability:
     
     def reset(self):
         """重設此能力的內部狀態，例如冷卻時間。"""
-        self.last_used_step = 0
+        self.last_used_step = None
     
     def get_cooldown(self):
         return self.cooldown

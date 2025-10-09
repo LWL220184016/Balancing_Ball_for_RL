@@ -203,6 +203,7 @@ class BalancingBallGame:
             terminated: Whether episode is done
             info: Additional information
         """
+        
         self.level.status_reset_step()
 
         # Step the physics simulation
@@ -374,7 +375,7 @@ class BalancingBallGame:
         """Draw game information on screen"""
         # Create texts
         time_text = f"Time: {self.end_time - self.start_time:.1f}, steps: {self.steps}/{self.max_episode_step}"
-        score_texts = [f"P{i+1}: {self.score[i]:.1f} + {self.step_rewards[i]:.2f} Health: {player.get_health():.1f}" for i, player in enumerate(self.players)]
+        score_texts = [f"P{i+1}: {self.score[i]:.1f} + {self.step_rewards[i]} Health: {player.get_health():.1f}" for i, player in enumerate(self.players)]
 
         # Render texts
         time_surface = self.font.render(time_text, True, (255, 255, 255))  # TODO Hard code

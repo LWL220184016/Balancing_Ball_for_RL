@@ -288,7 +288,9 @@ class Level3(Levels):
                 PlayerFallingRockCollisionReward(self.level_configs.get("reward"))
             ],
             reward_components=[
+                # 并非真的參予獎勵計算，只是用來檢測玩家是否掉落并且重設位置
                 PlayerFallAndSurvivalReward(self.level_configs.get("reward")),
+
                 PlayerFallingRockNearReward(self.level_configs.get("reward")),
                 PlayerMovementDirectionPenalty(self.level_configs.get("reward")),
             ],

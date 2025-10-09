@@ -50,7 +50,7 @@ class model_config:
     }
 
 class train_config:
-    total_timesteps=1000000
+    total_timesteps=5000000
     max_episode_step=50000  # Maximum steps per episode
     save_freq=10000
     eval_freq=10000
