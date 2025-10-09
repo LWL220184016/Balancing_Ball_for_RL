@@ -1,3 +1,11 @@
+Todo: 
+   1. (✅️finished) 嘗試合并保存模型訓練的相關 config 文件
+   2. (✅️finished) 為 Balancing_Ball_RL_V6 中的 Train 和 Optuna 創建單獨的 Python 文件 
+   3. (✅️finished) 嘗試合并 play_with_model.py 的評估和 Train 中的評估
+   4. 改進 RL\levels 中的 config.py 文件，其中 render_mode="human" 適用於在本地電腦測試模型，render_mode="headless" 適用於在 Google Colab 訓練模型
+   5. 改進獎勵函數，應將按照距離給予獎勵換成判斷是否正在接近來給予獎勵或者懲罰
+   6. 
+
 問題1：
 在 Balancing_Ball_for_RL\game\gym_env.py 的 Function step_state_based 中的這行代碼：
 transformed_action = [[action[0], action[1], (abs(action[2] * self.window_x), abs(action[3] * self.window_y))]] 

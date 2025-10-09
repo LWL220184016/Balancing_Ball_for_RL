@@ -29,7 +29,6 @@ class BalancingBallGame:
     """
     A physics-based balancing ball game that can run standalone or be used as a Gym environment.
     """
-
     # Game constants
 
     # Visual settings for indie style
@@ -38,13 +37,12 @@ class BalancingBallGame:
     def __init__(self,
                  render_mode: str = None,
                  sound_enabled: bool = True,
-                 window_x: int = None,
-                 window_y: int = None,
                  max_episode_step: int = None,
                  collision_type: dict = None,
                  player_configs: dict = None,
                  platform_configs: dict = None,
                  environment_configs: dict = None,
+                 level_config_path: str = None,
                  level: int = None,
                  fps: int = None,
                  capture_per_second: int = None,
@@ -62,8 +60,6 @@ class BalancingBallGame:
         # Game parameters
         self.max_episode_step = max_episode_step
         self.fps = fps
-        self.window_x = window_x
-        self.window_y = window_y
 
         self.recorder = Recorder("game_history_record")
         self.render_mode = render_mode
@@ -76,12 +72,14 @@ class BalancingBallGame:
 
         self.level: Levels = get_level(
             level=level, 
+            game=self,
             space=self.space, 
             collision_handler=self.collision_handler,
             collision_type=collision_type, 
             player_configs=player_configs, 
             platform_configs=platform_configs, 
-            environment_configs=environment_configs
+            environment_configs=environment_configs,
+            level_config_path=level_config_path
         )
 
         self.players: list[Player]
@@ -105,12 +103,6 @@ class BalancingBallGame:
         self.winner = None
         self.last_speeds = [0] * self.num_players  # Track last speed for each player
         self.step_rewards = [0] * self.num_players  # Rewards obtained in the last step
-
-        # Initialize Pygame if needed
-        if self.render_mode in ["human", "rgb_array", "rgb_array_and_human", "rgb_array_and_human_in_colab"]:
-            self._setup_pygame()
-        else:
-            print("render_mode is not human or rgb_array, so no pygame setup.")
 
         self.capture_per_second = capture_per_second
 
@@ -233,10 +225,11 @@ class BalancingBallGame:
         self.step_rewards = rewards
         self.end_time = time.time()
 
-        for event in pygame.event.get(): # TODO 這部分代碼應該和 human control 的代碼合並
-            if event.type == pygame.QUIT:
-                terminated = True # 如果點擊關閉按鈕，則結束迴圈
-                break
+        if self.render_mode == "human":
+            for event in pygame.event.get(): # TODO 這部分代碼應該和 human control 的代碼合並 
+                if event.type == pygame.QUIT:
+                    terminated = True # 如果點擊關閉按鈕，則結束迴圈
+                    break
             
 
         return self._get_observation(), rewards, terminated # TODO self._get_observation() 是返回的 game_screen，state_based 是 _get_observation_state_based，需要改進
@@ -495,3 +488,16 @@ class BalancingBallGame:
     
     def get_game_over(self):
         return self.game_over
+    
+    def get_windows_size(self) -> Tuple[int, int]:
+        return self.window_x, self.window_y
+    
+    def set_windows_size(self, window_x: int, window_y: int):
+        self.window_x = window_x
+        self.window_y = window_y
+        
+        # Initialize Pygame if needed
+        if self.render_mode in ["human", "rgb_array", "rgb_array_and_human", "rgb_array_and_human_in_colab"]:
+            self._setup_pygame()
+        else:
+            print("render_mode is not human or rgb_array, so no pygame setup.")

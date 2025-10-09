@@ -18,8 +18,6 @@ class BalancingBallEnv(gym.Env):
                  render_mode: str = None,
                  model_cfg: str = None,  # <class 'RL.levels.level3.config.model_config'>
                  train_cfg: str = None,  # <class 'RL.levels.level3.config.train_config'>
-                 window_x: int = None,
-                 window_y: int = None
                 ):
         """
         envonment initialization
@@ -29,16 +27,12 @@ class BalancingBallEnv(gym.Env):
             fps (int): Frames per second for the game.
             obs_type (str): Type of observation. "game_screen" for image-based, "state_based" for state vector.
             image_size (tuple): Size to which game screen images are resized (height, width).
-            window_x (int): Width of the game window.
-            window_y (int): Height of the game window.
         """
 
         super(BalancingBallEnv, self).__init__()
         print("Initializing BalancingBallEnv...")
 
         # Initialize game
-        self.window_x = window_x
-        self.window_y = window_y
 
         # Image preprocessing settings
         self.image_size = model_cfg.image_size
@@ -51,13 +45,13 @@ class BalancingBallEnv(gym.Env):
         self.game = BalancingBallGame(
             render_mode=render_mode,
             sound_enabled=(render_mode == "human"),
-            window_x = self.window_x,
-            window_y = self.window_y,
             max_episode_step = train_cfg.max_episode_step,
-            player_configs=model_cfg.player_configs,
+            level_config_path=model_cfg.level_config_path,
             level = model_cfg.level,
             fps = model_cfg.fps,
         )
+        
+        self.window_x, self.window_y = self.game.get_windows_size()
 
         self.num_players = self.game.num_players
 

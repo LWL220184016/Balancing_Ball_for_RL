@@ -12,14 +12,17 @@ from game.levels.levels import *
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from game.collision_handle import CollisionHandler
+    from game.balancing_ball_game import BalancingBallGame
 
 def get_level(level: int, 
-              space: pymunk.Space, 
+              game: 'BalancingBallGame' = None,
+              space: pymunk.Space = None, 
               collision_handler: 'CollisionHandler' = None, 
               collision_type: dict = None, 
               player_configs: dict = None, 
               platform_configs: dict = None, 
-              environment_configs: dict = None
+              environment_configs: dict = None,
+              level_config_path: str = None,
              ) -> Levels:
     """
     Get the level object based on the level number.
@@ -27,17 +30,20 @@ def get_level(level: int,
 
     level_cfg = {}
     # Get the directory of the current script
-    print("Loading default level configurations...")
     dir_path = os.path.dirname(os.path.realpath(__file__))
     level_key = ""
     
     if level <= 2:
-        config_path = os.path.join(dir_path, './level_1_2_default_cfg.json')
+        if level_config_path is None:
+            level_config_path = os.path.join(dir_path, './level_1_2_default_cfg.json')
         level_key = f"level1_2"
     else:
-        config_path = os.path.join(dir_path, './level_3_default_cfg.json')
+        if level_config_path is None:
+            level_config_path = os.path.join(dir_path, f'./level_{level}_default_cfg.json')
         level_key = f"level{level}"
-    with open(config_path, 'r') as f:
+    
+    print(f"Loading level configurations from {level_config_path}...")
+    with open(level_config_path, 'r') as f:
         default_configs = json.load(f)
     
     if not player_configs:
@@ -52,7 +58,7 @@ def get_level(level: int,
         if not environment_configs:
             environment_configs = level_cfg.get("environment_configs", [])
     else:
-        raise ValueError(f"Default config for level {level} not found in {config_path}")
+        raise ValueError(f"Default config for level {level} not found in {level_config_path}")
 
     if not player_configs:
         raise ValueError(f"Invalid player_configs: {player_configs}, must be a non-empty list or dict")
@@ -64,6 +70,7 @@ def get_level(level: int,
     print(f"Using player_configs: {player_configs}")
     print(f"Using level_configs: {level_cfg}")
 
+    game.set_windows_size(environment_configs[0].get("window_x"), environment_configs[0].get("window_y"))
     space.gravity = tuple(environment_configs[0].get("gravity"))
     space.damping = environment_configs[0].get("damping")
 

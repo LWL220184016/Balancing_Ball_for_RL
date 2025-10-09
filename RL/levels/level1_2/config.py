@@ -1,4 +1,5 @@
 import torch
+import pathlib
 
 # 這個不是成功訓練的版本，那個版本試試離散動作空間
 
@@ -8,6 +9,7 @@ class model_config:
     model_obs_type="state_based"
     level=1  # Game level
     frame_stack=4  # Number of frames to stack
+    level_config_path=str(pathlib.Path(__file__).parent.resolve()) + f"/level_{level}_default_cfg.json"
     
     action_space_low=-1.0  # Minimum action value
     action_space_high=1.0   # Maximum action value
@@ -15,7 +17,7 @@ class model_config:
 
     model_param={
         # ActorCriticCnnPolicyif for game_screen, ActorCriticPolicy for state base
-        "policy": ActorCriticCnnPolicy,  
+        "policy": ActorCriticPolicy if model_obs_type == "state_based" else ActorCriticCnnPolicy,  
 
         "learning_rate": 0.0001,
         "n_steps": 2048,
