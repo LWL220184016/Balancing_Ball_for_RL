@@ -2,14 +2,12 @@ import torch
 import pathlib 
 
 from stable_baselines3.common.policies import ActorCriticPolicy, ActorCriticCnnPolicy  # MLP policy instead of CNN
-from game.role.abilities.ability import Ability
 
 class model_config:
     model_obs_type="state_based"
     level=3  # Game level
     num_player=1
     fps=360
-    Ability.set_fps(fps)
 
     level_config_path=str(pathlib.Path(__file__).parent.resolve()) + f"/level_{level}_default_cfg.json"
     
@@ -50,7 +48,6 @@ class model_config:
         "policy_kwargs": policy_kwargs,
         "verbose": 1,
     }
-
 
 class train_config:
     total_timesteps=1000000

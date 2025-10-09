@@ -216,7 +216,7 @@ class BalancingBallGame:
         # actions = self.calculate_player_speed_old(actions)
 
         for i, player in enumerate(self.players):
-            player.perform_action(pactions[i])
+            player.perform_action(pactions[i], self.steps)
         self.level.action()
 
         # Check game state
