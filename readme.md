@@ -1,10 +1,18 @@
 Todo: 
    1. (✅️finished) 嘗試合并保存模型訓練的相關 config 文件
+
    2. (✅️finished) 為 Balancing_Ball_RL_V6 中的 Train 和 Optuna 創建單獨的 Python 文件 
+
    3. (✅️finished) 嘗試合并 play_with_model.py 的評估和 Train 中的評估
-   4. 改進 RL\levels 中的 config.py 文件，其中 render_mode="human" 適用於在本地電腦測試模型，render_mode="headless" 適用於在 Google Colab 訓練模型
-   5. 改進獎勵函數，應將按照距離給予獎勵換成判斷是否正在接近來給予獎勵或者懲罰
-   6. 
+
+   4. (✅️finished) 改進 RL\levels 中的 config.py 文件，其中 render_mode="human" 適用於在本地電腦測試模型，render_mode="headless" 適用於在 Google Colab 訓練模型
+
+   5. (✅️finished) 改進獎勵函數，應將按照距離給予獎勵換成判斷是否正在接近來給予獎勵或者懲罰
+
+   6. (✅️finished) 當前技能冷卻是 time.time() 控制，當游戲在不同環境下以不同速度運行，會導致技能在非預期情況下冷卻完畢，太早或者太慢都會產生錯誤數據。
+      應該修改爲由 step 數控制，比如當一個技能冷卻時間是一秒，那麽實際冷卻就是 1 * FPS
+
+   7. 添加 Level 4 用於對抗式訓練
 
 問題1：
 在 Balancing_Ball_for_RL\game\gym_env.py 的 Function step_state_based 中的這行代碼：

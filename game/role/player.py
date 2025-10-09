@@ -17,17 +17,17 @@ class Player(Role):
         self.direction_count = 0  # 用於追踪玩家是否一直向同一方向移動
         self.reward_per_step = 0  # 每一步的獎勵
 
-    def perform_action(self, action: list):
+    def perform_action(self, action: list, current_step: int):
         # 遍歷所有玩家，並使用 .get() 安全地檢查能力是否存在
         if action[0] != 0 and self.abilities.get("Move"):
-            self.abilities["Move"].action(action[0], self)
+            self.abilities["Move"].action(action[0], self, current_step)
 
         if action[1] != 0 and self.abilities.get("Jump"):
-            self.abilities["Jump"].action(action[1], self)
+            self.abilities["Jump"].action(action[1], self, current_step)
 
         if isinstance(action[2], tuple) and self.abilities.get("Collision"):
             # 处理旋转动作
-            self.abilities["Collision"].action(action[2], self)
+            self.abilities["Collision"].action(action[2], self, current_step)
 
     def get_state(self, window_size: tuple, velocity_scale: float = 200.0):
         """

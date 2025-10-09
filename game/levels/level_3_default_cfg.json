@@ -109,9 +109,7 @@
             "falling_rock_fall_outside_platform": 0.0,
             "falling_rock_fall_on_platform": -2.5,
 
-            "falling_rock_near": 0.4,
-            "falling_rock_near_distance_threshold": 200,
-            "falling_rock_near_distance_reward_multiplier": 5,
+            "falling_rock_near_proportion": 0.0001,
 
             "steps_limit_for_movement_penalty": 100,
             "movement_penalty": -0.08,

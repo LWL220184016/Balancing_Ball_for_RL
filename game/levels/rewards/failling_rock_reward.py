@@ -54,23 +54,63 @@ class PlayerFallingRockCollisionReward(RewardComponent):
                     player.add_reward_per_step(self.collision_falling_rock)
 
 class PlayerFallingRockNearReward(RewardComponent):
-    """當玩家接近落石時給予獎勵"""
+    """
+    當玩家朝著最近的落石移動時，根據其接近速度給予獎勵。
+    """
+    
     def calculate(self, 
                   players: list['Player'], 
                   falling_rocks: list['FallingRock'], 
                   **kwargs
                  ):
+        
+        if not falling_rocks:
+            return # 如果沒有石頭，不計算獎勵
+
         for player in players:
             if not player.get_is_alive():
                 continue
-            px, py = player.get_position()
-            player_pos = pymunk.Vec2d(px, py)
+
+            player_pos = pymunk.Vec2d(*player.get_position())
+            player_vel = pymunk.Vec2d(*player.get_velocity())
+
+            # 1. 找到距離玩家最近的石頭
+            closest_rock = None
+            min_dist_sq = float('inf')
             for rock in falling_rocks:
-                rx, ry = rock.get_position()
-                rock_pos = pymunk.Vec2d(rx, ry)
-                distance = player_pos.get_distance(rock_pos)
+                rock_pos = pymunk.Vec2d(*rock.get_position())
+                dist_sq = player_pos.get_dist_sqrd(rock_pos)
+                if dist_sq < min_dist_sq:
+                    min_dist_sq = dist_sq
+                    closest_rock = rock
+            
+            if not closest_rock:
+                continue
+
+            # 2. 計算玩家相對於最近石頭的向量和速度
+            rock_pos = pymunk.Vec2d(*closest_rock.get_position())
+            rock_vel = pymunk.Vec2d(*closest_rock.get_velocity())
+            
+            relative_pos = rock_pos - player_pos
+            relative_vel = player_vel - rock_vel
+
+            # 3. 計算徑向速度 (玩家朝向石頭的速度分量)
+            # 這是相對速度向量在相對位置向量上的投影
+            # 如果 relative_pos 的長度為 0，則不計算
+            if relative_pos.length > 0:
+                # 投影公式: (v · r / ||r||^2) * r
+                # 我們只需要投影的純量值: v · r / ||r||
+                radial_velocity = relative_vel.dot(relative_pos) / relative_pos.length
                 
-                reward = self.falling_rock_near / distance  # 線性減少的獎勵
-                if distance < self.falling_rock_near_distance_threshold:
-                    reward *= self.falling_rock_near_distance_reward_multiplier
-                player.add_reward_per_step(reward)
+                # 4. 給予獎勵
+                # 如果 radial_velocity > 0，表示玩家正在遠離石頭
+                # 如果 radial_velocity < 0，表示玩家正在靠近石頭
+                # 我們希望在靠近時給予正獎勵，所以取其相反數
+                if radial_velocity < 0:
+                    reward = -radial_velocity
+                    
+                    # 為了防止獎勵值過大，可以進行縮放或裁剪
+                    # 例如，將獎勵縮放到一個合理的範圍，這裡除以一個縮放因子 (e.g., 100)
+                    reward *= self.falling_rock_near_proportion
+
+                    player.add_reward_per_step(reward)

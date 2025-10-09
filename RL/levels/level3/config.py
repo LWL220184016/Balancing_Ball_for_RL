@@ -2,12 +2,15 @@ import torch
 import pathlib 
 
 from stable_baselines3.common.policies import ActorCriticPolicy, ActorCriticCnnPolicy  # MLP policy instead of CNN
+from game.role.abilities.ability import Ability
 
 class model_config:
     model_obs_type="state_based"
     level=3  # Game level
     num_player=1
     fps=360
+    Ability.set_fps(fps)
+
     level_config_path=str(pathlib.Path(__file__).parent.resolve()) + f"/level_{level}_default_cfg.json"
     
     action_space_low=0  # Minimum action value
@@ -48,6 +51,7 @@ class model_config:
         "verbose": 1,
     }
 
+
 class train_config:
     total_timesteps=1000000
     max_episode_step=50000  # Maximum steps per episode
@@ -57,4 +61,11 @@ class train_config:
     agent_num=2
     tensorboard_log="./logs/"
     model_dir="./models/"
-    render_mode="human"  
+    render_mode="headless"  
+
+    msg = """
+    render_mode = "human" Suitable for testing models on a local computer, and can display the game screen while the model is playing the game
+    render_mode = "headless" Suitable for training models on Google Colab, significantly reducing computational load and speeding up training
+    """
+    print(f"\n\033[38;5;220m {msg}\033[0m")
+    

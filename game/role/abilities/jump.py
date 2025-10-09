@@ -13,9 +13,9 @@ class Jump(Ability):
     def __init__(self):
         super().__init__(self.__class__.__name__)
 
-    def action(self, action_value: float, player: 'Player'):
+    def action(self, action_value: float, player: 'Player', current_step: int):
             
-        if self.check_cooldowns() and player.get_is_on_ground():
+        if self.check_cooldowns(current_step) and player.get_is_on_ground():
             force_vector = pymunk.Vec2d(0, action_value * self.force)
             player.apply_force_at_world_point(force_vector, player.get_position())
 

@@ -1,6 +1,5 @@
 import json
 import os
-import time
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -9,8 +8,14 @@ if TYPE_CHECKING:
 
 class Ability:
     _default_configs = None  # 用於緩存配置的類變量
+    _fps = None  # 用於儲存 FPS 的類變量
 
-    def __init__(self, ability_name: str):
+    @classmethod
+    def set_fps(cls, fps: int):
+        """設定所有能力共享的 FPS。"""
+        cls._fps = fps
+
+    def __init__(self, ability_name: str, fps: int = None):
 
         self.ability_name = ability_name
         # 檢查配置是否已加載，如果沒有則加載一次
@@ -30,20 +35,20 @@ class Ability:
         if abilities_configs:
             self.force = abilities_configs.get("force")
             self.speed = abilities_configs.get("speed")
-            self.cooldown = abilities_configs.get("cooldown")  # Default cooldown of 1 second
+            self.cooldown = abilities_configs.get("cooldown") * fps  # Default cooldown of 1 second
         else:
             # 即使配置已加載，仍需處理找不到特定能力配置的情況
             dir_path = os.path.dirname(os.path.realpath(__file__))
             config_path = os.path.join(dir_path, './abilities_default_cfg.json')
             raise ValueError(f"Default config for ability '{self.ability_name}' not found in {config_path}")
 
-        self.last_used_time = 0  # Track the last time the ability was used
+        self.last_used_step = 0  # Track the last time the ability was used
 
-    def check_cooldowns(self) -> bool:
+    def check_cooldowns(self, current_step: int) -> bool:
         """Check and update action cooldowns"""
 
-        if (time.time() - self.last_used_time) > self.cooldown:
-            self.last_used_time = time.time()
+        if (current_step - self.last_used_step) > self.cooldown:
+            self.last_used_step = current_step
             return True
         return False
     
@@ -52,10 +57,10 @@ class Ability:
     
     def reset(self):
         """重設此能力的內部狀態，例如冷卻時間。"""
-        self.last_used_time = 0
+        self.last_used_step = 0
     
     def get_cooldown(self):
         return self.cooldown
 
-    def get_last_used_time(self):
-        return self.last_used_time
+    def get_last_used_step(self):
+        return self.last_used_step

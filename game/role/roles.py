@@ -118,11 +118,11 @@ class Role:
 
         for ability in self.abilities.values():
             cooldown_duration = ability.get_cooldown()
-            last_use_time = ability.get_last_used_time()
+            last_used_step = ability.get_last_used_step()
 
             if cooldown_duration > 0:
-                time_since_last_use = current_time - last_use_time
-                remaining_cooldown = max(0, cooldown_duration - time_since_last_use)
+                step_since_last_use = current_time - last_used_step
+                remaining_cooldown = max(0, cooldown_duration - step_since_last_use)
                 # 正規化到 [0, 1] 範圍
                 normalized_cooldown = remaining_cooldown / cooldown_duration
             else:

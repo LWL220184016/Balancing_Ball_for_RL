@@ -28,6 +28,13 @@ def play_game(model_path: str = None, episodes: int = None):
 
     model_cfg = model_config()
     train_cfg = train_config()
+    train_cfg.render_mode = "human"  # Set render mode to human for visualization
+
+    path = os.path.abspath(__file__)
+    msg = f"""
+    Already changed render_mode to "{train_cfg.render_mode}" in  {path}. Suitable for testing models on a local computer, and can display the game screen while the model is playing the game
+    """
+    print(f"\n\033[38;5;220m {msg}\033[0m")
 
     evaluater = Train(
         model_cfg=model_cfg,
