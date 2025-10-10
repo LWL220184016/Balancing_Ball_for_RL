@@ -20,7 +20,7 @@ class FallingRock(Role):
 
     def get_state(self, window_size: tuple, velocity_scale: float = 20.0, **kwargs):
         """
-        獲取玩家的正規化狀態。
+        獲取落石的正規化狀態。
         使用 tanh 函數來處理沒有固定上限的速度。
         velocity_scale: 用於調整速度的靈敏度。
         """

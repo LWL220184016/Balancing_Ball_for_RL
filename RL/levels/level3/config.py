@@ -28,7 +28,7 @@ class model_config:
     elif model_obs_type == "state_based":
         policy_kwargs={
                     "net_arch": [512, 512, 256],  # 增加網絡深度以處理複雜策略
-                    "activation_fn": torch.nn.ReLU,
+                    "activation_fn": torch.nn.SiLU,
                 }
 
     model_param={
@@ -42,7 +42,7 @@ class model_config:
         "gamma": 0.995,
         "clip_range": 0.2,
         "gae_lambda": 0.98,
-        "ent_coef": 0.15,
+        "ent_coef": 0.04,
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
         "policy_kwargs": policy_kwargs,

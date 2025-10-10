@@ -5,6 +5,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.vec_env import VecNormalize
 
 # Go up one level from the current notebook's directory to the project root
 project_root = os.path.abspath(os.path.join(os.getcwd(), '..'))
@@ -38,7 +39,8 @@ class Train:
             self.make_env(),
             n_envs=n_envs
         )
-        self.env = env
+        self.env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_obs=10.)
+
 
         # Setup evaluation environment
         eval_env = make_vec_env(

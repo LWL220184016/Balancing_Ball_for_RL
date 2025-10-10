@@ -62,77 +62,33 @@ class PlayerFallingRockNearReward(RewardComponent):
     def calculate(self, 
                   players: list['Player'], 
                   falling_rocks: list['FallingRock'], 
-                  collision_handler: 'CollisionHandler', 
                   **kwargs
                  ):
         
         if not falling_rocks:
-            return # 如果沒有石頭，不計算獎勵
-
+            return
+        
         for player in players:
             if not player.get_is_alive():
                 continue
 
             player_pos = pymunk.Vec2d(*player.get_position())
-            player_vel = pymunk.Vec2d(*player.get_velocity())
 
-            # 1. 找到距離玩家最近的石頭
-            closest_rock = None
-            min_dist_sq = float('inf')
+            # 找到最近的落石
+            min_dist = float('inf')
             for rock in falling_rocks:
                 rock_pos = pymunk.Vec2d(*rock.get_position())
-                dist_sq = player_pos.get_dist_sqrd(rock_pos)
-                if dist_sq < min_dist_sq:
-                    min_dist_sq = dist_sq
-                    closest_rock = rock
-            
-            if not closest_rock:
+                dist = player_pos.get_distance(rock_pos)
+                if dist < min_dist:
+                    min_dist = dist
+
+            # 超出距離閾值就不給獎勵
+            if min_dist > self.falling_rock_near_distance_threshold:
                 continue
 
-            # 2. 計算玩家相對於最近石頭的向量和速度
-            rock_pos = pymunk.Vec2d(*closest_rock.get_position())
-            
-            # 向量：從玩家指向石頭
-            direction_to_rock = rock_pos - player_pos
-
-            # 3. 計算徑向速度 (玩家速度在朝向石頭方向上的分量)
-            # 這是玩家速度向量在相對位置向量上的投影
-            # 如果 direction_to_rock 的長度為 0，則不計算
-            reward = 0
-
-            
-
-            if direction_to_rock.length > 0:
-                # 我們只需要投影的純量值: player_vel · direction_to_rock / ||direction_to_rock||
-                approach_velocity = player_vel.dot(direction_to_rock) / direction_to_rock.length
-                
-                # 4. 給予獎勵
-                # 如果 approach_velocity > 0，表示玩家正在朝著石頭移動
-                # 如果 approach_velocity < 0，表示玩家正在遠離石頭
-                # 我們希望在靠近時給予正獎勵
-                if approach_velocity > 0:
-                    reward = approach_velocity
-                    
-                    # 為了防止獎勵值過大，可以進行縮放或裁剪
-                    # 例如，將獎勵縮放到一個合理的範圍
-                    reward *= self.falling_rock_near_proportion
-                    if direction_to_rock.length < self.falling_rock_near_distance_threshold:
-                        reward *= self.falling_rock_near_distance_reward_multiplier
-
-                    if not player.get_special_status("stay_away_from_falling_rock_without_collision"):
-                        collision_type = player.get_last_collision_with() # Reset last collision to avoid multiple penalty
-                        rock = collision_handler.get_entity_from_collision_type(collision_type)
-                        if rock is not None:
-                            player.set_special_status("stay_away_from_falling_rock_without_collision", True)
-                
-                else:
-                    if not player.get_special_status("stay_away_from_falling_rock_without_collision"):
-                        collision_type = player.get_last_collision_with() # Reset last collision to avoid multiple penalty
-                        rock = collision_handler.get_entity_from_collision_type(collision_type)
-                        
-                        if rock is None and player_pos.x != player.get_default_position()[0]:
-                            player.set_special_status("stay_away_from_falling_rock_without_collision", True)
-                            reward = self.stay_away_from_falling_rock_without_collision
-                
-                player.add_reward_per_step(reward)
+            # 根據距離線性給獎勵：越近越大
+            proximity_factor = max(0.0, 1.0 - (min_dist / self.falling_rock_near_distance_threshold))
+            reward = proximity_factor * self.falling_rock_near_proportion
+            print("reward:", reward)
+            player.add_reward_per_step(reward)
                     
