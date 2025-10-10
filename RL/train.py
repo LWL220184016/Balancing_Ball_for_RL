@@ -179,3 +179,36 @@ class Train:
 #             model_path=args.load_model,
 #             n_episodes=args.eval_episodes,
 #         )
+
+if __name__ == "__main__":
+    n_envs = 1
+
+    # Choose whether to do hyperparameter optimization or direct training
+    do_optimization = False
+
+    model_cfg = model_config()
+    train_cfg = train_config()
+    train_cfg.render_mode = "human"  # Set render mode to human for visualization
+
+    if do_optimization: # game_screen, state_based
+        # from RL.optuna import Optuna_optimize
+        
+        # optuna_optimizer = Optuna_optimize(obs_type=model_cfg.model_obs_type, level=1)
+        # n_trials = 10
+        # best_trial = optuna_optimizer.optuna_parameter_tuning(n_trials=n_trials)
+        # print(f"best_trial found: {best_trial}")
+
+        pass
+    else:
+        # Create trainer for adversarial training
+        from RL.train import Train
+        training = Train(
+            model_cfg=model_cfg,
+            train_cfg=train_cfg,
+            n_envs=n_envs,
+            load_model=None,  # Start fresh for adversarial training
+        )
+
+        model = training.train_ppo()
+
+        print("Adversarial training completed!")

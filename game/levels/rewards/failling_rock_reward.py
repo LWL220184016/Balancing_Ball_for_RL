@@ -99,6 +99,9 @@ class PlayerFallingRockNearReward(RewardComponent):
             # 這是玩家速度向量在相對位置向量上的投影
             # 如果 direction_to_rock 的長度為 0，則不計算
             reward = 0
+
+            
+
             if direction_to_rock.length > 0:
                 # 我們只需要投影的純量值: player_vel · direction_to_rock / ||direction_to_rock||
                 approach_velocity = player_vel.dot(direction_to_rock) / direction_to_rock.length
@@ -115,14 +118,21 @@ class PlayerFallingRockNearReward(RewardComponent):
                     reward *= self.falling_rock_near_proportion
                     if direction_to_rock.length < self.falling_rock_near_distance_threshold:
                         reward *= self.falling_rock_near_distance_reward_multiplier
+
+                    if not player.get_special_status("stay_away_from_falling_rock_without_collision"):
+                        collision_type = player.get_last_collision_with() # Reset last collision to avoid multiple penalty
+                        rock = collision_handler.get_entity_from_collision_type(collision_type)
+                        if rock is not None:
+                            player.set_special_status("stay_away_from_falling_rock_without_collision", True)
                 
                 else:
-                    collision_type = closest_rock.get_last_collision_with() # Reset last collision to avoid multiple penalty
-                    _player = collision_handler.get_player_from_collision_type(collision_type)
-                    
-                    if _player is None and not player.get_special_status("stay_away_from_falling_rock_without_collision") and player_pos.x != player.get_default_position()[0]:
-                        player.set_special_status("stay_away_from_falling_rock_without_collision", True)
-                        reward = self.stay_away_from_falling_rock_without_collision
+                    if not player.get_special_status("stay_away_from_falling_rock_without_collision"):
+                        collision_type = player.get_last_collision_with() # Reset last collision to avoid multiple penalty
+                        rock = collision_handler.get_entity_from_collision_type(collision_type)
+                        
+                        if rock is None and player_pos.x != player.get_default_position()[0]:
+                            player.set_special_status("stay_away_from_falling_rock_without_collision", True)
+                            reward = self.stay_away_from_falling_rock_without_collision
                 
                 player.add_reward_per_step(reward)
                     

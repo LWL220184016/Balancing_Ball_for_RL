@@ -111,7 +111,9 @@ class Role:
         norm_x = pos_x / win_x * 2 - 1
         norm_y = pos_y / win_y * 2 - 1
 
-        state = [norm_x, norm_y]
+        is_colliding = 1.0 if self.get_collision_with() else 0.0
+
+        state = [norm_x, norm_y, is_colliding]
 
         current_time = time.time()
         # 確保按鍵順序一致，以便狀態向量的維度固定
