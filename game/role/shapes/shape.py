@@ -28,8 +28,8 @@ class Shape:
         self.window_x = window_x
         self.window_y = window_y
         self.default_position = (
-            self.window_x * default_position[0] if isinstance(default_position[0], float) else default_position[0],
-            self.window_y * default_position[1] if isinstance(default_position[1], float) else default_position[1]
+            self.window_x * default_position[0] if isinstance(default_position[0], float) else (self.window_x * default_position[0][0], self.window_x * default_position[0][1]),
+            self.window_y * default_position[1] if isinstance(default_position[1], float) else (self.window_y * default_position[1][0], self.window_y * default_position[1][1])
         )
         self.default_velocity = default_velocity
         self.default_angular_velocity = 0 # TODO Hard code
@@ -104,8 +104,8 @@ class Shape:
         position: (x, y) where x and y can be float (absolute value) or others (random value)
         """
         self.body.position = (
-            position[0] if isinstance(position[0], float) else random.randint(0, self.window_x), # TODO Hard code
-            position[1] if isinstance(position[1], float) else random.randint(0, self.window_y)
+            position[0] if isinstance(position[0], float) else random.uniform(position[0][0], position[0][1]),
+            position[1] if isinstance(position[1], float) else random.uniform(position[1][0], position[1][1])
         )
 
     def set_position_proportion(self, position: tuple):
@@ -114,8 +114,8 @@ class Shape:
         position: (x, y) where x and y are floats representing the proportion of the window size
         """
         self.body.position = (
-            self.window_x * position[0] if isinstance(position[0], float) else random.randint(0, self.window_x), # TODO Hard code
-            self.window_y * position[1] if isinstance(position[1], float) else random.randint(0, self.window_y)
+            self.window_x * position[0] if isinstance(position[0], float) else random.uniform(self.window_x * position[0][0], self.window_x * position[0][1]),
+            self.window_y * position[1] if isinstance(position[1], float) else random.uniform(self.window_y * position[1][0], self.window_y * position[1][1])
         )
 
     def set_default_position(self, position: Tuple[float, float]):

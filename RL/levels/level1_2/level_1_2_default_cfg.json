@@ -71,7 +71,7 @@
             }
         ],
         "reward": {
-            "reward_per_step": 0.01,
+            "reward_per_step_fixed_value": 0.01,
             "fail_penalty": -5.0,
             "speed_reward_proportion": 0.01,
             "opponent_fall_bonus": 5.0, 

@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 @terminates_round
 class PlayerFallAndSurvivalReward(RewardComponent):
-    """處理墜落懲罰、基礎生存獎勵"""
+    """處理墜落懲罰、基礎生存獎勵(固定值)"""
 
     def _is_fallen(self, player: 'Player', window_x: int, window_y: int) -> bool:
         """檢查玩家是否墜落"""
@@ -33,7 +33,31 @@ class PlayerFallAndSurvivalReward(RewardComponent):
                 player.reset(health=player.get_health())
             else:
                 # 基礎生存獎勵
-                player.add_reward_per_step(self.reward_per_step)
+                player.add_reward_per_step(self.reward_per_step_fixed_value)
+
+class PlayerSurvivalReward(RewardComponent):
+    """生存獎勵(step 的總獎勵乘以倍率)"""
+
+    def __init__(self, reward_parameters: dict):
+        super().__init__(reward_parameters)
+        
+        self.player_survival_step = None
+
+    def calculate(self, players: list['Player'], **kwargs):
+        if not self.player_survival_step:
+            self.player_survival_step = [0] * len(players)
+
+        for i, player in enumerate(players):
+            if not player.get_is_alive():
+                continue
+
+            else:
+                # 基礎生存獎勵
+                self.player_survival_step[i] += 1
+                reward_per_step_multiplier = (self.reward_per_step_multiplier * self.player_survival_step[i]) + 1
+                reward = player.get_reward_per_step() * reward_per_step_multiplier
+                player.set_reward_per_step(reward)
+
 
 class PlayerOpponentFellReward(RewardComponent):
     """處理對手掉落的獎勵"""

@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
 
     # play_game(
-    #     model_path="./trained_model/level3/ppo_balancing_ball_state_based_1310000_steps.zip",
+    #     model_path="./trained_model/level3/ppo_balancing_ball_state_based_500000_steps.zip",
     #     episodes=1
     # )
 

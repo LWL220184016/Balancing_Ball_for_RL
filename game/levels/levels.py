@@ -277,7 +277,7 @@ class Level3(Levels):
                 self.space.add(body, shape)
 
         from levels.rewards.failling_rock_reward import PlayerFallingRockCollisionReward, PlayerFallingRockNearReward
-        from levels.rewards.player_reward import PlayerFallAndSurvivalReward, PlayerMovementDirectionPenalty
+        from levels.rewards.player_reward import PlayerFallAndSurvivalReward, PlayerMovementDirectionPenalty, PlayerSurvivalReward
 
         reward_calculator = RewardCalculator(
             players=self.players,
@@ -293,6 +293,7 @@ class Level3(Levels):
 
                 PlayerFallingRockNearReward(self.level_configs.get("reward")),
                 PlayerMovementDirectionPenalty(self.level_configs.get("reward")),
+                PlayerSurvivalReward(self.level_configs.get("reward")),
             ],
             window_x=window_x,
             window_y=window_y,
@@ -359,6 +360,11 @@ class Level3(Levels):
             # You can also include the absolute position of the player if boundary awareness is important
             player_state[0], # player_norm_x
             player_state[1], # player_norm_y
+            # Add absolute position and velocity of the falling rock
+            rock_state[0],   # rock_norm_x
+            rock_state[1],   # rock_norm_y
+            rock_state[2],   # rock_norm_vx
+            rock_state[3],   # rock_norm_vy
         ]
 
         return np.array(obs, dtype=np.float32)

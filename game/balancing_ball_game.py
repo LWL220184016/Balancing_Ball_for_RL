@@ -250,7 +250,7 @@ class BalancingBallGame:
         # Check if game should end
         terminated = False
         if alive_count == 0 or (alive_count == 1 and self.num_players > 1) or self.steps >= self.max_episode_step:
-            print("Final Scores: ", self.score)
+            print("Final Scores: ", self.score, " total step: ", self.steps)
             terminated = True
             self.game_over = True
 

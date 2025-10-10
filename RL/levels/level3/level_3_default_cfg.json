@@ -71,7 +71,10 @@
                 "shape_friction": 0.7,
                 "shape_elasticity": 0.1,
                 "default_position": [
-                    "random",
+                    [
+                        0.3,
+                        0.7
+                    ],
                     -0.001
                 ],
                 "default_velocity": [
@@ -104,7 +107,9 @@
             }
         ],
         "reward": {
-            "reward_per_step": 0.0,
+            "reward_per_step_fixed_value": 0.0,
+            "reward_per_step_multiplier": 0.0001,
+
             "collision_falling_rock": 20,
             "falling_rock_fall_outside_platform": 0.0,
             "falling_rock_fall_on_platform": 0,

@@ -22,9 +22,11 @@ class PlayerFallingRockCollisionReward(RewardComponent):
                   
         
         penalty = 0
+        decrease_health = False
         for rock in falling_rocks:
             if rock.get_is_on_ground():
                 penalty = self.falling_rock_fall_on_platform
+                decrease_health = True
                 rock.reset()
                 continue  # 如果石頭已經落地，跳過這次檢查
 
@@ -41,8 +43,7 @@ class PlayerFallingRockCollisionReward(RewardComponent):
                 continue
             
             player.add_reward_per_step(penalty)
-            if penalty < 0:
-                
+            if decrease_health:
                 if self._terminates_round:
                     if player.decrease_health(1) and player.get_health() <= 0:
                         player.set_is_alive(False)

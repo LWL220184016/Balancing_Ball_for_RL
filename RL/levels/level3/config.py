@@ -15,7 +15,7 @@ class model_config:
     action_space_high=1.0   # Maximum action value
     action_num = 1 # now many actions model can choose
     action_size = 2 # how many values model need to output (might be 2 values for one action)
-    obs_size = 8
+    obs_size = 12
 
     image_size=(84, 84) if model_obs_type == "game_screen" else None  # Observation image size
 
@@ -36,13 +36,13 @@ class model_config:
         "policy": ActorCriticPolicy if model_obs_type == "state_based" else ActorCriticCnnPolicy,  
 
         "learning_rate": 0.0003,
-        "n_steps": 4096,
+        "n_steps": 8192,
         "batch_size": 64,
         "n_epochs": 10,
         "gamma": 0.995,
         "clip_range": 0.2,
         "gae_lambda": 0.98,
-        "ent_coef": 0.04,
+        "ent_coef": 0.07,
         "vf_coef": 0.5,
         "max_grad_norm": 0.5,
         "policy_kwargs": policy_kwargs,
@@ -51,11 +51,10 @@ class model_config:
 
 class train_config:
     total_timesteps=5000000
-    max_episode_step=50000  # Maximum steps per episode
+    max_episode_step=500000  # Maximum steps per episode
     save_freq=10000
     eval_freq=10000
     eval_episodes=5
-    agent_num=2
     tensorboard_log="./logs/"
     model_dir="./models/"
     render_mode="headless"  
