@@ -89,6 +89,5 @@ class PlayerFallingRockNearReward(RewardComponent):
             # 根據距離線性給獎勵：越近越大
             proximity_factor = max(0.0, 1.0 - (min_dist / self.falling_rock_near_distance_threshold))
             reward = proximity_factor * self.falling_rock_near_proportion
-            print("reward:", reward)
             player.add_reward_per_step(reward)
                     

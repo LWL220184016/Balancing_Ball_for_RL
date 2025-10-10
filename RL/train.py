@@ -47,7 +47,7 @@ class Train:
             self.make_env(),
             n_envs=1
         )
-        self.eval_env = eval_env
+        self.eval_env = VecNormalize(eval_env, norm_obs=True, norm_reward=True, clip_obs=10.)
 
         # Create the PPO model
         if load_model:
