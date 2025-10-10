@@ -4,6 +4,7 @@ from levels.rewards.reward_calculator import RewardComponent, terminates_round
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from game.balancing_ball_game import BalancingBallGame
     from game.role.player import Player
     from game.collision_handle import CollisionHandler
 
@@ -38,25 +39,18 @@ class PlayerFallAndSurvivalReward(RewardComponent):
 class PlayerSurvivalReward(RewardComponent):
     """生存獎勵(step 的總獎勵乘以倍率)"""
 
-    def __init__(self, reward_parameters: dict):
-        super().__init__(reward_parameters)
-        
-        self.player_survival_step = None
-
-    def calculate(self, players: list['Player'], **kwargs):
-        if not self.player_survival_step:
-            self.player_survival_step = [0] * len(players)
-
+    def calculate(self, game: 'BalancingBallGame', players: list['Player'], **kwargs):
+        step = game.get_current_step()
         for i, player in enumerate(players):
             if not player.get_is_alive():
                 continue
 
             else:
                 # 基礎生存獎勵
-                self.player_survival_step[i] += 1
-                reward_per_step_multiplier = (self.reward_per_step_multiplier * self.player_survival_step[i]) + 1
+                reward_per_step_multiplier = (self.reward_per_step_multiplier * step) + 1
                 reward = player.get_reward_per_step() * reward_per_step_multiplier
                 player.set_reward_per_step(reward)
+                print(f"Player {i} survived for {step} steps, reward multiplier: {reward_per_step_multiplier}, total reward this step: {reward}")
 
 
 class PlayerOpponentFellReward(RewardComponent):

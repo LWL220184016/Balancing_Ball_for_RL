@@ -1,7 +1,6 @@
 import os
 import sys
 import json
-import pymunk
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
@@ -11,13 +10,10 @@ from game.levels.levels import *
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from game.collision_handle import CollisionHandler
     from game.balancing_ball_game import BalancingBallGame
 
 def get_level(level: int, 
               game: 'BalancingBallGame' = None,
-              space: pymunk.Space = None, 
-              collision_handler: 'CollisionHandler' = None, 
               collision_type: dict = None, 
               player_configs: dict = None, 
               platform_configs: dict = None, 
@@ -71,14 +67,15 @@ def get_level(level: int,
     print(f"Using level_configs: {level_cfg}")
 
     game.set_windows_size(environment_configs[0].get("window_x"), environment_configs[0].get("window_y"))
+    space = game.get_space()
     space.gravity = tuple(environment_configs[0].get("gravity"))
     space.damping = environment_configs[0].get("damping")
 
     if level == 1:
-        return Level1(space=space, collision_handler=collision_handler, collision_type=collision_type, player_configs=player_configs, level_configs=level_cfg)
+        return Level1(game=game, collision_type=collision_type, player_configs=player_configs, level_configs=level_cfg)
     elif level == 2:
-        return Level2(space=space, collision_handler=collision_handler, collision_type=collision_type, player_configs=player_configs, level_configs=level_cfg)
+        return Level2(game=game, collision_type=collision_type, player_configs=player_configs, level_configs=level_cfg)
     elif level == 3:
-        return Level3(space=space, collision_handler=collision_handler, collision_type=collision_type, player_configs=player_configs, level_configs=level_cfg)
+        return Level3(game=game, collision_type=collision_type, player_configs=player_configs, level_configs=level_cfg)
     else:
         raise ValueError(f"Invalid level number: {level}")

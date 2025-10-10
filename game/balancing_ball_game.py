@@ -73,8 +73,6 @@ class BalancingBallGame:
         self.level: Levels = get_level(
             level=level, 
             game=self,
-            space=self.space, 
-            collision_handler=self.collision_handler,
             collision_type=collision_type, 
             player_configs=player_configs, 
             platform_configs=platform_configs, 
@@ -493,6 +491,15 @@ class BalancingBallGame:
     def get_windows_size(self) -> Tuple[int, int]:
         return self.window_x, self.window_y
     
+    def get_space(self):
+        return self.space
+
+    def get_collision_handler(self):
+        return self.collision_handler
+
+    def get_current_step(self):
+        return self.steps
+
     def set_windows_size(self, window_x: int, window_y: int):
         self.window_x = window_x
         self.window_y = window_y

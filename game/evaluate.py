@@ -43,8 +43,8 @@ def play_game(model_path: str = None, episodes: int = None):
         load_model=model_path,
     )
 
-    # evaluater.evaluate(episodes, deterministic=True)
-    evaluater.train_ppo()
+    evaluater.evaluate(episodes, deterministic=True)
+    # evaluater.train_ppo()
 
 if __name__ == "__main__":
     # play_game(
@@ -53,13 +53,13 @@ if __name__ == "__main__":
     # )
 
 
-    # play_game(
-    #     model_path="./trained_model/level3/ppo_balancing_ball_state_based_500000_steps.zip",
-    #     episodes=1
-    # )
+    play_game(
+        model_path="./trained_model/level3/ppo_balancing_ball_state_based_630000_steps.zip",
+        episodes=3
+    )
 
     
-    play_game(
-        model_path=None,
-        episodes=1
-    )
+    # play_game(
+    #     model_path=None,
+    #     episodes=1
+    # )

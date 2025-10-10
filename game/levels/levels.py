@@ -3,6 +3,7 @@ import time
 import pymunk
 import numpy as np
 
+
 try:
     from role.player import PlayerFactory
     from role.platform import PlatformFactory
@@ -19,20 +20,20 @@ except ImportError:
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     # 將導致循環導入的 import 語句移到這裡
+    from game.balancing_ball_game import BalancingBallGame
     from game.collision_handle import CollisionHandler
     from role.player import Player
     from role.platform import Platform
     
 class Levels:
     def __init__(self, 
-                 space: pymunk.Space, 
-                 collision_handler: 'CollisionHandler' = None, 
+                 game: 'BalancingBallGame', 
                  collision_type: dict = None, 
                  player_configs: list = None, 
                  level_configs: list = None
                 ):
-        self.space = space
-        self.collision_handler = collision_handler
+        self.game = game
+        self.space = self.game.get_space()
         self.collision_type = collision_type
         self.player_configs = player_configs
         self.level_configs = level_configs
@@ -132,10 +133,10 @@ class Level1(Levels):
         from levels.rewards.player_reward import PlayerFallAndSurvivalReward, PlayerStayInPlatformCenterReward
 
         reward_calculator = RewardCalculator(
+            game=self.game,
             players=self.players, 
             platforms=platforms,
             entities=None, # useless in this level
-            collision_handler=self.collision_handler,
             reward_components_terminates=[
                 PlayerFallAndSurvivalReward(self.level_configs.get("reward"))
             ],
@@ -199,10 +200,10 @@ class Level2(Levels):
         from levels.rewards.player_reward import PlayerFallAndSurvivalReward, PlayerStayInPlatformCenterReward
 
         reward_calculator = RewardCalculator(
+            game=self.game,
             players=self.players, 
             platforms=platforms, 
             entities=None, # useless in this level
-            collision_handler=self.collision_handler, 
             reward_components_terminates=[
                 PlayerFallAndSurvivalReward(self.level_configs.get("reward"))
             ],
@@ -280,10 +281,10 @@ class Level3(Levels):
         from levels.rewards.player_reward import PlayerFallAndSurvivalReward, PlayerMovementDirectionPenalty, PlayerSurvivalReward
 
         reward_calculator = RewardCalculator(
+            game=self.game,
             players=self.players,
             platforms=None, # useless in this level
             entities=self.falling_rocks,
-            collision_handler=self.collision_handler,
             reward_components_terminates=[
                 PlayerFallingRockCollisionReward(self.level_configs.get("reward"))
             ],

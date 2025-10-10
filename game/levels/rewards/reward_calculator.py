@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from game.balancing_ball_game import BalancingBallGame
     from game.role.player import Player
     from game.role.platform import Platform
     from game.role.roles import Role
@@ -44,19 +45,20 @@ class RewardCalculator:
     """協調多個獎勵元件來計算總獎勵"""
 
     def __init__(self, 
+                 game: 'BalancingBallGame' = None,
                  players: list['Player'] = None, 
                  platforms: list['Platform'] = None,
                  entities: list['Role'] = None,
-                 collision_handler: 'CollisionHandler' = None,
                  reward_components_terminates: list[RewardComponent] = [], # 專門存放會結束回合的元件
                  reward_components: list[RewardComponent] = [], # 接收一個元件列表
                  window_x: int = None, 
                  window_y: int = None
                 ):
+        self.game = game
         self.players = players
         self.platforms = platforms
         self.entities = entities
-        self.collision_handler = collision_handler
+        self.collision_handler = self.game.get_collision_handler()
         self.reward_components_terminates = reward_components_terminates
         self.reward_components = reward_components
         self.window_x = window_x
@@ -90,6 +92,7 @@ class RewardCalculator:
         # 先執行可能結束回合的元件
         for component in self.reward_components_terminates:
             component.calculate(
+                game=self.game,
                 players=self.players,
                 falling_rocks=self.entities,
                 platform_center_x=self.platform_center_x,
@@ -102,6 +105,7 @@ class RewardCalculator:
         # 再執行其他元件
         for component in self.reward_components:
             component.calculate(
+                game=self.game,
                 players=self.players,
                 falling_rocks=self.entities, # 假設 entities 是 falling_rocks 
                 platform_center_x=self.platform_center_x,
