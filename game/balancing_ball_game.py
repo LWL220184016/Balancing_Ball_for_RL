@@ -218,15 +218,14 @@ class BalancingBallGame:
         for i, player in enumerate(self.players):
             player.perform_action(pactions[i], self.steps)
 
-        obs_screen_data, rewards, terminated = self.level.action()
+        self.add_step(1)
+        rewards, terminated = self.reward()
+        obs_screen_data = self._get_observation() # TODO self._get_observation() 是返回的 game_screen，state_based 是 _get_observation_state_based，需要改進
+        self.step_rewards = rewards
+        self.handle_pygame_events() # TODO 這部分代碼應該和 human control 的代碼合並
 
-        if obs_screen_data is None:
-            self.add_step(1)
-            rewards, terminated = self.reward()
-            obs_screen_data = self._get_observation() # TODO self._get_observation() 是返回的 game_screen，state_based 是 _get_observation_state_based，需要改進
-            self.step_rewards = rewards
-            self.handle_pygame_events() # TODO 這部分代碼應該和 human control 的代碼合並
-            
+        obs_screen_data, rewards, terminated = self.level.action(obs_screen_data, rewards, terminated)
+
         return obs_screen_data, rewards, terminated 
 
     def reward(self):
