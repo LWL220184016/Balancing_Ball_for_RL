@@ -77,8 +77,8 @@ if __name__ == "__main__":
 
 
     play_game(
-        training=True,
-        # model_path="./trained_model/level3/best_model.zip",
-        model_path=None,
+        training=False,
+        model_path="./trained_model/level3/123123123.zip",
+        # model_path=None,
         episodes=3
     )

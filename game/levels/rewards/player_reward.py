@@ -1,3 +1,5 @@
+import collections
+
 from game.role import player
 from levels.rewards.reward_calculator import RewardComponent, terminates_round
 
@@ -110,24 +112,26 @@ class PlayerStayInPlatformCenterReward(RewardComponent):
 
 class PlayerMovementDirectionPenalty(RewardComponent):
     """處理玩家一直向同一個方向移動的懲罰"""
+    action_histories = None
 
-    def calculate(self, players: list['Player'], **kwargs):
-        for player in players:
+    def calculate(self, game: 'BalancingBallGame', players: list['Player'], **kwargs):
+
+        if self.action_histories is None:
+            # 使用列表推導式來確保每個 deque 都是獨立的物件
+            self.action_histories = [
+                collections.deque(maxlen=self.steps_limit_for_movement_penalty) for _ in range(len(players))
+            ]
+
+        step_actions = game.get_step_action()
+        for i, player in enumerate(players):
             if not player.get_is_alive():
                 continue
             
-            vx, vy = player.get_velocity()
-            if abs(vx) > 0.1:  # 假設0.1是速度的閾值
-                if player.get_last_direction() is None:
-                    player.set_last_direction('right' if vx > 0 else 'left')
-                    player.set_direction_count(1)
-                else:
-                    current_direction = 'right' if vx > 0 else 'left'
-                    if current_direction == player.get_last_direction():
-                        player.add_direction_count(1)
-                    else:
-                        player.set_last_direction(current_direction)
-                        player.set_direction_count(1)
+            history = self.action_histories[i]
+            current_action = step_actions[i] # 假設 action 是一個可比較的值 (例如 1, -1, 0)
 
-                if player.get_direction_count() > self.steps_limit_for_movement_penalty:  # 如果連續 720 個 step 以上向同一方向移動，扣分 TODO Hard code
-                    player.add_reward_per_step(self.movement_penalty)
+            if current_action != 0 and current_action in history and not player.get_special_status("movement_penalty"):
+                player.add_reward_per_step(self.movement_penalty)
+                player.set_special_status("movement_penalty", True)
+
+            history.append(current_action)

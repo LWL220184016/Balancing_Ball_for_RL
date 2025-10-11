@@ -102,8 +102,9 @@ class BalancingBallGame:
         self.winner = None
         self.last_speeds = [0] * self.num_players  # Track last speed for each player
         self.step_rewards = [0] * self.num_players  # Rewards obtained in the last step
-
+        self.step_action = None
         self.capture_per_second = capture_per_second
+        
 
         # Create folders for captures if needed
         # CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -214,7 +215,7 @@ class BalancingBallGame:
         # 需要保留直到移除舊模型，詳情看函數說明
         # actions = pactions if isinstance(pactions, list) else [pactions]
         # actions = self.calculate_player_speed_old(actions)
-
+        self.step_action = pactions
         for i, player in enumerate(self.players):
             player.perform_action(pactions[i], self.steps)
 
@@ -301,7 +302,6 @@ class BalancingBallGame:
 
     def render(self) -> Optional[np.ndarray]:
         """Render the current game state"""
-        self.end_time = time.time()
         if self.render_mode == "headless":
             return None
 
@@ -409,6 +409,8 @@ class BalancingBallGame:
             self.screen.blit(game_over_surface,
                            (self.window_x/2 - game_over_surface.get_width()/2,
                             self.window_y/2 - game_over_surface.get_height()/2))
+        else:
+            self.end_time = time.time()
 
     def close(self):
         """Close the game and clean up resources"""
@@ -454,8 +456,8 @@ class BalancingBallGame:
             
         self.human_control = HumanControl(self)
 
-        terminated = False
-        while not terminated:
+        self.run = True
+        while self.run:
             # Handle events
             actions = self.human_control.get_player_actions()
 
@@ -479,6 +481,7 @@ class BalancingBallGame:
                 if event.type == pygame.QUIT:
                     print("Close button pressed. Signaling for graceful shutdown.")
                     self.close()  # 關閉 Pygame
+                    self.run = False
                     raise GameClosedException("User closed the game window.") # <--- 修改點
 
     def add_step(self, steps: int = None):
@@ -510,6 +513,9 @@ class BalancingBallGame:
     
     def get_fps(self):
         return self.fps
+    
+    def get_step_action(self):
+        return self.step_action
 
     def set_windows_size(self, window_x: int, window_y: int):
         self.window_x = window_x
