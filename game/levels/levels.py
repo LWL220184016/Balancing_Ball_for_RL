@@ -293,8 +293,9 @@ class Level3(Levels):
                 PlayerFallAndSurvivalReward(self.level_configs.get("reward")),
 
                 PlayerFallingRockNearReward(self.level_configs.get("reward")),
-                PlayerMovementDirectionPenalty(self.level_configs.get("reward")),
                 PlayerSurvivalReward(self.level_configs.get("reward")),
+                
+                PlayerMovementDirectionPenalty(self.level_configs.get("reward")),
             ],
             window_x=window_x,
             window_y=window_y,

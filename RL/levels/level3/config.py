@@ -52,7 +52,7 @@ class model_config:
 class train_config:
     total_timesteps=5000000
     max_episode_step=500000  # Maximum steps per episode
-    save_freq=10000
+    save_freq=50000
     eval_freq=10000
     eval_episodes=5
     tensorboard_log="./logs/"

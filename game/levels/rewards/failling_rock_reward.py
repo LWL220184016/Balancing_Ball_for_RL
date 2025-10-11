@@ -51,8 +51,9 @@ class PlayerFallingRockCollisionReward(RewardComponent):
                     
             collision_list = player.get_collision_with()
             for collision in collision_list:
-                if collision_handler.check_is_entities(collision): # 假設 falling_rock 屬於 entities
+                if collision_handler.check_is_entities(collision) and not player.get_special_status("collision_falling_rock"): # 假設 falling_rock 屬於 entities
                     player.add_reward_per_step(self.collision_falling_rock)
+                    player.set_special_status("collision_falling_rock", True)
 
 class PlayerFallingRockNearReward(RewardComponent):
     """

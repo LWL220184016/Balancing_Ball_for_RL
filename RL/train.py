@@ -1,7 +1,6 @@
-# RL/train.py
-
 import sys
 import os
+from typing import Callable # <<< 新增：為了類型提示 >>>
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
@@ -17,6 +16,47 @@ if project_root not in sys.path:
 # Now import from the project root
 from game.gym_env import BalancingBallEnv
 from RL.levels.level3.config import model_config, train_config
+
+
+# <<< 新增：學習率排程函數 >>>
+def get_step_lr_schedule(
+    initial_lr: float,
+    drop_factor: float,
+    drop_progress_threshold: float
+) -> Callable[[float], float]:
+    """
+    創建一個階梯式學習率排程 (Step Learning Rate Schedule)。
+
+    :param initial_lr: 初始學習率。
+    :param drop_factor: 學習率下降的倍數（例如 0.1 表示下降到原來的 10%）。
+    :param drop_progress_threshold: 訓練進度達到多少時開始下降（例如 0.5 表示訓練一半後）。
+    :return: 一個 schedule 函數，可傳入 PPO 模型。
+    """
+    def schedule(progress_remaining: float) -> float:
+        """
+        這個函數會被 SB3 調用，progress_remaining 從 1.0 逐漸下降到 0.0。
+        """
+        # 當剩餘進度小於等於閾值時，降低學習率
+        # (1.0 - progress_remaining) 代表已完成的訓練進度
+        if (1.0 - progress_remaining) >= drop_progress_threshold:
+            return initial_lr * drop_factor
+        else:
+            return initial_lr
+
+    return schedule
+
+# --- 您也可以考慮使用更平滑的「線性衰減」，這是非常常用的策略 ---
+def get_linear_lr_schedule(
+    initial_lr: float,
+    final_lr: float
+) -> Callable[[float], float]:
+    """
+    創建一個線性學習率排程 (Linear Learning Rate Schedule)。
+    """
+    def schedule(progress_remaining: float) -> float:
+        return final_lr + (initial_lr - final_lr) * progress_remaining
+    return schedule
+
 
 class Train:
     def __init__(self,
@@ -35,6 +75,7 @@ class Train:
         self.model_dir = train_cfg.model_dir
         self.n_envs = n_envs
         self.obs_type = model_cfg.model_obs_type
+        self.load_model = load_model
 
         # Setup environments
         env = make_vec_env(self.make_env(), n_envs=n_envs)
@@ -42,8 +83,32 @@ class Train:
         
         eval_env = make_vec_env(self.make_env(), n_envs=1)
         self.eval_env = VecNormalize(eval_env, norm_obs=True, norm_reward=True, clip_obs=10.)
-        self.eval_env.training = False # In evaluation, we don't want to update normalization stats
+        self.eval_env.training = False 
         self.eval_env.norm_reward = False
+
+        # <<< 修改：在創建模型前，將學習率設置為排程函數 >>>
+        # 假設您的 model_param 是一個字典
+        # 從 config 中取出初始學習率
+        initial_learning_rate = self.model_cfg.model_param.get('learning_rate') # 默認值以防萬一
+
+        # --- 選擇您想要的排程方式 ---
+        # 方案一：階梯式下降 (Step Decay)
+        # 例如：訓練 50% 後，學習率下降為原來的 10%
+        lr_schedule = get_step_lr_schedule(
+            initial_lr=initial_learning_rate,
+            drop_factor=0.1, 
+            drop_progress_threshold=0.5
+        )
+
+        # 方案二：線性下降 (Linear Decay) - 推薦嘗試
+        # lr_schedule = get_linear_lr_schedule(
+        #     initial_lr=initial_learning_rate,
+        #     final_lr=1e-6 # 設置一個很小的最終學習率
+        # )
+
+        # 更新模型參數字典，使用排程函數替換固定的學習率
+        self.model_cfg.model_param['learning_rate'] = lr_schedule
+        # <<< 修改結束 >>>
 
         # Create or load the PPO model
         if load_model and os.path.exists(load_model):
@@ -52,26 +117,26 @@ class Train:
                 load_model,
                 env=self.env,
                 tensorboard_log=self.log_dir,
+                # 當載入模型時，SB3 會自動處理學習率排程的狀態，但最好也傳入
+                custom_objects={"learning_rate": lr_schedule}
             )
             
-            # --- 重要：載入 VecNormalize 統計數據 ---
-            # 從模型路徑推斷統計數據檔案的路徑（例如 a.zip -> a.pkl）
             stats_path = os.path.splitext(load_model)[0] + ".pkl"
             if os.path.exists(stats_path):
                 print(f"Loading VecNormalize stats from: {stats_path}")
                 self.env = VecNormalize.load(stats_path, self.env)
                 self.eval_env = VecNormalize.load(stats_path, self.eval_env)
-                # 確保評估環境保持在非訓練模式
                 self.eval_env.training = False
                 self.eval_env.norm_reward = False
             else:
                 print(f"WARNING: VecNormalize stats not found at {stats_path}. Model performance may be affected.")
         else:
-            print("Creating a new model.")
+            print("Creating a new model with learning rate schedule.")
             self.model = PPO(
                 env=self.env,
                 tensorboard_log=self.log_dir,
-                **model_cfg.model_param
+                # 這裡會傳入包含學習率排程的參數
+                **model_cfg.model_param 
             )
 
         # Setup callbacks
@@ -79,7 +144,7 @@ class Train:
             save_freq=train_cfg.save_freq // self.n_envs,
             save_path=self.model_dir,
             name_prefix="ppo_checkpoint_" + str(self.obs_type),
-            save_vecnormalize=True, # 讓 callback 自動保存正規化數據
+            save_vecnormalize=True,
         )
 
         self.eval_callback = EvalCallback(
@@ -107,15 +172,18 @@ class Train:
         """
         訓練 PPO agent
         """
-
         print("\nStarting training... Press Ctrl+C to interrupt and save progress.")
-        # 如果是載入模型繼續訓練，設置 reset_num_timesteps=False
+
+        reset_num_timesteps = False
+        if isinstance(self.load_model, str):
+            if os.path.exists(self.load_model):
+                reset_num_timesteps = True
         self.model.learn(
             total_timesteps=self.train_cfg.total_timesteps,
             callback=[self.checkpoint_callback, self.eval_callback],
+            reset_num_timesteps=reset_num_timesteps # 繼續訓練時不要重置步數
         )
         
-        # --- 訓練完成後，保存最終模型和統計數據 ---
         final_model_path = os.path.join(self.model_dir, "ppo_balancing_ball_final")
         self.model.save(final_model_path)
         self.env.save(f"{final_model_path}.pkl")
@@ -127,12 +195,10 @@ class Train:
         """Evaluate a trained model"""
         mean_reward, std_reward = evaluate_policy(
             self.model,
-            self.eval_env, # 使用評估環境
+            self.eval_env,
             n_eval_episodes=n_episodes,
             deterministic=deterministic,
             render=True
         )
         print(f"Mean reward: {mean_reward:.2f} +/- {std_reward:.2f}")
         self.eval_env.close()
-
-    # ... (test_env_with_random_action method remains the same) ...
