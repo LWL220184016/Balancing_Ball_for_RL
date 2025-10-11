@@ -14,6 +14,8 @@ Todo:
 
    7. 添加 Level 4 用於對抗式訓練
 
+   8. 解決 Level 3 模型訓練局部最優的問題
+
 問題1：
 在 Balancing_Ball_for_RL\game\gym_env.py 的 Function step_state_based 中的這行代碼：
 transformed_action = [[action[0], action[1], (abs(action[2] * self.window_x), abs(action[3] * self.window_y))]] 

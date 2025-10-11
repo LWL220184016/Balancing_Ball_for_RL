@@ -15,7 +15,8 @@ class Move(Ability):
 
     def action(self, action_value: float, player: 'Player', current_step: int):
             
-        if self.check_cooldowns(current_step):
+        if self.check_is_ready(current_step):
+            self.set_last_used_step(current_step)
             force_vector = pymunk.Vec2d(action_value * self.force, 0)
             player.apply_force_at_world_point(force_vector, player.get_position())
 

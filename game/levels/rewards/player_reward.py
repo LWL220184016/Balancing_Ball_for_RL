@@ -40,7 +40,7 @@ class PlayerSurvivalReward(RewardComponent):
     """生存獎勵(step 的總獎勵乘以倍率)"""
 
     def calculate(self, game: 'BalancingBallGame', players: list['Player'], **kwargs):
-        step = game.get_current_step()
+        step = game.get_step()
         for i, player in enumerate(players):
             if not player.get_is_alive():
                 continue
@@ -50,8 +50,6 @@ class PlayerSurvivalReward(RewardComponent):
                 reward_per_step_multiplier = (self.reward_per_step_multiplier * step) + 1
                 reward = player.get_reward_per_step() * reward_per_step_multiplier
                 player.set_reward_per_step(reward)
-                print(f"Player {i} survived for {step} steps, reward multiplier: {reward_per_step_multiplier}, total reward this step: {reward}")
-
 
 class PlayerOpponentFellReward(RewardComponent):
     """處理對手掉落的獎勵"""

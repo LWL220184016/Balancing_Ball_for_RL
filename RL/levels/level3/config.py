@@ -35,7 +35,7 @@ class model_config:
         # ActorCriticCnnPolicy if for game_screen, ActorCriticPolicy for state_based
         "policy": ActorCriticPolicy if model_obs_type == "state_based" else ActorCriticCnnPolicy,  
 
-        "learning_rate": 0.0003,
+        "learning_rate": 0.00001,
         "n_steps": 8192,
         "batch_size": 64,
         "n_epochs": 10,

@@ -15,7 +15,8 @@ class Barrier(Ability):
 
     def action(self, action_value: tuple[float, float], player: 'Player', current_step: int):
             
-        if self.check_cooldowns(current_step):
+        if self.check_is_ready(current_step):
+            self.set_last_used_step(current_step)
             # TODO 生成并在持續時間内保持一個靜止的長方體，
             # 该长方体应具有碰撞属性以阻挡其他物体
             # 第一個 Float 是相較於玩家自身的角度(以玩家為圓形中心正上方為0度)，最大 360 最小 0

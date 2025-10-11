@@ -1,3 +1,5 @@
+# RL/train.py
+
 import sys
 import os
 
@@ -35,33 +37,37 @@ class Train:
         self.obs_type = model_cfg.model_obs_type
 
         # Setup environments
-        env = make_vec_env(
-            self.make_env(),
-            n_envs=n_envs
-        )
+        env = make_vec_env(self.make_env(), n_envs=n_envs)
         self.env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_obs=10.)
-
-
-        # Setup evaluation environment
-        eval_env = make_vec_env(
-            self.make_env(),
-            n_envs=1
-        )
+        
+        eval_env = make_vec_env(self.make_env(), n_envs=1)
         self.eval_env = VecNormalize(eval_env, norm_obs=True, norm_reward=True, clip_obs=10.)
+        self.eval_env.training = False # In evaluation, we don't want to update normalization stats
+        self.eval_env.norm_reward = False
 
-        # Create the PPO model
-        if load_model:
+        # Create or load the PPO model
+        if load_model and os.path.exists(load_model):
             print(f"Loading model from {load_model}")
             self.model = PPO.load(
                 load_model,
                 env=self.env,
                 tensorboard_log=self.log_dir,
             )
+            
+            # --- 重要：載入 VecNormalize 統計數據 ---
+            # 從模型路徑推斷統計數據檔案的路徑（例如 a.zip -> a.pkl）
+            stats_path = os.path.splitext(load_model)[0] + ".pkl"
+            if os.path.exists(stats_path):
+                print(f"Loading VecNormalize stats from: {stats_path}")
+                self.env = VecNormalize.load(stats_path, self.env)
+                self.eval_env = VecNormalize.load(stats_path, self.eval_env)
+                # 確保評估環境保持在非訓練模式
+                self.eval_env.training = False
+                self.eval_env.norm_reward = False
+            else:
+                print(f"WARNING: VecNormalize stats not found at {stats_path}. Model performance may be affected.")
         else:
-
-            print("obs type: ", self.obs_type)
-
-            # PPO for continuous action space with adversarial training
+            print("Creating a new model.")
             self.model = PPO(
                 env=self.env,
                 tensorboard_log=self.log_dir,
@@ -70,9 +76,10 @@ class Train:
 
         # Setup callbacks
         self.checkpoint_callback = CheckpointCallback(
-            save_freq=train_cfg.save_freq // self.n_envs,  # Divide by n_envs as save_freq is in timesteps
+            save_freq=train_cfg.save_freq // self.n_envs,
             save_path=self.model_dir,
-            name_prefix="ppo_balancing_ball_" + str(self.obs_type),
+            name_prefix="ppo_checkpoint_" + str(self.obs_type),
+            save_vecnormalize=True, # 讓 callback 自動保存正規化數據
         )
 
         self.eval_callback = EvalCallback(
@@ -86,9 +93,7 @@ class Train:
         )
 
     def make_env(self):
-        """
-        Create and return an environment function to be used with VecEnv
-        """
+        """Create and return an environment function to be used with VecEnv"""
         def _init():
             env = BalancingBallEnv(
                 render_mode=self.train_cfg.render_mode,
@@ -100,117 +105,34 @@ class Train:
 
     def train_ppo(self):
         """
-        Train a PPO agent to play the Balancing Ball game
+        訓練 PPO agent
         """
 
-
-        # Train the model
-        print("Starting training...")
+        print("\nStarting training... Press Ctrl+C to interrupt and save progress.")
+        # 如果是載入模型繼續訓練，設置 reset_num_timesteps=False
         self.model.learn(
             total_timesteps=self.train_cfg.total_timesteps,
             callback=[self.checkpoint_callback, self.eval_callback],
         )
-
-        # Save the final model
-        self.model.save(f"{self.model_dir}/ppo_balancing_ball_final_" + str(self.obs_type))
-
+        
+        # --- 訓練完成後，保存最終模型和統計數據 ---
+        final_model_path = os.path.join(self.model_dir, "ppo_balancing_ball_final")
+        self.model.save(final_model_path)
+        self.env.save(f"{final_model_path}.pkl")
         print("Training completed!")
+        
         return self.model
 
     def evaluate(self, n_episodes=10, deterministic: bool = None):
-        """
-        Evaluate a trained model
-
-        Args:
-            model_path: Path to the saved model
-            n_episodes: Number of episodes to evaluate on
-        """
-        # Load the model
-
-        # Evaluate
+        """Evaluate a trained model"""
         mean_reward, std_reward = evaluate_policy(
             self.model,
-            self.env,
+            self.eval_env, # 使用評估環境
             n_eval_episodes=n_episodes,
             deterministic=deterministic,
             render=True
         )
-
         print(f"Mean reward: {mean_reward:.2f} +/- {std_reward:.2f}")
+        self.eval_env.close()
 
-        self.env.close()
-
-    def test_env_with_random_action(self, n_episodes=5):
-        """
-        Test the environment by taking random actions
-
-        Args:
-            n_episodes: Number of episodes to run
-        """
-        for episode in range(n_episodes):
-            obs, info = self.env.reset()
-            done = False
-            total_reward = 0
-            step = 0
-
-            print(f"Starting episode {episode+1}")
-
-            while not done:
-                action = [self.env.action_space.sample() for _ in range(self.n_envs)]
-                obs, reward, done, info = self.env.step(action)
-
-                total_reward += reward
-                step += 1
-
-            print(f"Episode {episode+1} finished after {step} steps with total reward {total_reward}")
-
-        self.env.close()
-
-# if args.mode == "train":
-#     train_ppo(
-#         total_timesteps=args.timesteps,
-#         n_envs=args.n_envs,
-#         load_model=args.load_model,
-#         eval_episodes=args.eval_episodes,
-#     )
-# else:
-#     if args.load_model is None:
-#         print("Error: Must provide --load_model for evaluation")
-#     else:
-#         evaluate(
-#             model_path=args.load_model,
-#             n_episodes=args.eval_episodes,
-#         )
-
-if __name__ == "__main__":
-    n_envs = 1
-
-    # Choose whether to do hyperparameter optimization or direct training
-    do_optimization = False
-
-    model_cfg = model_config()
-    train_cfg = train_config()
-    train_cfg.render_mode = "human"  # Set render mode to human for visualization
-
-    if do_optimization: # game_screen, state_based
-        # from RL.optuna import Optuna_optimize
-        
-        # optuna_optimizer = Optuna_optimize(obs_type=model_cfg.model_obs_type, level=1)
-        # n_trials = 10
-        # best_trial = optuna_optimizer.optuna_parameter_tuning(n_trials=n_trials)
-        # print(f"best_trial found: {best_trial}")
-
-        pass
-    else:
-        # Create trainer for adversarial training
-        from RL.train import Train
-        training = Train(
-            model_cfg=model_cfg,
-            train_cfg=train_cfg,
-            n_envs=n_envs,
-            load_model=None,  # Start fresh for adversarial training
-        )
-
-        model = training.train_ppo()
-
-        print("Adversarial training completed!")
+    # ... (test_env_with_random_action method remains the same) ...

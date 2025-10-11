@@ -43,14 +43,12 @@ class Ability:
 
         self.last_used_step = None  # Track the last time the ability was used
 
-    def check_cooldowns(self, current_step: int) -> bool:
+    def check_is_ready(self, current_step: int) -> bool:
         """Check and update action cooldowns"""
-
         if self.last_used_step is None or (current_step - self.last_used_step) > self.cooldown:
-            self.last_used_step = current_step
             return True
         return False
-    
+        
     def action(self, action_value, player: 'Player'):
         raise NotImplementedError(f"This method '{self.action.__name__}' should be overridden by subclasses.")
     
@@ -63,3 +61,6 @@ class Ability:
 
     def get_last_used_step(self):
         return self.last_used_step
+    
+    def set_last_used_step(self, step: int):
+        self.last_used_step = step

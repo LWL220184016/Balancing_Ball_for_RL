@@ -24,6 +24,7 @@ from game.role.player import Player
 from game.role.platform import Platform
 from game.role.roles import Role
 from game.levels.rewards.reward_calculator import RewardCalculator
+from exceptions import GameClosedException
 
 class BalancingBallGame:
     """
@@ -201,7 +202,7 @@ class BalancingBallGame:
             terminated: Whether episode is done
             info: Additional information
         """
-        
+
         self.level.status_reset_step()
 
         # Step the physics simulation
@@ -216,22 +217,17 @@ class BalancingBallGame:
 
         for i, player in enumerate(self.players):
             player.perform_action(pactions[i], self.steps)
-        self.level.action()
 
-        # Check game state
-        self.steps += 1
-        rewards, terminated = self.reward()
-        self.step_rewards = rewards
-        self.end_time = time.time()
+        obs_screen_data, rewards, terminated = self.level.action()
 
-        if self.render_mode == "human":
-            for event in pygame.event.get(): # TODO 這部分代碼應該和 human control 的代碼合並 
-                if event.type == pygame.QUIT:
-                    terminated = True # 如果點擊關閉按鈕，則結束迴圈
-                    break
+        if obs_screen_data is None:
+            self.add_step(1)
+            rewards, terminated = self.reward()
+            obs_screen_data = self._get_observation() # TODO self._get_observation() 是返回的 game_screen，state_based 是 _get_observation_state_based，需要改進
+            self.step_rewards = rewards
+            self.handle_pygame_events() # TODO 這部分代碼應該和 human control 的代碼合並
             
-
-        return self._get_observation(), rewards, terminated # TODO self._get_observation() 是返回的 game_screen，state_based 是 _get_observation_state_based，需要改進
+        return obs_screen_data, rewards, terminated 
 
     def reward(self):
         """
@@ -271,6 +267,12 @@ class BalancingBallGame:
                 self.winner = np.argmax(self.score)
                 print(f"Time limit reached. Winner by score: Player {self.winner + 1}")
 
+        rewards = [0] * self.num_players
+        for i, player in enumerate(self.players):
+            rewards[i] = player.get_reward_per_step()
+            self.score[i] += rewards[i]
+
+        if self.game_over:
             result = {
                 "game_total_duration": f"{time.time() - self.start_time:.2f}",
                 "scores": self.score,
@@ -278,11 +280,6 @@ class BalancingBallGame:
                 "steps": self.steps
             }
             self.recorder.add_no_limit(result)
-
-        rewards = [0] * self.num_players
-        for i, player in enumerate(self.players):
-            rewards[i] = player.get_reward_per_step()
-            self.score[i] += rewards[i]
 
         return rewards, terminated
 
@@ -305,6 +302,7 @@ class BalancingBallGame:
 
     def render(self) -> Optional[np.ndarray]:
         """Render the current game state"""
+        self.end_time = time.time()
         if self.render_mode == "headless":
             return None
 
@@ -320,7 +318,6 @@ class BalancingBallGame:
             # Draw game information
             self._draw_game_info()
             pygame.display.flip()
-            self.clock.tick(self.fps)
             return None
 
         elif self.render_mode == "rgb_array":
@@ -458,23 +455,35 @@ class BalancingBallGame:
             
         self.human_control = HumanControl(self)
 
-        running = True
-        while running:
+        terminated = False
+        while not terminated:
             # Handle events
             actions = self.human_control.get_player_actions()
 
-            if actions is False:
-                running = False
-                continue
-            
             # Take game step
             if not self.game_over:
-                self.step(actions)
+                obs_screen_data, rewards, terminated = self.step(actions)
 
             # Render
             self.render()
 
         self.close()
+        
+    def handle_pygame_events(self) -> bool:
+        """
+        處理 Pygame 事件。
+        如果偵測到關閉事件，則清理 Pygame 資源並引發一個自訂異常。
+        """
+        if self.render_mode == "human":
+            self.clock.tick(self.fps)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    print("Close button pressed. Signaling for graceful shutdown.")
+                    self.close()  # 關閉 Pygame
+                    raise GameClosedException("User closed the game window.") # <--- 修改點
+
+    def add_step(self, steps: int = None):
+        self.steps += steps
 
     def get_players(self):
         return self.players
@@ -497,8 +506,11 @@ class BalancingBallGame:
     def get_collision_handler(self):
         return self.collision_handler
 
-    def get_current_step(self):
+    def get_step(self):
         return self.steps
+    
+    def get_fps(self):
+        return self.fps
 
     def set_windows_size(self, window_x: int, window_y: int):
         self.window_x = window_x
@@ -509,3 +521,6 @@ class BalancingBallGame:
             self._setup_pygame()
         else:
             print("render_mode is not human or rgb_array, so no pygame setup.")
+
+    def set_step_rewards(self, rewards: list):
+        self.step_rewards = rewards

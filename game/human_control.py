@@ -14,9 +14,7 @@ class HumanControl:
 
     def get_player_actions(self):
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return False
-            elif event.type == pygame.KEYDOWN:
+            if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r and self.game.get_game_over():
                     self.game.reset()
 

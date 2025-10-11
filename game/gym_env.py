@@ -8,6 +8,8 @@ try:
 except ImportError:
     from game.balancing_ball_game import BalancingBallGame
 
+
+
 class BalancingBallEnv(gym.Env):
     """
     Gymnasium environment for the Balancing Ball game with continuous action space
@@ -216,3 +218,6 @@ class BalancingBallEnv(gym.Env):
     def close(self):
         """Clean up resources"""
         self.game.close()
+
+    def get_game(self):
+        return self.game

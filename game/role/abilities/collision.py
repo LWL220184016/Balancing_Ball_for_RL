@@ -15,7 +15,8 @@ class Collision(Ability):
 
     def action(self, action_value: tuple[float, float], player: 'Player', current_step: int):
             
-        if self.check_cooldowns(current_step):
+        if self.check_is_ready(current_step):
+            self.set_last_used_step(current_step)
             # 处理旋转动作
             # 即使使用了字串提示，IDE 仍然可以正確提供代碼導航和自動完成
             x, y = player.get_position()

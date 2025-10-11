@@ -7,6 +7,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 from RL.train import Train
 from gym_env import BalancingBallEnv
+from exceptions import GameClosedException
 
 def make_env(render_mode=None, model_cfg=None):
     """Create an environment function"""
@@ -15,7 +16,7 @@ def make_env(render_mode=None, model_cfg=None):
         return env
     return _init
 
-def play_game(model_path: str = None, episodes: int = None):
+def play_game(training: bool = None, model_path: str = None, episodes: int = None):
     """
     Play the game using a trained model
     
@@ -36,6 +37,8 @@ def play_game(model_path: str = None, episodes: int = None):
     """
     print(f"\n\033[38;5;220m {msg}\033[0m")
 
+    train_cfg.total_timesteps = 3
+
     evaluater = Train(
         model_cfg=model_cfg,
         train_cfg=train_cfg,
@@ -43,9 +46,29 @@ def play_game(model_path: str = None, episodes: int = None):
         load_model=model_path,
     )
 
-    evaluater.evaluate(episodes, deterministic=True)
-    # evaluater.train_ppo()
+    try:
+        if training:
+            evaluater.train_ppo()
+        else:   
+            evaluater.evaluate(episodes, deterministic=True)
+    except GameClosedException:
+        print("Game was closed by the user. Shutting down gracefully.")
+        # 不需要做任何事，程式會自然結束。
+        # SB3 的 `learn()` 方法會因為異常而停止，並執行其內部的 finally 清理。
+    except KeyboardInterrupt:
+        print("\nTraining interrupted by user (Ctrl+C). Shutting down.")
+        # 這裡的邏輯可以保留，用於處理終端機的中斷
+    finally:
+        # 確保在任何情況下都嘗試關閉環境
+        # 注意：evaluater.env 可能已經被 SB3 或其他地方關閉了
+        print("Final cleanup.")
+        # 可以加上檢查，避免重複關閉
+        if evaluater and evaluater.env and evaluater.env.unwrapped:
+            evaluater.env.close()
+        if evaluater and evaluater.eval_env and evaluater.eval_env.unwrapped:
+            evaluater.eval_env.close()
 
+    
 if __name__ == "__main__":
     # play_game(
     #     model_path="./ppo_game_screen_315000_steps_level1",
@@ -54,12 +77,8 @@ if __name__ == "__main__":
 
 
     play_game(
-        model_path="./trained_model/level3/ppo_balancing_ball_state_based_630000_steps.zip",
+        training=True,
+        # model_path="./trained_model/level3/best_model.zip",
+        model_path=None,
         episodes=3
     )
-
-    
-    # play_game(
-    #     model_path=None,
-    #     episodes=1
-    # )

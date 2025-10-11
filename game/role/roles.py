@@ -96,6 +96,12 @@ class Role:
             return True # True mean health is number
         return False # False mean health is not number (e.g., 'infinite')
 
+    def check_ability_ready(self, ability_name: str, current_step: int) -> bool:
+        ability = self.abilities.get(ability_name)
+        if ability:
+            return ability.check_is_ready(current_step)
+        return False
+
     def get_state(self, window_size: tuple):
         """
         返回該角色的正規化狀態向量。
@@ -174,6 +180,12 @@ class Role:
     
     def get_health(self):
         return self.health
+    
+    def get_ability_cooldown(self, ability_name: str) -> float | None:
+        ability = self.abilities.get(ability_name)
+        if ability:
+            return ability.get_cooldown()
+        return None
 
     def set_velocity(self, velocity: pymunk.Vec2d):
         self.shape.set_velocity(velocity)

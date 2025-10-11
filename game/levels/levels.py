@@ -310,8 +310,27 @@ class Level3(Levels):
         shape state changes in the game
         """
 
-        # Noting to do in this level
-        pass
+        player = self.players[0]
+        terminated = False
+        obs_screen_data = None
+        rewards = [0 for _ in self.players]
+
+        while not player.check_ability_ready("Collision", self.game.get_step()) and not terminated:
+            self.status_reset_step()
+            self.space.step(1/self.game.get_fps())
+
+            # Check game state
+            self.game.add_step(1)
+            _rewards, terminated = self.game.reward()
+            self.game.set_step_rewards(_rewards)
+            for i, r in enumerate(_rewards):
+                rewards[i] += r
+            obs_screen_data = self.game._get_observation()
+
+            self.game.handle_pygame_events() # TODO 這部分代碼應該和 human control 的代碼合並
+
+        return obs_screen_data, rewards, terminated
+
 
     def status_reset_step(self):
         """
@@ -320,7 +339,6 @@ class Level3(Levels):
         
         super().status_reset_step()
         for player in self.players:
-            player.set_is_on_ground(False)
             player.set_collision_with([])
 
         for rock in self.falling_rocks:
