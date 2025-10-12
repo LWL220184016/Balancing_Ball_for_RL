@@ -37,7 +37,7 @@ def play_game(training: bool = None, model_path: str = None, episodes: int = Non
     """
     print(f"\n\033[38;5;220m {msg}\033[0m")
 
-    train_cfg.total_timesteps = 3
+    train_cfg.total_timesteps = 3000
 
     evaluater = Train(
         model_cfg=model_cfg,
@@ -77,8 +77,8 @@ if __name__ == "__main__":
 
 
     play_game(
-        training=False,
-        model_path="./trained_model/level3/123123123.zip",
-        # model_path=None,
+        training=True,
+        # model_path="./trained_model/level3/ppo_checkpoint_state_based_850000_steps.zip",
+        model_path=None,
         episodes=3
     )

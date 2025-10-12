@@ -1,4 +1,3 @@
-x = 1000
-range_x = (0.3, 0.7)
+from stable_baselines3 import SAC
 
-print( x * range_x[0], x * range_x[1] )
+print(SAC.__name__)

@@ -1,8 +1,7 @@
 import sys
 import os
-from typing import Callable # <<< 新增：為了類型提示 >>>
+from typing import Callable
 
-from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
 from stable_baselines3.common.evaluation import evaluate_policy
@@ -113,7 +112,7 @@ class Train:
         # Create or load the PPO model
         if load_model and os.path.exists(load_model):
             print(f"Loading model from {load_model}")
-            self.model = PPO.load(
+            self.model = model_cfg.rl_algorithm.load(
                 load_model,
                 env=self.env,
                 tensorboard_log=self.log_dir,
@@ -132,7 +131,7 @@ class Train:
                 print(f"WARNING: VecNormalize stats not found at {stats_path}. Model performance may be affected.")
         else:
             print("Creating a new model with learning rate schedule.")
-            self.model = PPO(
+            self.model = model_cfg.rl_algorithm(
                 env=self.env,
                 tensorboard_log=self.log_dir,
                 # 這裡會傳入包含學習率排程的參數
@@ -143,7 +142,7 @@ class Train:
         self.checkpoint_callback = CheckpointCallback(
             save_freq=train_cfg.save_freq // self.n_envs,
             save_path=self.model_dir,
-            name_prefix="ppo_checkpoint_" + str(self.obs_type),
+            name_prefix= self.model_cfg.rl_algorithm.__name__ + "_checkpoint_" + str(self.obs_type),
             save_vecnormalize=True,
         )
 
@@ -184,7 +183,7 @@ class Train:
             reset_num_timesteps=reset_num_timesteps # 繼續訓練時不要重置步數
         )
         
-        final_model_path = os.path.join(self.model_dir, "ppo_balancing_ball_final")
+        final_model_path = os.path.join(self.model_dir, self.model_cfg.rl_algorithm.__name__ + "_balancing_ball_final")
         self.model.save(final_model_path)
         self.env.save(f"{final_model_path}.pkl")
         print("Training completed!")

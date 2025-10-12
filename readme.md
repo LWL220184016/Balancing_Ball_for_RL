@@ -12,9 +12,12 @@ Todo:
    6. (✅️finished) 當前技能冷卻是 time.time() 控制，當游戲在不同環境下以不同速度運行，會導致技能在非預期情況下冷卻完畢，太早或者太慢都會產生錯誤數據。
       應該修改爲由 step 數控制，比如當一個技能冷卻時間是一秒，那麽實際冷卻就是 1 * FPS
 
-   7. 添加 Level 4 用於對抗式訓練
+   7. 改進加載不同 Level 的 config 的方式
 
    8. 解決 Level 3 模型訓練局部最優的問題
+
+   9. 添加 Level 4 用於對抗式訓練
+
 
 問題1：
 在 Balancing_Ball_for_RL\game\gym_env.py 的 Function step_state_based 中的這行代碼：

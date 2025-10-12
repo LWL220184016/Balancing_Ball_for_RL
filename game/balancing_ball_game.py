@@ -244,7 +244,6 @@ class BalancingBallGame:
         # Check if game should end
         terminated = False
         if alive_count == 0 or (alive_count == 1 and self.num_players > 1) or self.steps >= self.max_episode_step:
-            print("Final Scores: ", self.score, " total step: ", self.steps)
             terminated = True
             self.game_over = True
 
@@ -254,18 +253,11 @@ class BalancingBallGame:
                 # Give bonus to winner
                 self.players[self.winner].add_reward_per_step(0.5 * self.steps / 100)  # 生存時間越長獎勵越多 TODO Hard code
                 self.score[self.winner] += self.players[self.winner].get_reward_per_step()
-                print(f"Winner: Player {self.winner + 1}")
-            elif self.num_players == 1:
-                self.winner = None  # No winner in single player if fell
-                print("Game Over - Player fell")
-
-            elif alive_count == 0:
-                self.winner = None  # Draw
-                print("Draw - all players fell")
-            else:
+            elif self.steps == self.max_episode_step:
                 # Game ended due to max steps, winner is highest score
                 self.winner = np.argmax(self.score)
-                print(f"Time limit reached. Winner by score: Player {self.winner + 1}")
+            else:
+                self.winner = None
 
         rewards = [0] * self.num_players
         for i, player in enumerate(self.players):
@@ -396,8 +388,13 @@ class BalancingBallGame:
                 game_over_text = f"WINNER: Player {self.winner + 1} - Press R to restart"
             elif self.num_players == 1:
                 game_over_text = "GAME OVER - Press R to restart"
+            elif self.steps == self.max_episode_step:
+                game_over_text = f"Time limit reached. Winner by score: Player {self.winner + 1}"
             else:
                 game_over_text = "DRAW - Press R to restart"
+
+            print("Final Scores: ", self.score, " total step: ", self.steps) 
+            print(game_over_text)
             game_over_surface = self.font.render(game_over_text, True, (255, 255, 255))
 
             # Draw semi-transparent background
@@ -464,9 +461,11 @@ class BalancingBallGame:
             # Take game step
             if not self.game_over:
                 obs_screen_data, rewards, terminated = self.step(actions)
-
+                self.render()
+            else:
+                self.handle_pygame_events()
+                
             # Render
-            self.render()
 
         self.close()
         
