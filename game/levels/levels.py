@@ -356,32 +356,34 @@ class Level3(Levels):
         player_state = player.get_state(window_size=self.window_size, velocity_scale=200.0)
         rock_state = rock.get_state(window_size=self.window_size, velocity_scale=20.0)
 
-        # player_state = [player_norm_x, player_norm_y, player_norm_vx, player_norm_vy]
-        # rock_state   = [rock_norm_x,   rock_norm_y,   rock_norm_vx,   rock_norm_vy]
+        player_pos = player_state.get("pos")
+        rock_pos   = rock_state.get("pos")
+        player_vel = player_state.get("vel")
+        rock_vel   = rock_state.get("vel")
 
         # Calculate relative position and velocity
-        relative_pos_x = rock_state[0] - player_state[0]
-        relative_pos_y = rock_state[1] - player_state[1]
-        relative_vel_x = rock_state[2] - player_state[2]
-        relative_vel_y = rock_state[3] - player_state[3]
+        relative_pos_x = rock_pos[0] - player_pos[0]
+        relative_pos_y = rock_pos[1] - player_pos[1]
+        relative_vel_x = rock_vel[0] - player_vel[0]
+        relative_vel_y = rock_vel[1] - player_vel[1]
 
         # The observation is the player's own velocity and the relative info to the target.
         # This tells the agent "here is your current momentum" and "here is where the target is relative to you".
         obs = [
-            player_state[2],  # player_norm_vx
-            player_state[3],  # player_norm_vy
+            player_vel[0], 
+            player_vel[1], 
             relative_pos_x,
             relative_pos_y,
             relative_vel_x,
             relative_vel_y,
             # You can also include the absolute position of the player if boundary awareness is important
-            player_state[0], # player_norm_x
-            player_state[1], # player_norm_y
+            player_pos[0], 
+            player_pos[1], 
             # Add absolute position and velocity of the falling rock
-            rock_state[0],   # rock_norm_x
-            rock_state[1],   # rock_norm_y
-            rock_state[2],   # rock_norm_vx
-            rock_state[3],   # rock_norm_vy
+            rock_pos[0],   
+            rock_pos[1],   
+            rock_vel[0],   
+            rock_vel[1],   
         ]
 
         return np.array(obs, dtype=np.float32)

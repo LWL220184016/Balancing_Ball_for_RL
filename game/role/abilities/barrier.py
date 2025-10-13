@@ -27,3 +27,4 @@ class Barrier(Ability):
 
     def reset(self):
         return super().reset()
+    

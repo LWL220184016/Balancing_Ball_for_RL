@@ -1,5 +1,4 @@
 import pymunk
-import numpy as np
 
 try:
     from role.roles import Role
@@ -32,23 +31,14 @@ class Player(Role):
             # 处理旋转动作
             self.abilities["Collision"].action(action[2], self, current_step)
 
-    def get_state(self, window_size: tuple, velocity_scale: float = 200.0):
+    def get_state(self, window_size: tuple, velocity_scale: float = 200.0, **kwargs):
         """
         獲取玩家的正規化狀態。
         使用 tanh 函數來處理沒有固定上限的速度。
         velocity_scale: 用於調整速度的靈敏度。
         """
         # 首先，從父類獲取基本狀態（位置、技能冷卻等）
-        state = super().get_state(window_size=window_size)
-
-        # 接著，添加正規化的速度
-        vel_x, vel_y = self.get_velocity()
-
-        # 使用 tanh 進行正規化，velocity_scale 是一個超參數，用於調整靈敏度
-        norm_vx = np.tanh(vel_x / velocity_scale)
-        norm_vy = np.tanh(vel_y / velocity_scale)
-
-        state.extend([norm_vx, norm_vy])
+        state = super().get_state(window_size=window_size, velocity_scale=velocity_scale, **kwargs)
 
         return state
 

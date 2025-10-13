@@ -24,7 +24,7 @@ class Ability:
         abilities_configs = Ability._default_configs.get(self.ability_name)
 
         if Ability._fps is None:
-            from RL.levels.level3.config import model_config  # Adjust the import path as necessary
+            from RL.levels.level3.model1.config import model_config  # Adjust the import path as necessary
             Ability._fps = model_config.fps  # Default to 60 FPS if not specified
 
         # Force 的意思是能力基於施加力來實現
@@ -62,5 +62,10 @@ class Ability:
     def get_last_used_step(self):
         return self.last_used_step
     
+    def get_name(self):
+        return self.__class__.__name__
+    
     def set_last_used_step(self, step: int):
         self.last_used_step = step
+
+    

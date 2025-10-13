@@ -1,0 +1,128 @@
+{
+    "player_configs": [
+        {
+            "shape_type": "circle",
+            "size": [
+                0.03
+            ],
+            "shape_mass": 1,
+            "shape_friction": 100,
+            "shape_elasticity": 0.8,
+            "default_position": [
+                0.5,
+                0.6
+            ],
+            "default_velocity": [
+                0,
+                0
+            ],
+            "abilities": [
+                "Collision"
+            ],
+            "health": 10,
+            "color": [
+                255,
+                213,
+                79
+            ]
+        }
+    ],
+    "collision_type": {
+        "player": 1000,
+        "platform": 2000,
+        "fallingRock": 3000
+    },
+    "level3": {
+        "platform_configs": [
+            {
+                "shape_type": "rectangle",
+                "size": [
+                    0.8,
+                    0.04
+                ],
+                "shape_mass": 1,
+                "shape_friction": 0.7,
+                "shape_elasticity": 0.1,
+                "default_position": [
+                    0.5,
+                    0.67
+                ],
+                "default_velocity": [
+                    0,
+                    0
+                ],
+                "abilities": [],
+                "health": "infinite",
+                "color": [
+                    235,
+                    64,
+                    52
+                ]
+            }
+        ],
+        "falling_rock_configs": [
+            {
+                "shape_type": "rectangle",
+                "size": [
+                    0.05,
+                    0.05
+                ],
+                "shape_mass": 0.5,
+                "shape_friction": 0.7,
+                "shape_elasticity": 0.1,
+                "default_position": [
+                    [
+                        0.3,
+                        0.7
+                    ],
+                    -0.001
+                ],
+                "default_velocity": [
+                    "random",
+                    0
+                ],
+                "abilities": [],
+                "health": "infinite",
+                "color": [
+                    100,
+                    100,
+                    100
+                ]
+            }
+        ],
+        "entities_configs": {
+            "quantity": {
+                "fallingRock": 1
+            }
+        },
+        "environment_configs": [
+            {
+                "window_x": 1000,
+                "window_y": 1000,
+                "gravity": [
+                    0,
+                    4000
+                ],
+                "damping": 0.5
+            }
+        ],
+        "reward": {
+            "reward_per_step_fixed_value": 0.0,
+            "reward_per_step_multiplier": 0.0001,
+
+            "collision_falling_rock": 20,
+            "falling_rock_fall_outside_platform": 0.0,
+            "falling_rock_fall_on_platform": 0,
+            "falling_rock_near_proportion": 2,
+            "falling_rock_near_distance_threshold": 500,
+
+            "steps_limit_for_movement_penalty": 10,
+            "movement_penalty": -10,
+
+            "fail_penalty": 0,
+            "speed_reward_proportion": 0.0,
+            "opponent_fell_reward": 0.0,
+            "survival_bonus": 0.0
+        }
+    }
+}

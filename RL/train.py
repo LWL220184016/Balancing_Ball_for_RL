@@ -14,7 +14,11 @@ if project_root not in sys.path:
 
 # Now import from the project root
 from game.gym_env import BalancingBallEnv
-from RL.levels.level3.config import model_config, train_config
+
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from RL.levels.level3.model1.config import model_config, train_config
 
 
 # <<< 新增：學習率排程函數 >>>
@@ -59,8 +63,8 @@ def get_linear_lr_schedule(
 
 class Train:
     def __init__(self,
-                 model_cfg: model_config=None,
-                 train_cfg: train_config=None,
+                 model_cfg: 'model_config'=None,
+                 train_cfg: 'train_config'=None,
                  n_envs: int=None,
                  load_model=None,
                 ):

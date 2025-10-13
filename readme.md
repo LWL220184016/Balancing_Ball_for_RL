@@ -1,3 +1,6 @@
+啓動 Tensorboard 查看訓練日志：
+tensorboard --logdir [dir]
+
 Todo: 
    1. (✅️finished) 嘗試合并保存模型訓練的相關 config 文件
 
@@ -18,6 +21,8 @@ Todo:
 
    9. 添加 Level 4 用於對抗式訓練
 
+levels 介紹
+[level3](RL\levels\level3\readme)
 
 問題1：
 在 Balancing_Ball_for_RL\game\gym_env.py 的 Function step_state_based 中的這行代碼：

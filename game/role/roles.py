@@ -1,6 +1,7 @@
 import time
 import pygame
 import pymunk
+import numpy as np
 
 from typing import Dict
 from role.abilities.ability import Ability
@@ -102,7 +103,7 @@ class Role:
             return ability.check_is_ready(current_step)
         return False
 
-    def get_state(self, window_size: tuple):
+    def get_state(self, window_size: tuple, velocity_scale: float):
         """
         返回該角色的正規化狀態向量。
         Args:
@@ -113,17 +114,20 @@ class Role:
 
         win_x, win_y = window_size
         pos_x, pos_y = self.get_position()
-
         norm_x = pos_x / win_x * 2 - 1
         norm_y = pos_y / win_y * 2 - 1
+        # ---------------------------------------------
+        vel_x, vel_y = self.get_velocity()
+        # 使用 tanh 進行正規化，velocity_scale 是一個超參數，用於調整靈敏度
+        norm_vx = np.tanh(vel_x / velocity_scale)
+        norm_vy = np.tanh(vel_y / velocity_scale)
 
+        # ---------------------------------------------
         is_colliding = 1.0 if self.get_collision_with() else 0.0
 
-        state = [norm_x, norm_y, is_colliding]
-
+        # ---------------------------------------------
         current_time = time.time()
-        # 確保按鍵順序一致，以便狀態向量的維度固定
-
+        ability_cooldown = {}
         for ability in self.abilities.values():
             cooldown_duration = ability.get_cooldown()
             last_used_step = ability.get_last_used_step()
@@ -137,7 +141,17 @@ class Role:
                 # 如果沒有冷卻時間，則始終為 0 (可用)
                 normalized_cooldown = 0.0
             
-            state.append(normalized_cooldown)
+            ability_cooldown[ability.get_name()] = normalized_cooldown
+
+            
+        state = {"pos": [norm_x, norm_y], 
+                # ---------------------------------------------
+                 "vel": [norm_vx, norm_vy],
+                # ---------------------------------------------
+                 "is_colliding": is_colliding,
+                # ---------------------------------------------
+                 "ability_cooldown": ability_cooldown
+                }
 
         return state
 

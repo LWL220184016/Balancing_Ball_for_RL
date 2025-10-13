@@ -16,7 +16,7 @@ def make_env(render_mode=None, model_cfg=None):
         return env
     return _init
 
-def play_game(training: bool = None, model_path: str = None, episodes: int = None):
+def play_game(model_path: str = None, episodes: int = None):
     """
     Play the game using a trained model
     
@@ -25,11 +25,11 @@ def play_game(training: bool = None, model_path: str = None, episodes: int = Non
         episodes: Number of episodes to play
     """
     # Create environment
-    from RL.levels.level3.config import model_config, train_config
+    from RL.levels.level3.model1.config import model_config, train_config
 
     model_cfg = model_config()
     train_cfg = train_config()
-    train_cfg.render_mode = "human"  # Set render mode to human for visualization
+    # train_cfg.render_mode = "human"  # Set render mode to human for visualization
 
     path = os.path.abspath(__file__)
     msg = f"""
@@ -47,10 +47,12 @@ def play_game(training: bool = None, model_path: str = None, episodes: int = Non
     )
 
     try:
-        if training:
-            evaluater.train_ppo()
-        else:   
+        if model_path:
+            print(f"\n\033[38;5;190m model_path exists, start evaluation. \033[0m")
             evaluater.evaluate(episodes, deterministic=True)
+        else:   
+            print(f"\n\033[38;5;190m model_path does not exist, start training. \033[0m")
+            evaluater.train_ppo()
     except GameClosedException:
         print("Game was closed by the user. Shutting down gracefully.")
         # 不需要做任何事，程式會自然結束。
@@ -77,8 +79,7 @@ if __name__ == "__main__":
 
 
     play_game(
-        training=True,
-        # model_path="./trained_model/level3/ppo_checkpoint_state_based_850000_steps.zip",
-        model_path=None,
-        episodes=3
+        model_path="./trained_model/level3/2/SAC_checkpoint_state_based_5000000_steps.zip",
+        # model_path=None,
+        episodes=1
     )
