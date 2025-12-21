@@ -88,7 +88,7 @@ class Levels:
 
         pass
 
-    def _get_observation_state_base(self) -> np.ndarray:
+    def _get_observation_state_based(self) -> np.ndarray:
         """
         Return the current observation without taking a step
         """
@@ -306,7 +306,7 @@ class Level3(Levels):
 
         return players, platforms, [self.falling_rocks], reward_calculator
 
-    def action(self, obs_screen_data, rewards, terminated):
+    def action(self, rewards, terminated):
         """
         shape state changes in the game
         """
@@ -320,14 +320,13 @@ class Level3(Levels):
             # Check game state
             self.game.add_step(1)
             _rewards, terminated = self.game.reward()
-            obs_screen_data = self.game._get_observation()
             self.game.set_step_rewards(_rewards)
             for i, r in enumerate(_rewards):
                 rewards[i] += r
 
             self.game.handle_pygame_events() 
 
-        return obs_screen_data, rewards, terminated
+        return rewards, terminated
 
 
     def status_reset_step(self):
@@ -342,7 +341,7 @@ class Level3(Levels):
         for rock in self.falling_rocks:
             rock.set_is_on_ground(False)
 
-    def _get_observation_state_base(self) -> np.ndarray:
+    def _get_observation_state_based(self) -> np.ndarray:
         """
         Return the current observation without taking a step.
         This version uses relative positions and velocities for better learning.

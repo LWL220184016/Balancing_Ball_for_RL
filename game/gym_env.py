@@ -69,7 +69,6 @@ class BalancingBallEnv(gym.Env):
                 shape=(self.image_size[0], self.image_size[1], channels * self.stack_size),
                 dtype=np.uint8,
             )
-            self._preprocess_observation = self._preprocess_observation_game_screen
             self.step = self.step_game_screen
             self.reset = self.reset_game_screen
         elif model_cfg.model_obs_type == "state_based":
@@ -79,13 +78,12 @@ class BalancingBallEnv(gym.Env):
                 high=np.full(obs_size, 1.0),
                 dtype=np.float32
             )
-            self._preprocess_observation = self._preprocess_observation_state_base
             self.step = self.step_state_based
             self.reset = self.reset_state_based
         else:
             raise ValueError(f"obs_type: {model_cfg.model_obs_type} must be 'game_screen' or 'state_based'")
 
-    def _preprocess_observation_game_screen(self, observation):
+    def _preprocess_observation_game_screen(self):
         """Process raw game observation for RL training
 
         Args:
@@ -94,6 +92,8 @@ class BalancingBallEnv(gym.Env):
         Returns:
             Processed observation ready for RL
         """
+
+        observation = self.game._get_observation_game_screen()
         observation = np.transpose(observation, (1, 0, 2))
 
         observation = cv2.cvtColor(observation, cv2.COLOR_RGB2GRAY)
@@ -115,11 +115,8 @@ class BalancingBallEnv(gym.Env):
         """Take a step in the environment with continuous actions"""
         # Ensure action is the right shape
 
-        # Take step in the game
-        obs, step_rewards, terminated = self.game.step(action)
-
-        # Preprocess the observation
-        obs = self._preprocess_observation(obs)
+        step_rewards, terminated = self.game.step(action)
+        obs = self._preprocess_observation_game_screen()
 
         # Stack the frames
         self.observation_stack.append(obs)
@@ -149,10 +146,8 @@ class BalancingBallEnv(gym.Env):
         """Reset the environment"""
         super().reset(seed=seed)  # This properly seeds the environment in Gymnasium
 
-        observation = self.game.reset()
-
-        # Preprocess the observation
-        observation = self._preprocess_observation(observation)
+        self.game.reset()
+        observation = self._preprocess_observation_game_screen()
 
         # Reset the observation stack
         self.observation_stack = []
@@ -169,7 +164,7 @@ class BalancingBallEnv(gym.Env):
 
     def _preprocess_observation_state_base(self):
         """Convert game state to state-based observation for RL agent"""
-        obs = self.game._get_observation_state_base()
+        obs = self.game._get_observation_state_based()
 
         return obs
 

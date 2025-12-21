@@ -187,9 +187,6 @@ class BalancingBallGame:
         self.winner = None
         self.last_speeds = [0] * self.num_players
 
-        # Return initial observation
-        return self._get_observation()
-
     def step(self, pactions: list = [Tuple[float, float]]) -> Tuple[np.ndarray, list, bool, Dict]:
         """
         Take a step in the game using the given actions.
@@ -221,13 +218,12 @@ class BalancingBallGame:
 
         self.add_step(1)
         rewards, terminated = self.reward()
-        obs_screen_data = self._get_observation() # TODO self._get_observation() 是返回的 game_screen，state_based 是 _get_observation_state_based，需要改進
         self.step_rewards = rewards
         self.handle_pygame_events()
 
-        obs_screen_data, rewards, terminated = self.level.action(obs_screen_data, rewards, terminated)
+        rewards, terminated = self.level.action(rewards, terminated)
 
-        return obs_screen_data, rewards, terminated 
+        return rewards, terminated 
 
     def reward(self):
         """
@@ -275,7 +271,7 @@ class BalancingBallGame:
 
         return rewards, terminated
 
-    def _get_observation(self) -> np.ndarray:
+    def _get_observation_game_screen(self) -> np.ndarray:
         """Convert game state to observation for RL agent"""
         # update particles and draw them
         screen_data = self.render() # 获取数据
@@ -286,9 +282,9 @@ class BalancingBallGame:
             self.frame_count += 1
         return screen_data
     
-    def _get_observation_state_base(self) -> np.ndarray:
+    def _get_observation_state_based(self) -> np.ndarray:
         """Public method to get the current observation without taking a step"""
-        obs = self.level._get_observation_state_base()
+        obs = self.level._get_observation_state_based()
 
         return obs
 
