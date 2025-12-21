@@ -325,7 +325,7 @@ class Level3(Levels):
             for i, r in enumerate(_rewards):
                 rewards[i] += r
 
-            self.game.handle_pygame_events() # TODO 這部分代碼應該和 human control 的代碼合並
+            self.game.handle_pygame_events() 
 
         return obs_screen_data, rewards, terminated
 

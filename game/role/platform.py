@@ -58,6 +58,7 @@ class PlatformFactory:
                         shape_elasticity: float = None,
                         default_position: tuple = None,
                         default_velocity: tuple = None,
+                        default_angular_velocity: float = None,
                         abilities: dict = None,
                         health: int | str = None,
                         color: tuple = None
@@ -101,7 +102,8 @@ class PlatformFactory:
                 window_x=window_x,
                 window_y=window_y,
                 default_position=default_position,
-                default_velocity=default_velocity
+                default_velocity=default_velocity,
+                default_angular_velocity=default_angular_velocity,
             )
 
 
@@ -119,7 +121,8 @@ class PlatformFactory:
                 window_x=window_x,
                 window_y=window_y,
                 default_position=default_position,
-                default_velocity=default_velocity
+                default_velocity=default_velocity,
+                default_angular_velocity=default_angular_velocity,
             )
 
         platform = Platform(

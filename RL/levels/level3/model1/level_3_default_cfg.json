@@ -16,6 +16,7 @@
                 0,
                 0
             ],
+            "default_angular_velocity": 0,
             "abilities": [
                 "Collision"
             ],
@@ -51,6 +52,7 @@
                     0,
                     0
                 ],
+                "default_angular_velocity": 0,
                 "abilities": [],
                 "health": "infinite",
                 "color": [
@@ -78,9 +80,13 @@
                     -0.001
                 ],
                 "default_velocity": [
-                    "random",
+                    [
+                        -1000,
+                        1000
+                    ],
                     0
                 ],
+                "default_angular_velocity": 0,
                 "abilities": [],
                 "health": "infinite",
                 "color": [

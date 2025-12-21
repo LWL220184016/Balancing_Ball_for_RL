@@ -223,7 +223,7 @@ class BalancingBallGame:
         rewards, terminated = self.reward()
         obs_screen_data = self._get_observation() # TODO self._get_observation() 是返回的 game_screen，state_based 是 _get_observation_state_based，需要改進
         self.step_rewards = rewards
-        self.handle_pygame_events() # TODO 這部分代碼應該和 human control 的代碼合並
+        self.handle_pygame_events()
 
         obs_screen_data, rewards, terminated = self.level.action(obs_screen_data, rewards, terminated)
 

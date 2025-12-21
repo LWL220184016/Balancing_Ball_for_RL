@@ -46,6 +46,7 @@ class FallingRockFactory:
                            shape_elasticity: float = None,
                            default_position: tuple = None,
                            default_velocity: tuple = None,
+                           default_angular_velocity: float = None,
                            abilities: dict = None,
                            health: int | str = None,
                            color: tuple = None
@@ -89,7 +90,8 @@ class FallingRockFactory:
                 window_x=window_x,
                 window_y=window_y,
                 default_position=default_position,
-                default_velocity=default_velocity
+                default_velocity=default_velocity,
+                default_angular_velocity=default_angular_velocity,
             )
 
 
@@ -107,7 +109,8 @@ class FallingRockFactory:
                 window_x=window_x,
                 window_y=window_y,
                 default_position=default_position,
-                default_velocity=default_velocity
+                default_velocity=default_velocity,
+                default_angular_velocity=default_angular_velocity,
             )
 
         falling_rock = FallingRock(

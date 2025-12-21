@@ -12,6 +12,7 @@ class Shape:
                 window_y: int = None,
                 default_position: Tuple[float, float] = None,
                 default_velocity: Tuple[float, float] = None,
+                default_angular_velocity: float = None,
             ):
         """
         Initialize a physical shape with associated body.
@@ -32,7 +33,7 @@ class Shape:
             self.window_y * default_position[1] if isinstance(default_position[1], float) else (self.window_y * default_position[1][0], self.window_y * default_position[1][1])
         )
         self.default_velocity = default_velocity
-        self.default_angular_velocity = 0 # TODO Hard code
+        self.default_angular_velocity = default_angular_velocity
 
         if self.window_x is None or self.window_y is None or self.default_position is None or self.default_velocity is None:
             print("window_x:", self.window_x)
@@ -43,7 +44,7 @@ class Shape:
 
         self.set_position_absolute_value(self.default_position)
         self.set_velocity(self.default_velocity)
-        self.set_angular_velocity(0) # TODO Hard code
+        self.set_angular_velocity(self.default_angular_velocity)
 
     def reset(self):
         """Reset the body to its default position, velocity and angular velocity."""
@@ -123,8 +124,8 @@ class Shape:
 
     def set_velocity(self, velocity: pymunk.Vec2d):
         self.body.velocity = ( 
-            velocity[0] if isinstance(velocity[0], (float, int)) else random.randint(-1000, 1000), # TODO Hard code
-            velocity[1] if isinstance(velocity[1], (float, int)) else random.randint(-1000, 1000)
+            velocity[0] if isinstance(velocity[0], (float, int)) else random.uniform(velocity[0][0], velocity[0][1]), 
+            velocity[1] if isinstance(velocity[1], (float, int)) else random.uniform(velocity[1][0], velocity[1][1])
         )
 
     def set_default_velocity(self, velocity: Tuple[float, float]):
