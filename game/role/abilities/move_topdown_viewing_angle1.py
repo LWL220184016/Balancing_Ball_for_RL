@@ -21,7 +21,7 @@ class Move_topdown_viewing_angle(Ability):
         self._mouse_right = self.control_keys["mouse"].get("right", [])
 
     def action(self, action_value: tuple[float, float], player: 'Player', current_step: int):
-            
+             
         if self.check_is_ready(current_step):
             self.set_last_used_step(current_step)
             force_vector = pymunk.Vec2d(action_value[0] * self.force, action_value[1] * self.force)
@@ -36,7 +36,7 @@ class Move_topdown_viewing_angle(Ability):
         move_right = self._is_pressed(self._keyboard_right, self._mouse_right, keyboard_keys, mouse_buttons)
 
         # 如果同時按下，-1 + 1 = 0 (原地不動)，更符合玩家直覺
-        x_force = move_right - move_left
+        x_force = move_right - move_left 
         y_force = -(move_front - move_back)
 
         return x_force, y_force
