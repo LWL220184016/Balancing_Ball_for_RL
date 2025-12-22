@@ -21,7 +21,9 @@ class Move_topdown_viewing_angle(Ability):
         self._mouse_right = self.control_keys["mouse"].get("right", [])
 
     def action(self, action_value: tuple[float, float], player: 'Player', current_step: int):
-             
+        if action_value == (0, 0): 
+            return
+        
         if self.check_is_ready(current_step):
             self.set_last_used_step(current_step)
             force_vector = pymunk.Vec2d(action_value[0] * self.force, action_value[1] * self.force)
