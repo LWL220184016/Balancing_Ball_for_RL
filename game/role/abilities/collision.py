@@ -10,6 +10,8 @@ if TYPE_CHECKING:
 class Collision(Ability):
     def __init__(self):
         super().__init__(self.__class__.__name__)
+        self._keyboard_action = self.control_keys["keyboard"].get("action", [])
+        self._mouse_action = self.control_keys["mouse"].get("action", [])
 
     def action(self, action_value: tuple[float, float], player: 'Player', current_step: int):
             
@@ -28,8 +30,8 @@ class Collision(Ability):
                 # 直接設置速度
                 player.set_velocity(velocity_vector)
 
-    def human_control_interface(self, keys, mouse_buttons):
-        if mouse_buttons[0]:
+    def human_control_interface(self, keyboard_keys, mouse_buttons):
+        if self._is_pressed(self._keyboard_action, self._mouse_action, keyboard_keys, mouse_buttons):
             p1_ability1 = pygame.mouse.get_pos()  # Activate ability 1
             return p1_ability1
         return None

@@ -24,13 +24,13 @@ class HumanControl:
                 pygame.quit()
                 exit()
 
-        keys = pygame.key.get_pressed()
+        keyboard_keys = pygame.key.get_pressed()
         mouse_buttons = pygame.mouse.get_pressed()
 
         action_dict = {}
 
         for name, ability_instance in self.abilities.items():
-            act_value = ability_instance.human_control_interface(keys, mouse_buttons)
+            act_value = ability_instance.human_control_interface(keyboard_keys, mouse_buttons)
             
             if act_value is not None and act_value != 0:
                 action_dict[name] = act_value

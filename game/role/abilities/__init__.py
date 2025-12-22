@@ -9,6 +9,8 @@ module_names = [
     for f in glob.glob(os.path.join(os.path.dirname(__file__), "*.py")) 
     if not f.endswith('__init__.py')
 ]
+msg = f"Found ability modules: {module_names}"
+print(f"\n\033[38;5;222m {msg}\033[0m")
 
 # __all__ 將用來存放要匯出的類別名稱 (例如 'Move', 'Jump')
 __all__ = []
@@ -29,3 +31,4 @@ for module_name in module_names:
         
         # 將類別名稱加入 __all__ 列表，以便 `import *` 可以匯出它
         __all__.append(class_name)
+        print(f"\033[38;5;34m Loaded ability class: {class_name} from module: {module_name} \033[0m")

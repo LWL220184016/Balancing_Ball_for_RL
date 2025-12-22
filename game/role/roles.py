@@ -37,6 +37,7 @@ class Role:
         self.default_health = health  # 用於重置生命值
 
         # 使用列表推導式和 globals() 來動態實例化類別
+        print(f"Initializing Role with abilities: {abilities}")
         if abilities:
             self.abilities: Dict[str, Ability] = {name: globals()[name]() for name in abilities if name in globals()}
             print(f"Initialized Role with abilities: {list(self.abilities.keys())}")

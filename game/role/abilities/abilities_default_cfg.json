@@ -1,34 +1,72 @@
 {
-    "Move_Horizontal_viewing_angle": {
+    "Move_horizontal_viewing_angle": {
         "force": 5000,
         "speed": 0,
         "cooldown": 0,
         "key": {
-            "left": "a",
-            "right": "d"
+            "keyboard": {
+                "left": [
+                    "a",
+                    "arrow_left"
+                ],
+                "right": [
+                    "d",
+                    "arrow_right"
+                ]
+            },
+            "mouse": {}
         }
     },
-    "Move_TopDown_viewing_angle": {
+    "Move_topdown_viewing_angle": {
         "force": 5000,
         "speed": 0,
         "cooldown": 0,
         "key": {
-            "front": "w",
-            "left": "a",
-            "back": "s",
-            "right": "d"
+            "keyboard": {
+                "front": [
+                    "w",
+                    "arrow_up"
+                ],
+                "left": [
+                    "a",
+                    "arrow_left"
+                ],
+                "back": [
+                    "s",
+                    "arrow_down"
+                ],
+                "right": [
+                    "d",
+                    "arrow_right"
+                ]
+            },
+            "mouse": {}
         }
     },
     "Jump": {
         "force": -1000000,
         "speed": 0,
         "cooldown": 0.1,
-        "key": "space"
+        "key": {
+            "keyboard": {
+                "action": [
+                    "space", "p"
+                ]
+            },
+            "mouse": {"action": ["right"]}
+        }
     },
     "Collision": {
         "force": 0,
         "speed": 6000,
         "cooldown": 3.0,
-        "key": "mouse1"
+        "key": {
+            "keyboard": {"action": ["y"]},
+            "mouse": {
+                "action": [
+                    "left"
+                ]
+            }
+        }
     }
 }

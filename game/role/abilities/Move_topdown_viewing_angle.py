@@ -7,25 +7,19 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from game.role.player import Player
 
-class Jump(Ability):
+class Move_topdown_viewing_angle(Ability):
     def __init__(self):
         super().__init__(self.__class__.__name__)
-        self._keyboard_action = self.control_keys["keyboard"].get("action", [])
-        self._mouse_action = self.control_keys["mouse"].get("action", [])
 
     def action(self, action_value: float, player: 'Player', current_step: int):
             
-        if self.check_is_ready(current_step) and player.get_is_on_ground():
+        if self.check_is_ready(current_step):
             self.set_last_used_step(current_step)
-            force_vector = pymunk.Vec2d(0, action_value * self.force)
+            force_vector = pymunk.Vec2d(action_value * self.force, 0)
             player.apply_force_at_world_point(force_vector, player.get_position())
 
     def human_control_interface(self, keyboard_keys, mouse_buttons):
-        p1_y_force = 0
-        if self._is_pressed(self._keyboard_action, self._mouse_action, keyboard_keys, mouse_buttons):
-            p1_y_force = 1  # Jump force persentage (0 to 1)
-
-        return p1_y_force
+        return None
     
     def reset(self):
         return super().reset()

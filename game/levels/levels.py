@@ -216,13 +216,15 @@ class Level2(Levels):
 
         return players, platforms, [], reward_calculator
 
-    def action(self):
+    def action(self, rewards, terminated):
         """
         shape state changes in the game
         """
         if time.time() - self.last_angular_velocity_change_time > self.angular_velocity_change_timeout:
             self.platforms[0].set_angular_velocity(random.randrange(-1, 2, 2))
             self.last_angular_velocity_change_time = time.time()
+
+        return rewards, terminated
 
     def status_reset_step(self):
         """
