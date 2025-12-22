@@ -7,6 +7,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from game.levels.levels import *
+from game.levels.level4 import *
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -77,5 +78,7 @@ def get_level(level: int,
         return Level2(game=game, collision_type=collision_type, player_configs=player_configs, level_configs=level_cfg)
     elif level == 3:
         return Level3(game=game, collision_type=collision_type, player_configs=player_configs, level_configs=level_cfg)
+    elif level == 4:
+        return Level4(game=game, collision_type=collision_type, player_configs=player_configs, level_configs=level_cfg)
     else:
         raise ValueError(f"Invalid level number: {level}")

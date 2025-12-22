@@ -1,17 +1,34 @@
 {
-    "Move": {
+    "Move_Horizontal_viewing_angle": {
         "force": 5000,
         "speed": 0,
-        "cooldown": 0
+        "cooldown": 0,
+        "key": {
+            "left": "a",
+            "right": "d"
+        }
+    },
+    "Move_TopDown_viewing_angle": {
+        "force": 5000,
+        "speed": 0,
+        "cooldown": 0,
+        "key": {
+            "front": "w",
+            "left": "a",
+            "back": "s",
+            "right": "d"
+        }
     },
     "Jump": {
         "force": -1000000,
         "speed": 0,
-        "cooldown": 0.1
+        "cooldown": 0.1,
+        "key": "space"
     },
     "Collision": {
         "force": 0,
         "speed": 6000,
-        "cooldown": 3.0
+        "cooldown": 3.0,
+        "key": "mouse1"
     }
 }

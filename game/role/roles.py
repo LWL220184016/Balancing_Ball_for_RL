@@ -195,6 +195,9 @@ class Role:
     def get_health(self):
         return self.health
     
+    def get_abilities(self):
+        return self.abilities
+    
     def get_ability_cooldown(self, ability_name: str) -> float | None:
         ability = self.abilities.get(ability_name)
         if ability:

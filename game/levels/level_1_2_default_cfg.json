@@ -18,7 +18,7 @@
             ],
             "default_angular_velocity": 0,
             "abilities": [
-                "Move"
+                "Move_Horizontal_viewing_angle"
             ],
             "health": 2,
             "color": [

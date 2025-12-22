@@ -1,12 +1,10 @@
+import pygame
 import pymunk
-# 1. 導入 TYPE_CHECKING
-from typing import TYPE_CHECKING
 
 from role.abilities.ability import Ability
 
-# 2. 建立一個只在類型檢查時才會執行的區塊
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    # 將導致循環導入的 import 語句移到這裡
     from game.role.player import Player
 
 class Collision(Ability):
@@ -17,8 +15,6 @@ class Collision(Ability):
             
         if self.check_is_ready(current_step):
             self.set_last_used_step(current_step)
-            # 处理旋转动作
-            # 即使使用了字串提示，IDE 仍然可以正確提供代碼導航和自動完成
             x, y = player.get_position()
             target_x, target_y = action_value
 
@@ -31,6 +27,12 @@ class Collision(Ability):
                 velocity_vector = direction_vector.normalized() * self.speed
                 # 直接設置速度
                 player.set_velocity(velocity_vector)
+
+    def human_control_interface(self, keys, mouse_buttons):
+        if mouse_buttons[0]:
+            p1_ability1 = pygame.mouse.get_pos()  # Activate ability 1
+            return p1_ability1
+        return None
 
     def reset(self):
         return super().reset()

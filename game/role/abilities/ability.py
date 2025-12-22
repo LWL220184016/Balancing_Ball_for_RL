@@ -1,15 +1,18 @@
 import json
 import os
 
+from abc import ABC, abstractmethod
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     # 將導致循環導入的 import 語句移到這裡
     from game.role.player import Player
 
-class Ability:
+class Ability(ABC):
     _default_configs = None  # 用於緩存配置的類變量
     _fps = None  # 用於儲存 FPS 的類變量
 
+    @abstractmethod
     def __init__(self, ability_name: str):
 
         self.ability_name = ability_name
@@ -49,9 +52,24 @@ class Ability:
             return True
         return False
         
+    @abstractmethod
     def action(self, action_value, player: 'Player'):
         raise NotImplementedError(f"This method '{self.action.__name__}' should be overridden by subclasses.")
+
+    @abstractmethod
+    def human_control_interface(self, keys, mouse_buttons):
+        """
+        提供給 HumanControl 使用的接口方法，讓玩家能夠通過鍵盤/滑鼠輸入來控制此能力。
+        這個方法目的在於將玩家的輸入轉換為能力所需的 action_value。
+        每個能力需要的轉換方式都不一樣，
+        函數會返回 action_value 而不是直接呼叫 action 因為 action 需要在遊戲主循環中被呼叫，
+        而 human_control_interface 只是負責處理輸入並產生 action_value。
+
+        子類需要覆寫此方法以實現自定義的輸入邏輯。
+        """
+        pass
     
+    @abstractmethod
     def reset(self):
         """重設此能力的內部狀態，例如冷卻時間。"""
         self.last_used_step = None

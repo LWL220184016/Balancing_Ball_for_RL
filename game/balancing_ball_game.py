@@ -274,13 +274,12 @@ class BalancingBallGame:
     def _get_observation_game_screen(self) -> np.ndarray:
         """Convert game state to observation for RL agent"""
         # update particles and draw them
-        screen_data = self.render() # 获取数据
 
         if isinstance(self.capture_per_second, int) and self.frame_count % self.capture_per_second == 0:  # Every second at 60 FPS
             pygame.image.save(self.screen, f"capture/frame_{self.frame_count/60}.png")
 
             self.frame_count += 1
-        return screen_data
+        return self.screen_data
     
     def _get_observation_state_based(self) -> np.ndarray:
         """Public method to get the current observation without taking a step"""
@@ -309,7 +308,8 @@ class BalancingBallGame:
 
         elif self.render_mode == "rgb_array":
             # Return RGB array for gym environment
-            return pygame.surfarray.array3d(self.screen)
+            self.screen_data = pygame.surfarray.array3d(self.screen)
+            return None
 
         elif self.render_mode == "rgb_array_and_human": # todo
             print("rgb_array_and_human mode is not supported yet.")
@@ -332,7 +332,9 @@ class BalancingBallGame:
                 '''))
 
                 self.last_update_time = current_time
-            return pygame.surfarray.array3d(self.screen)
+            
+            self.screen_data = pygame.surfarray.array3d(self.screen)
+            return None
         else:
             pass
 
@@ -456,12 +458,7 @@ class BalancingBallGame:
 
             # Take game step
             if not self.game_over:
-                obs_screen_data, rewards, terminated = self.step(actions)
-                self.render()
-            else:
-                self.handle_pygame_events()
-                
-            # Render
+                rewards, terminated = self.step([actions])
 
         self.close()
         
@@ -470,6 +467,7 @@ class BalancingBallGame:
         處理 Pygame 事件。
         如果偵測到關閉事件，則清理 Pygame 資源並引發一個自訂異常。
         """
+        self.render()
         if self.render_mode == "human":
             self.clock.tick(self.fps)
             for event in pygame.event.get():

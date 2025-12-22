@@ -19,17 +19,32 @@ class Player(Role):
         # 用於記錄狀態比如是否已經受到在重置前只能受到一次的懲罰
         self.special_status = {}  # 特殊狀態
 
-    def perform_action(self, action: list, current_step: int):
-        # 遍歷所有玩家，並使用 .get() 安全地檢查能力是否存在
-        if action[0] != 0 and self.abilities.get("Move"):
-            self.abilities["Move"].action(action[0], self, current_step)
+    def perform_action(self, action: dict, current_step: int):
+        """
+        根據 action 字典和 self.abilities 執行對應動作。
+        action 格式範例: {"Move": 1, "Jump": 0, "Collision": (0.5, 0.5)}
+        """
+        # 遍歷玩家擁有的所有能力
+        for ability_name, ability_instance in self.abilities.items():
+            # 從 action 字典中獲取對應的數據
+            action_data = action.get(ability_name)
 
-        if action[1] != 0 and self.abilities.get("Jump"):
-            self.abilities["Jump"].action(action[1], self, current_step)
+            # 只有當 action 中有對應資料且資料不為「無效值」時執行
+            if action_data is not None:
+                # 這裡的判斷邏輯可以根據你的需求調整
+                # 通常 0 代表不執行動作，但某些 tuple (0,0) 可能有意義，所以需要小心處理
+                should_execute = False
+                
+                if isinstance(action_data, (int, float)) and action_data != 0:
+                    should_execute = True
+                elif isinstance(action_data, (tuple, list)) and any(v != 0 for v in action_data):
+                    should_execute = True
+                elif isinstance(action_data, bool) and action_data is True:
+                    should_execute = True
 
-        if isinstance(action[2], tuple) and self.abilities.get("Collision"):
-            # 处理旋转动作
-            self.abilities["Collision"].action(action[2], self, current_step)
+                if should_execute:
+                    ability_instance.action(action_data, self, current_step)
+
 
     def get_state(self, window_size: tuple, velocity_scale: float = 200.0, **kwargs):
         """
