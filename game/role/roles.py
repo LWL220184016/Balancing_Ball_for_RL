@@ -3,12 +3,15 @@ import pygame
 import pymunk
 import numpy as np
 
+from abc import ABC, abstractmethod
 from typing import Dict
 from role.abilities.ability import Ability
 from role.shapes.shape import Shape
 from role.abilities import *  # Import all abilities 
 
-class Role:
+class Role(ABC):
+
+    @abstractmethod
     def __init__(self, 
                  shape: Shape = None, 
                  space: pymunk.Space = None, 
@@ -44,12 +47,33 @@ class Role:
         else:
             self.abilities = {}
 
-    def perform_action(self, action: list):
-        raise NotImplementedError(f"This method '{self.perform_action.__name__}' should be overridden by subclasses.")
+    def perform_action(self, action: dict, current_step: int):
+        """
+        根據 action 字典和 self.abilities 執行對應動作。
+        action 格式範例: {"Move": 1, "Jump": 0, "Collision": (0.5, 0.5)}
+        """
+        # 遍歷玩家擁有的所有能力
+        for ability_name, ability_instance in self.abilities.items():
+            # 從 action 字典中獲取對應的數據
+            action_data = action.get(ability_name)
 
-    def _draw_indie_style(self, screen: pygame.Surface):
-        self.shape._draw(screen, self.color)
+            # 只有當 action 中有對應資料且資料不為「無效值」時執行
+            if action_data is not None:
+                # 這裡的判斷邏輯可以根據你的需求調整
+                # 通常 0 代表不執行動作，但某些 tuple (0,0) 可能有意義，所以需要小心處理
+                should_execute = False
+                
+                if isinstance(action_data, (int, float)) and action_data != 0:
+                    should_execute = True
+                elif isinstance(action_data, (tuple, list)) and any(v != 0 for v in action_data):
+                    should_execute = True
+                elif isinstance(action_data, bool) and action_data is True:
+                    should_execute = True
 
+                if should_execute:
+                    ability_instance.action(action_data, self, current_step)
+                    
+    @abstractmethod
     def reset(self, health: int = None):
         self.shape.reset()
         self.set_collision_with([])
@@ -62,48 +86,7 @@ class Role:
         body = self.shape.get_physics_components()[0]
         self.space.reindex_shapes_for_body(body)
 
-    def add_collision_with(self, collision_with: int):
-        self.collision_with.append(collision_with)
-        self.last_collision_with = collision_with
-
-    def increase_health(self, amount: int = 1) -> bool:
-        """
-        嘗試增加生命值。
-
-        Args:
-            amount (int): 增加的生命值數量。
-
-        Returns:
-            bool: 如果生命值是數字並成功增加，返回 True；如果生命值不是數字 (例如 'infinite'），返回 False。
-        """
-
-        if isinstance(self.get_health(), int):
-            self.health += amount
-            return True # True mean health is number
-        return False # False mean health is not number (e.g., 'infinite')
-
-    def decrease_health(self, amount: int = 1) -> bool:
-        """
-        嘗試減少生命值。
-        
-        Args:
-            amount (int): 減少的生命值數量。
-
-        Returns:
-            bool: 如果生命值是數字並成功減少，返回 True；如果生命值不是數字 (例如 'infinite'），返回 False。
-        """
-        
-        if isinstance(self.get_health(), int):
-            self.health -= amount
-            return True # True mean health is number
-        return False # False mean health is not number (e.g., 'infinite')
-
-    def check_ability_ready(self, ability_name: str, current_step: int) -> bool:
-        ability = self.abilities.get(ability_name)
-        if ability:
-            return ability.check_is_ready(current_step)
-        return False
-
+    @abstractmethod
     def get_state(self, window_size: tuple, velocity_scale: float):
         """
         返回該角色的正規化狀態向量。
@@ -155,6 +138,51 @@ class Role:
                 }
 
         return state
+
+    def _draw_indie_style(self, screen: pygame.Surface):
+        self.shape._draw(screen, self.color)
+
+    def add_collision_with(self, collision_with: int):
+        self.collision_with.append(collision_with)
+        self.last_collision_with = collision_with
+
+    def increase_health(self, amount: int = 1) -> bool:
+        """
+        嘗試增加生命值。
+
+        Args:
+            amount (int): 增加的生命值數量。
+
+        Returns:
+            bool: 如果生命值是數字並成功增加，返回 True；如果生命值不是數字 (例如 'infinite'），返回 False。
+        """
+
+        if isinstance(self.get_health(), int):
+            self.health += amount
+            return True # True mean health is number
+        return False # False mean health is not number (e.g., 'infinite')
+
+    def decrease_health(self, amount: int = 1) -> bool:
+        """
+        嘗試減少生命值。
+        
+        Args:
+            amount (int): 減少的生命值數量。
+
+        Returns:
+            bool: 如果生命值是數字並成功減少，返回 True；如果生命值不是數字 (例如 'infinite'），返回 False。
+        """
+        
+        if isinstance(self.get_health(), int):
+            self.health -= amount
+            return True # True mean health is number
+        return False # False mean health is not number (e.g., 'infinite')
+
+    def check_ability_ready(self, ability_name: str, current_step: int) -> bool:
+        ability = self.abilities.get(ability_name)
+        if ability:
+            return ability.check_is_ready(current_step)
+        return False
 
     def get_color(self):
         return self.color

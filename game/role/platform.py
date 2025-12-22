@@ -15,15 +15,12 @@ class Platform(Role):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def perform_action(self, action: list):
-        raise NotImplementedError(f"This method '{self.perform_action.__name__}' not implemented.")
-    
     def get_reward_width(self):
         return self.shape.get_reward_width()
 
     def get_state(self, window_size: tuple, velocity_scale: float = 20.0, **kwargs):
         """
-        獲取玩家的正規化狀態。
+        獲取正規化狀態。
         使用 tanh 函數來處理沒有固定上限的速度。
         velocity_scale: 用於調整速度的靈敏度。
         """

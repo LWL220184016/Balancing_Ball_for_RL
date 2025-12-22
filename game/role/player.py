@@ -19,36 +19,9 @@ class Player(Role):
         # 用於記錄狀態比如是否已經受到在重置前只能受到一次的懲罰
         self.special_status = {}  # 特殊狀態
 
-    def perform_action(self, action: dict, current_step: int):
-        """
-        根據 action 字典和 self.abilities 執行對應動作。
-        action 格式範例: {"Move": 1, "Jump": 0, "Collision": (0.5, 0.5)}
-        """
-        # 遍歷玩家擁有的所有能力
-        for ability_name, ability_instance in self.abilities.items():
-            # 從 action 字典中獲取對應的數據
-            action_data = action.get(ability_name)
-
-            # 只有當 action 中有對應資料且資料不為「無效值」時執行
-            if action_data is not None:
-                # 這裡的判斷邏輯可以根據你的需求調整
-                # 通常 0 代表不執行動作，但某些 tuple (0,0) 可能有意義，所以需要小心處理
-                should_execute = False
-                
-                if isinstance(action_data, (int, float)) and action_data != 0:
-                    should_execute = True
-                elif isinstance(action_data, (tuple, list)) and any(v != 0 for v in action_data):
-                    should_execute = True
-                elif isinstance(action_data, bool) and action_data is True:
-                    should_execute = True
-
-                if should_execute:
-                    ability_instance.action(action_data, self, current_step)
-
-
     def get_state(self, window_size: tuple, velocity_scale: float = 200.0, **kwargs):
         """
-        獲取玩家的正規化狀態。
+        獲取正規化狀態。
         使用 tanh 函數來處理沒有固定上限的速度。
         velocity_scale: 用於調整速度的靈敏度。
         """

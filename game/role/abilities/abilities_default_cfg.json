@@ -50,10 +50,10 @@
         "key": {
             "keyboard": {
                 "action": [
-                    "space", "p"
+                    "space"
                 ]
             },
-            "mouse": {"action": ["right"]}
+            "mouse": {}
         }
     },
     "Collision": {
@@ -61,7 +61,7 @@
         "speed": 6000,
         "cooldown": 3.0,
         "key": {
-            "keyboard": {"action": ["y"]},
+            "keyboard": {},
             "mouse": {
                 "action": [
                     "left"

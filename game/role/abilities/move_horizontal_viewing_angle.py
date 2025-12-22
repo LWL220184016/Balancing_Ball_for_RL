@@ -30,9 +30,9 @@ class Move_horizontal_viewing_angle(Ability):
         move_right = self._is_pressed(self._keyboard_right, self._mouse_right, keyboard_keys, mouse_buttons)
         
         # 如果同時按下，-1 + 1 = 0 (原地不動)，更符合玩家直覺
-        p1_x_force = move_right - move_left
+        x_force = move_right - move_left
         
-        return p1_x_force
+        return x_force
 
     def reset(self):
         return super().reset()

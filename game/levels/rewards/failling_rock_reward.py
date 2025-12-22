@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from game.role.player import Player
-    from game.role.falling_rock import FallingRock
+    from game.role.movable_object import MovableObject
     from game.collision_handle import CollisionHandler
 
 @terminates_round
@@ -13,7 +13,7 @@ class PlayerFallingRockCollisionReward(RewardComponent):
     """處理與實體 (如落石) 的碰撞獎勵/懲罰"""
     def calculate(self, 
                   players: list['Player'], 
-                  falling_rocks: list['FallingRock'], 
+                  falling_rocks: list['MovableObject'], 
                   collision_handler: 'CollisionHandler', 
                   window_x: int, 
                   window_y: int,
@@ -63,7 +63,7 @@ class PlayerFallingRockNearReward(RewardComponent):
     
     def calculate(self, 
                   players: list['Player'], 
-                  falling_rocks: list['FallingRock'], 
+                  falling_rocks: list['MovableObject'], 
                   **kwargs
                  ):
         

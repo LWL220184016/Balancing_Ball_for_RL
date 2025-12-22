@@ -3,18 +3,15 @@ import time
 import pymunk
 import numpy as np
 
-
 try:
     from role.player import PlayerFactory
     from role.platform import PlatformFactory
-    from role.falling_rock import FallingRockFactory
-    from role.falling_rock import FallingRock
+    from game.role.movable_object import MovableObjectFactory, MovableObject
     from levels.rewards.reward_calculator import RewardCalculator
 except ImportError:
     from game.role.player import PlayerFactory
     from game.role.platform import PlatformFactory
-    from game.role.falling_rock import FallingRockFactory
-    from game.role.falling_rock import FallingRock
+    from game.role.movable_object import MovableObjectFactory, MovableObject
     from game.levels.rewards.reward_calculator import RewardCalculator
 
 from typing import TYPE_CHECKING
@@ -253,7 +250,7 @@ class Level3(Levels):
                 ):
         super().__init__(**kwargs)
         self.level_type = "Horizontal_viewing_angle"
-        self.falling_rocks: list[FallingRock] = []
+        self.falling_rocks: list[MovableObject] = []
         self.window_size = None
 
 
@@ -268,13 +265,13 @@ class Level3(Levels):
         falling_rock_configs = self.level_configs.get("falling_rock_configs")
         entities_configs = self.level_configs.get("entities_configs")
 
-        falling_rock_factory = FallingRockFactory(self.collision_type.get("fallingRock"))
+        falling_rock_factory = MovableObjectFactory(self.collision_type.get("fallingRock"))
 
         # 根據 entity_configs 的配置來創建對應數量的 falling rocks
         quantities = entities_configs.get("quantity")
         for config in falling_rock_configs:
             for _ in range(quantities.get("fallingRock")):
-                rock = falling_rock_factory.create_fallingRock(window_x=window_x, window_y=window_y, space=self.space, **config)
+                rock = falling_rock_factory.create_movableObject(window_x=window_x, window_y=window_y, space=self.space, **config)
                 self.falling_rocks.append(rock)
                 body, shape = rock.get_physics_components()
                 self.space.add(body, shape)

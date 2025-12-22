@@ -3,20 +3,16 @@ import time
 import pymunk
 import numpy as np
 
-
-
 try:
     from role.player import PlayerFactory
     from role.platform import PlatformFactory
-    from role.falling_rock import FallingRockFactory
-    from role.falling_rock import FallingRock
+    from game.role.movable_object import MovableObjectFactory, MovableObject
     from levels.rewards.reward_calculator import RewardCalculator
     from levels.levels import Levels
 except ImportError:
     from game.role.player import PlayerFactory
     from game.role.platform import PlatformFactory
-    from game.role.falling_rock import FallingRockFactory
-    from game.role.falling_rock import FallingRock
+    from game.role.movable_object import MovableObjectFactory, MovableObject
     from game.levels.rewards.reward_calculator import RewardCalculator
     from game.levels.levels import Levels
 
