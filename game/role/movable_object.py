@@ -1,15 +1,15 @@
 import pymunk
 
+from game_config import GameConfig
+
 try:
     from role.roles import Role
     from role.shapes.circle import Circle
     from role.shapes.rectangle import Rectangle
-    from game_config import GameConfig
 except ImportError:
     from game.role.roles import Role
     from game.role.shapes.circle import Circle
     from game.role.shapes.rectangle import Rectangle
-    from game.game_config import GameConfig
 
 class MovableObject(Role):
     def __init__(self, **kwargs):
@@ -46,7 +46,8 @@ class MovableObjectFactory:
                               default_angular_velocity: float = None,
                               abilities: dict = None,
                               health: int | str = None,
-                              color: tuple = None
+                              color: tuple = None,
+                              expired_time: int = None,
                              ) -> MovableObject:
         """Create the Movable Object with physics properties.
 
@@ -111,7 +112,8 @@ class MovableObjectFactory:
             space=space,
             color=color,
             abilities=abilities,
-            health=health
+            health=health,
+            expired_time=expired_time,
         )
         self.collision_type_movableObject += 1
 

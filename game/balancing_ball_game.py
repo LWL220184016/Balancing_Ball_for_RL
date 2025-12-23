@@ -83,11 +83,13 @@ class BalancingBallGame:
         )
         self.window_x = GameConfig.SCREEN_WIDTH
         self.window_y = GameConfig.SCREEN_HEIGHT
+        GameConfig.fps = self.fps
         self.setup_pygame()
 
         self.players: list[Player]
         self.platforms: list[Platform]
         self.entities: list[Role]
+        self.ability_objects: list[Role] = []
         self.reward_calculator: RewardCalculator
         self.players, self.platforms, self.entities, self.reward_calculator = self.level.setup()
         self.num_players = len(self.players)
@@ -218,12 +220,12 @@ class BalancingBallGame:
         # actions = self.calculate_player_speed_old(actions)
         self.step_action = pactions
         for i, player in enumerate(self.players):
-            player.perform_action(pactions[i], self.steps)
+            self.ability_objects.extend(player.perform_action(pactions[i], self.steps))
 
         self.add_step(1)
         rewards, terminated = self.reward()
         self.step_rewards = rewards
-        self.handle_pygame_events()
+        self.handle_update_each_frame()
 
         rewards, terminated = self.level.action(rewards, terminated)
 
@@ -352,7 +354,7 @@ class BalancingBallGame:
         for platform in self.platforms:
             platform._draw_indie_style(self.screen) 
         
-        for entity in self.entities:
+        for entity in self.entities + self.ability_objects:
             if isinstance(entity, list):
                 for e in entity:
                     e._draw_indie_style(self.screen)
@@ -466,12 +468,22 @@ class BalancingBallGame:
 
         self.close()
         
-    def handle_pygame_events(self) -> bool:
+    def handle_update_each_frame(self) -> bool:
         """
         處理 Pygame 事件。
         如果偵測到關閉事件，則清理 Pygame 資源並引發一個自訂異常。
         """
         self.render()
+
+        # 從後往前遍歷。這樣刪除後方的元素不會影響前方尚未遍歷的索引。
+        for i in range(len(self.ability_objects) - 1, -1, -1):
+            obj = self.ability_objects[i]
+            if obj.is_expired():
+                obj.remove_from_space()
+                self.ability_objects.pop(i) # 根據索引安全刪除
+            else:
+                obj.expired_time -= 1
+
         if self.render_mode == "human":
             self.clock.tick(self.fps)
             for event in pygame.event.get():

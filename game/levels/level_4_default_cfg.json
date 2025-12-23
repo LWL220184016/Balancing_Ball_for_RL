@@ -18,7 +18,8 @@
             ],
             "default_angular_velocity": 0,
             "abilities": [
-                "Move_topdown_viewing_angle"
+                "Move_topdown_viewing_angle",
+                "Shoot"
             ],
             "health": 10,
             "color": [
@@ -72,8 +73,8 @@
                 "shape_friction": 0,
                 "shape_elasticity": 0.5,
                 "default_position": [
-                    0,
-                    0
+                    0.0,
+                    0.0
                 ],
                 "default_velocity": [
                     0,
@@ -86,7 +87,8 @@
                     66,
                     165,
                     245
-                ]
+                ],
+                "expired_time": 1
             }
         },
         "environment_configs": {

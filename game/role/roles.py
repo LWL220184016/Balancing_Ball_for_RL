@@ -18,7 +18,8 @@ class Role(ABC):
                  color: tuple = None, 
                  abilities: list[str] = None, 
                  health: int | str = None,
-                 owner: 'Role' = None
+                 owner: 'Role' = None,
+                 expired_time: float = None
                 ):
         """
         Base class for all roles.
@@ -31,7 +32,7 @@ class Role(ABC):
             health (int | str): Initial health of the role. Will be infinite health if it is a string.
         """
 
-
+        self.is_Role_sub_class = True  # 用於標記這是一個 Role 類別的實例，防止 isinstance 路徑誤判以及循環引用
         self.shape = shape
         self.space = space
         self.color = color
@@ -39,7 +40,8 @@ class Role(ABC):
         self.last_collision_with = -1  # 用於記錄最後一次碰撞的類型，會在 add_collision_with 中更新
         self.health = health  # 初始生命值
         self.default_health = health  # 用於重置生命值
-        self.owner = None  # 可以用於標記該角色的擁有者（例如玩家ID）
+        self.owner = owner  # 可以用於標記該角色的擁有者（例如玩家ID）
+        self.expired_time = expired_time  # 用於標記角色的過期時間 (time * fps)
 
         # 使用列表推導式和 globals() 來動態實例化類別
         print(f"Initializing Role with abilities: {abilities}")
@@ -54,6 +56,10 @@ class Role(ABC):
         根據 action 字典和 self.abilities 執行對應動作。
         action 格式範例: {"Move": 1, "Jump": 0, "Collision": (0.5, 0.5)}
         """
+
+        # 用於儲存能力產生的物件 (比如子彈，屏障)
+        ability_objects: list[Role] = []
+
         # 遍歷玩家擁有的所有能力
         for ability_name, ability_instance in self.abilities.items():
             # 從 action 字典中獲取對應的數據
@@ -73,7 +79,11 @@ class Role(ABC):
                     should_execute = True
 
                 if should_execute:
-                    ability_instance.action(action_data, self, current_step)
+                    data = ability_instance.action(action_data, self, current_step)
+                    if getattr(data, 'is_Role_sub_class', False):
+                        ability_objects.append(data)
+
+        return ability_objects
                     
     @abstractmethod
     def reset(self, health: int = None):
@@ -186,6 +196,19 @@ class Role(ABC):
             return ability.check_is_ready(current_step)
         return False
 
+    def add_to_space(self):
+        body, shape = self.shape.get_physics_components()
+        self.space.add(body, shape)
+
+    def remove_from_space(self):
+        body, shape = self.shape.get_physics_components()
+        self.space.remove(body, shape)
+
+    def is_expired(self) -> bool:
+        if self.expired_time is not None:
+            return self.expired_time <= 0
+        return False
+
     def get_color(self):
         return self.color
     
@@ -237,6 +260,9 @@ class Role(ABC):
         if ability:
             return ability.get_cooldown()
         return None
+
+    def set_position_absolute_value(self, position: tuple):
+        self.shape.set_position_absolute_value(position)
 
     def set_velocity(self, velocity: pymunk.Vec2d):
         self.shape.set_velocity(velocity)

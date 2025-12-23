@@ -68,5 +68,18 @@
                 ]
             }
         }
+    },
+    "Shoot": {
+        "force": 0,
+        "speed": 6000,
+        "cooldown": 1.0,
+        "key": {
+            "keyboard": {},
+            "mouse": {
+                "action": [
+                    "left"
+                ]
+            }
+        }
     }
 }

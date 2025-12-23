@@ -49,13 +49,14 @@ def get_level(level: int,
         collision_type = default_configs.get("collision_type", {})
     if not player_configs:
         player_configs = default_configs.get("player_configs", [])
-    if not abilities_objects_configs:
-        abilities_objects_configs = default_configs.get("abilities_objects_configs", {})
 
     if level_key in default_configs:
         level_cfg = default_configs[level_key]
         if isinstance(platform_configs, list) and len(platform_configs) > 0:
             level_cfg["platform_configs"] = platform_configs
+            
+        if not abilities_objects_configs:
+            abilities_objects_configs = level_cfg.get("abilities_objects_configs", {})
         if not environment_configs:
             environment_configs = level_cfg.get("environment_configs", {})
     else:

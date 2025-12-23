@@ -61,12 +61,10 @@ class Levels:
         print(f"Created {len(self.players)} players and {len(self.platforms)} platforms.")
 
         for player in self.players:
-            body, shape = player.get_physics_components()
-            self.space.add(body, shape)
+            player.add_to_space()
 
         for platform in self.platforms:
-            body, shape = platform.get_physics_components()
-            self.space.add(body, shape)
+            platform.add_to_space()
 
         return self.players, self.platforms
 
@@ -307,7 +305,7 @@ class Level3(Levels):
             for i, r in enumerate(_rewards):
                 rewards[i] += r
 
-            self.game.handle_pygame_events() 
+            self.game.handle_update_each_frame() 
 
         return rewards, terminated
 

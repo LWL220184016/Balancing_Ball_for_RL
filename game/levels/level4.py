@@ -3,20 +3,20 @@ import time
 import pymunk
 import numpy as np
 
+from game_config import GameConfig
+
 try:
     from role.player import PlayerFactory
     from role.platform import PlatformFactory
     from role.movable_object import MovableObjectFactory, MovableObject
     from levels.rewards.reward_calculator import RewardCalculator
     from levels.levels import Levels
-    from game_config import GameConfig
 except ImportError:
     from game.role.player import PlayerFactory
     from game.role.platform import PlatformFactory
     from game.role.movable_object import MovableObjectFactory, MovableObject
     from game.levels.rewards.reward_calculator import RewardCalculator
     from game.levels.levels import Levels
-    from game.game_config import GameConfig
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:

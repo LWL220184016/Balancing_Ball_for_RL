@@ -8,6 +8,7 @@ class GameConfig:
     ABILITIES_OBJECTS_CONFIGS: dict
     GRAVITY: tuple
     DAMPING: float
+    FPS: int
 
     @classmethod
     def init_from_configs(cls, env_cfg: dict, collision_cfg: dict, abilities_objects_configs: dict = {}):
@@ -48,3 +49,13 @@ class GameConfig:
         if name not in cls.COLLISION_TYPES:
             raise KeyError(f"配置錯誤：在 collision_type 中找不到名為 '{name}' 的定義")
         return cls.COLLISION_TYPES[name]
+    
+    @property
+    def fps(cls) -> int:
+        if not hasattr(cls, 'FPS'):
+            raise AttributeError("GameConfig 尚未初始化 FPS，請先調用 set_fps 方法")
+        return cls.FPS
+    
+    @fps.setter
+    def fps(cls, value):
+        cls.FPS = value

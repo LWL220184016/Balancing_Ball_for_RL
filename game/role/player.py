@@ -1,13 +1,13 @@
 import pymunk
 
+from game_config import GameConfig
+
 try:
     from role.roles import Role
     from role.shapes.circle import Circle
-    from game_config import GameConfig
 except ImportError:
     from game.role.roles import Role
     from game.role.shapes.circle import Circle
-    from game.game_config import GameConfig
 
 class Player(Role):
     def __init__(self, **kwargs):
