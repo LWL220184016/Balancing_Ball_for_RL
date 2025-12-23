@@ -8,6 +8,7 @@ if project_root not in sys.path:
 
 from game.levels.levels import *
 from game.levels.level4 import *
+from game_config import GameConfig
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -18,6 +19,7 @@ def get_level(level: int,
               collision_type: dict = None, 
               player_configs: dict = None, 
               platform_configs: dict = None, 
+              abilities_objects_configs: dict = None,
               environment_configs: dict = None,
               level_config_path: str = None,
              ) -> Levels:
@@ -43,17 +45,19 @@ def get_level(level: int,
     with open(level_config_path, 'r') as f:
         default_configs = json.load(f)
     
-    if not player_configs:
-        player_configs = default_configs.get("player_configs", [])
     if not collision_type:
         collision_type = default_configs.get("collision_type", {})
+    if not player_configs:
+        player_configs = default_configs.get("player_configs", [])
+    if not abilities_objects_configs:
+        abilities_objects_configs = default_configs.get("abilities_objects_configs", {})
 
     if level_key in default_configs:
         level_cfg = default_configs[level_key]
         if isinstance(platform_configs, list) and len(platform_configs) > 0:
             level_cfg["platform_configs"] = platform_configs
         if not environment_configs:
-            environment_configs = level_cfg.get("environment_configs", [])
+            environment_configs = level_cfg.get("environment_configs", {})
     else:
         raise ValueError(f"Default config for level {level} not found in {level_config_path}")
 
@@ -65,12 +69,13 @@ def get_level(level: int,
 
     print(f"Using collision_type: {collision_type}")
     print(f"Using player_configs: {player_configs}")
+    print(f"Using abilities_objects_configs: {abilities_objects_configs}")
     print(f"Using level_configs: {level_cfg}")
 
-    game.set_windows_size(environment_configs[0].get("window_x"), environment_configs[0].get("window_y"))
+    GameConfig.init_from_configs(environment_configs, collision_type, abilities_objects_configs)
     space = game.get_space()
-    space.gravity = tuple(environment_configs[0].get("gravity"))
-    space.damping = environment_configs[0].get("damping")
+    space.gravity = tuple(environment_configs.get("gravity"))
+    space.damping = environment_configs.get("damping")
 
     if level == 1:
         return Level1(game=game, collision_type=collision_type, player_configs=player_configs, level_configs=level_cfg)

@@ -2,14 +2,13 @@ import pymunk
 import random
 
 from typing import Tuple, Optional
+from game_config import GameConfig
 
 class Shape:
 
     def __init__(
                 self,
                 body: pymunk.Body = None,
-                window_x: int = None,
-                window_y: int = None,
                 default_position: Tuple[float, float] = None,
                 default_velocity: Tuple[float, float] = None,
                 default_angular_velocity: float = None,
@@ -26,8 +25,8 @@ class Shape:
 
         self.body = body
 
-        self.window_x = window_x
-        self.window_y = window_y
+        self.window_x = GameConfig.SCREEN_WIDTH
+        self.window_y = GameConfig.SCREEN_HEIGHT
         self.default_position = (
             self.window_x * default_position[0] if isinstance(default_position[0], float) else (self.window_x * default_position[0][0], self.window_x * default_position[0][1]),
             self.window_y * default_position[1] if isinstance(default_position[1], float) else (self.window_y * default_position[1][0], self.window_y * default_position[1][1])

@@ -104,21 +104,19 @@
                 "fallingRock": 1
             }
         },
-        "environment_configs": [
-            {
-                "window_x": 1000,
-                "window_y": 1000,
-                "gravity": [
-                    0,
-                    4000
-                ],
-                "damping": 0.5
-            }
-        ],
+        "environment_configs": {
+            "window_x": 1000,
+            "window_y": 1000,
+            "gravity": [
+                0,
+                4000
+            ],
+            "damping": 0.5
+        },
         "reward": {
             "reward_per_step_fixed_value": 0.0,
             "reward_per_step_multiplier": 0.0001,
-
+            
             "collision_falling_rock": 20,
             "falling_rock_fall_outside_platform": 0.0,
             "falling_rock_fall_on_platform": 0,
@@ -135,3 +133,4 @@
         }
     }
 }
+

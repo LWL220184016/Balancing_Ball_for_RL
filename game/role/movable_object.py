@@ -4,10 +4,12 @@ try:
     from role.roles import Role
     from role.shapes.circle import Circle
     from role.shapes.rectangle import Rectangle
+    from game_config import GameConfig
 except ImportError:
     from game.role.roles import Role
     from game.role.shapes.circle import Circle
     from game.role.shapes.rectangle import Rectangle
+    from game.game_config import GameConfig
 
 class MovableObject(Role):
     def __init__(self, **kwargs):
@@ -33,8 +35,6 @@ class MovableObjectFactory:
         self.collision_type_movableObject = collision_type_movableObject
 
     def create_movableObject(self,
-                              window_x: int = 1000,
-                              window_y: int = 600,
                               space: pymunk.Space = None,
                               shape_type: str = "circle",
                               size: tuple = None,
@@ -51,8 +51,6 @@ class MovableObjectFactory:
         """Create the Movable Object with physics properties.
 
         Args:
-            window_x (int): Width of the game window.
-            window_y (int): Height of the game window.
             shape_type (str): Type of the shape, e.g., "circle", "rectangle".
             size (tuple): 
                 - If shape is Circle: It is a tuple (float,) and will be the radius of the ball as a proportion of window_x.
@@ -73,7 +71,7 @@ class MovableObjectFactory:
         dynamic_body = pymunk.Body(body_type=pymunk.Body.DYNAMIC)  # Movable Object body
 
         if shape_type == "circle":
-            length = int(window_x * size[0])
+            length = int(GameConfig.scale_x(size[0]))
             shape = Circle(
                 shape_size=length,
                 shape_mass=shape_mass,
@@ -84,8 +82,6 @@ class MovableObjectFactory:
                 is_draw_rotation_indicator=True,
 
                 # **kwargs
-                window_x=window_x,
-                window_y=window_y,
                 default_position=default_position,
                 default_velocity=default_velocity,
                 default_angular_velocity=default_angular_velocity,
@@ -93,7 +89,7 @@ class MovableObjectFactory:
 
 
         elif shape_type == "rectangle":
-            length = (size[0] * window_x, size[1] * window_y)
+            length = (GameConfig.scale_x(size[0]), GameConfig.scale_y(size[1]))
             shape = Rectangle(
                 shape_size=length,
                 shape_mass=shape_mass,
@@ -103,8 +99,6 @@ class MovableObjectFactory:
                 collision_type=self.collision_type_movableObject,
 
                 # **kwargs
-                window_x=window_x,
-                window_y=window_y,
                 default_position=default_position,
                 default_velocity=default_velocity,
                 default_angular_velocity=default_angular_velocity,

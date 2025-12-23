@@ -61,22 +61,20 @@
                 ]
             }
         ],
-        "environment_configs": [
-            {
-                "window_x": 1000,
-                "window_y": 600,
-                "gravity": [
-                    0,
-                    9810
-                ],
-                "damping": 0.9
-            }
-        ],
+        "environment_configs": {
+            "window_x": 1000,
+            "window_y": 600,
+            "gravity": [
+                0,
+                9810
+            ],
+            "damping": 0.9
+        },
         "reward": {
             "reward_per_step_fixed_value": 0.01,
             "fail_penalty": -5.0,
             "speed_reward_proportion": 0.01,
-            "opponent_fall_bonus": 5.0, 
+            "opponent_fall_bonus": 5.0,
             "survival_bonus": 0.5,
             "reward_ball_centered": 0.2,
             

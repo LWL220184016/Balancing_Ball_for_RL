@@ -24,6 +24,7 @@ from game.role.player import Player
 from game.role.platform import Platform
 from game.role.roles import Role
 from game.levels.rewards.reward_calculator import RewardCalculator
+from game_config import GameConfig
 from exceptions import GameClosedException
 
 class BalancingBallGame:
@@ -80,12 +81,15 @@ class BalancingBallGame:
             environment_configs=environment_configs,
             level_config_path=level_config_path
         )
+        self.window_x = GameConfig.SCREEN_WIDTH
+        self.window_y = GameConfig.SCREEN_HEIGHT
+        self.setup_pygame()
 
         self.players: list[Player]
         self.platforms: list[Platform]
         self.entities: list[Role]
         self.reward_calculator: RewardCalculator
-        self.players, self.platforms, self.entities, self.reward_calculator = self.level.setup(self.window_x, self.window_y)
+        self.players, self.platforms, self.entities, self.reward_calculator = self.level.setup()
         self.num_players = len(self.players)
 
         self.collision_handler.set_players(self.players)
@@ -112,7 +116,7 @@ class BalancingBallGame:
         os.makedirs(os.path.dirname(CURRENT_DIR + "/capture/"), exist_ok=True)
 
 
-    def _setup_pygame(self):
+    def setup_pygame(self):
         """Set up PyGame for rendering"""
         pygame.init()
         self.frame_count = 0
@@ -492,9 +496,6 @@ class BalancingBallGame:
     def get_game_over(self):
         return self.game_over
     
-    def get_windows_size(self) -> Tuple[int, int]:
-        return self.window_x, self.window_y
-    
     def get_space(self):
         return self.space
 
@@ -509,16 +510,6 @@ class BalancingBallGame:
     
     def get_step_action(self):
         return self.step_action
-
-    def set_windows_size(self, window_x: int, window_y: int):
-        self.window_x = window_x
-        self.window_y = window_y
-        
-        # Initialize Pygame if needed
-        if self.render_mode in ["human", "rgb_array", "rgb_array_and_human", "rgb_array_and_human_in_colab"]:
-            self._setup_pygame()
-        else:
-            print("render_mode is not human or rgb_array, so no pygame setup.")
 
     def set_step_rewards(self, rewards: list):
         self.step_rewards = rewards

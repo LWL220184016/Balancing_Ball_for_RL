@@ -6,10 +6,12 @@ try:
     from role.roles import Role
     from role.shapes.circle import Circle
     from role.shapes.rectangle import Rectangle
+    from game_config import GameConfig
 except ImportError:
     from game.role.roles import Role
     from game.role.shapes.circle import Circle
     from game.role.shapes.rectangle import Rectangle
+    from game.game_config import GameConfig
 
 class Platform(Role):
     def __init__(self, **kwargs):
@@ -45,8 +47,6 @@ class PlatformFactory:
         self.collision_type_platform = collision_type_platform
 
     def create_platform(self,
-                        window_x: int = 1000,
-                        window_y: int = 600,
                         space: pymunk.Space = None,
                         shape_type: str = "circle",
                         size: tuple = None,
@@ -63,8 +63,6 @@ class PlatformFactory:
         """Create the platform with physics properties.
 
         Args:
-            window_x (int): Width of the game window.
-            window_y (int): Height of the game window.
             shape_type (str): Type of the shape, e.g., "circle", "rectangle".
             size (tuple): 
                 - If shape is Circle: It is a tuple (float,) and will be the radius of the ball as a proportion of window_x.
@@ -85,7 +83,7 @@ class PlatformFactory:
         kinematic_body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)  # Platform body
 
         if shape_type == "circle":
-            length = int(window_x * size[0])
+            length = int(GameConfig.scale_x(size[0]))
             shape = Circle(
                 shape_size=length,
                 shape_mass=shape_mass,
@@ -96,8 +94,6 @@ class PlatformFactory:
                 is_draw_rotation_indicator=True,
 
                 # **kwargs
-                window_x=window_x,
-                window_y=window_y,
                 default_position=default_position,
                 default_velocity=default_velocity,
                 default_angular_velocity=default_angular_velocity,
@@ -105,7 +101,7 @@ class PlatformFactory:
 
 
         elif shape_type == "rectangle":
-            length = (size[0] * window_x, size[1] * window_y)
+            length = (GameConfig.scale_x(size[0]), GameConfig.scale_y(size[1]))
             shape = Rectangle(
                 shape_size=length,
                 shape_mass=shape_mass,
@@ -115,8 +111,6 @@ class PlatformFactory:
                 collision_type=self.collision_type_platform,
 
                 # **kwargs
-                window_x=window_x,
-                window_y=window_y,
                 default_position=default_position,
                 default_velocity=default_velocity,
                 default_angular_velocity=default_angular_velocity,

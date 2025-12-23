@@ -17,7 +17,8 @@ class Role(ABC):
                  space: pymunk.Space = None, 
                  color: tuple = None, 
                  abilities: list[str] = None, 
-                 health: int | str = None
+                 health: int | str = None,
+                 owner: 'Role' = None
                 ):
         """
         Base class for all roles.
@@ -38,6 +39,7 @@ class Role(ABC):
         self.last_collision_with = -1  # 用於記錄最後一次碰撞的類型，會在 add_collision_with 中更新
         self.health = health  # 初始生命值
         self.default_health = health  # 用於重置生命值
+        self.owner = None  # 可以用於標記該角色的擁有者（例如玩家ID）
 
         # 使用列表推導式和 globals() 來動態實例化類別
         print(f"Initializing Role with abilities: {abilities}")
@@ -224,6 +226,9 @@ class Role(ABC):
     def get_health(self):
         return self.health
     
+    def get_owner(self):
+        return self.owner
+    
     def get_abilities(self):
         return self.abilities
     
@@ -253,3 +258,6 @@ class Role(ABC):
 
     def set_health(self, health: int):
         self.health = health
+
+    def set_owner(self, owner: 'Role'):
+        self.owner = owner

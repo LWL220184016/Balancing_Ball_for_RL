@@ -6,15 +6,17 @@ import numpy as np
 try:
     from role.player import PlayerFactory
     from role.platform import PlatformFactory
-    from game.role.movable_object import MovableObjectFactory, MovableObject
+    from role.movable_object import MovableObjectFactory, MovableObject
     from levels.rewards.reward_calculator import RewardCalculator
     from levels.levels import Levels
+    from game_config import GameConfig
 except ImportError:
     from game.role.player import PlayerFactory
     from game.role.platform import PlatformFactory
     from game.role.movable_object import MovableObjectFactory, MovableObject
     from game.levels.rewards.reward_calculator import RewardCalculator
     from game.levels.levels import Levels
+    from game.game_config import GameConfig
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -38,13 +40,10 @@ class Level4(Levels):
         self.window_size = None
 
 
-    def setup(self, 
-              window_x: int, 
-              window_y: int
-             ):
+    def setup(self):
 
-        players, platforms = super().setup(window_x, window_y)
-        self.window_size = (window_x, window_y)
+        players, platforms = super().setup()
+        self.window_size = (GameConfig.SCREEN_WIDTH, GameConfig.SCREEN_HEIGHT)
 
         reward_calculator = RewardCalculator(
             game=self.game,
@@ -55,8 +54,6 @@ class Level4(Levels):
             ],
             reward_components=[
             ],
-            window_x=window_x,
-            window_y=window_y,
         )
 
         return players, platforms, [], reward_calculator

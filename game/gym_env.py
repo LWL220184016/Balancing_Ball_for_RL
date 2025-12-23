@@ -3,6 +3,8 @@ import numpy as np
 from gymnasium import spaces
 import cv2
 
+from game_config import GameConfig
+
 try:
     from balancing_ball_game import BalancingBallGame
 except ImportError:
@@ -53,7 +55,8 @@ class BalancingBallEnv(gym.Env):
             fps = model_cfg.fps,
         )
         
-        self.window_x, self.window_y = self.game.get_windows_size()
+        self.window_x = GameConfig.SCREEN_WIDTH
+        self.window_y = GameConfig.SCREEN_HEIGHT
 
         self.num_players = self.game.num_players
 

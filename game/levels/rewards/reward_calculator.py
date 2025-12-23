@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from typing import TYPE_CHECKING
+from game_config import GameConfig
 
 if TYPE_CHECKING:
     from game.balancing_ball_game import BalancingBallGame
@@ -51,8 +52,6 @@ class RewardCalculator:
                  entities: list['Role'] = None,
                  reward_components_terminates: list[RewardComponent] = [], # 專門存放會結束回合的元件
                  reward_components: list[RewardComponent] = [], # 接收一個元件列表
-                 window_x: int = None, 
-                 window_y: int = None
                 ):
         self.game = game
         self.players = players
@@ -61,8 +60,8 @@ class RewardCalculator:
         self.collision_handler = self.game.get_collision_handler()
         self.reward_components_terminates = reward_components_terminates
         self.reward_components = reward_components
-        self.window_x = window_x
-        self.window_y = window_y
+        self.window_x = GameConfig.SCREEN_WIDTH
+        self.window_y = GameConfig.SCREEN_HEIGHT
         self.num_players = len(players)
 
         self.alive_count = self.num_players

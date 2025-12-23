@@ -3,6 +3,8 @@ import time
 import pymunk
 import numpy as np
 
+from game_config import GameConfig
+
 try:
     from role.player import PlayerFactory
     from role.platform import PlatformFactory
@@ -37,10 +39,7 @@ class Levels:
         self.players = []
         self.platforms = []
 
-    def setup(self, 
-              window_x: int, 
-              window_y: int
-             ):
+    def setup(self):
         """
         通用設置方法，用於創建和註冊遊戲對象。
         """
@@ -54,10 +53,10 @@ class Levels:
             raise ValueError(f"Invalid collision_type: {self.collision_type}, must contain 'player' and 'platform' keys with integer values")
         
         
-        self.players: list['Player'] = [player_factory.create_player(window_x=window_x, window_y=window_y, space=self.space, **config) for config in self.player_configs]
+        self.players: list['Player'] = [player_factory.create_player(space=self.space, **config) for config in self.player_configs]
         
         if self.level_configs.get("platform_configs") is not None:
-            self.platforms: list['Platform'] = [platform_factory.create_platform(window_x=window_x, window_y=window_y, space=self.space, **config) for config in self.level_configs.get("platform_configs")]
+            self.platforms: list['Platform'] = [platform_factory.create_platform(space=self.space, **config) for config in self.level_configs.get("platform_configs")]
 
         print(f"Created {len(self.players)} players and {len(self.platforms)} platforms.")
 
@@ -118,11 +117,8 @@ class Level1(Levels):
             raise ValueError("Level 1 only supports one platform configuration.")
 
 
-    def setup(self, 
-              window_x: int, 
-              window_y: int, 
-             ):
-        players, platforms = super().setup(window_x, window_y)
+    def setup(self):
+        players, platforms = super().setup()
         # Set initial random velocity after setup
         platform = platforms[0]
         platform.set_angular_velocity(random.randrange(-1, 2, 2))
@@ -140,8 +136,6 @@ class Level1(Levels):
             reward_components=[
                 PlayerStayInPlatformCenterReward(self.level_configs.get("reward"))
             ], 
-            window_x=window_x,
-            window_y=window_y,
         )
 
         return players, platforms, [], reward_calculator
@@ -185,11 +179,8 @@ class Level2(Levels):
         if len(self.level_configs.get("platform_configs", [])) > 1:
             raise ValueError("Level 2 only supports one platform configuration.")
 
-    def setup(self, 
-              window_x: int, 
-              window_y: int, 
-             ):
-        players, platforms = super().setup(window_x, window_y)
+    def setup(self):
+        players, platforms = super().setup()
         # Set initial random velocity after setup
         platform = platforms[0]
         platform.set_angular_velocity(random.randrange(-1, 2, 2))
@@ -207,8 +198,6 @@ class Level2(Levels):
             reward_components=[
                 PlayerStayInPlatformCenterReward(self.level_configs.get("reward"))
             ], 
-            window_x=window_x, 
-            window_y=window_y, 
         )
 
         return players, platforms, [], reward_calculator
@@ -254,13 +243,10 @@ class Level3(Levels):
         self.window_size = None
 
 
-    def setup(self, 
-              window_x: int, 
-              window_y: int
-             ):
+    def setup(self):
 
-        players, platforms = super().setup(window_x, window_y)
-        self.window_size = (window_x, window_y)
+        players, platforms = super().setup()
+        self.window_size = (GameConfig.SCREEN_WIDTH, GameConfig.SCREEN_HEIGHT)
 
         falling_rock_configs = self.level_configs.get("falling_rock_configs")
         entities_configs = self.level_configs.get("entities_configs")
@@ -271,7 +257,7 @@ class Level3(Levels):
         quantities = entities_configs.get("quantity")
         for config in falling_rock_configs:
             for _ in range(quantities.get("fallingRock")):
-                rock = falling_rock_factory.create_movableObject(window_x=window_x, window_y=window_y, space=self.space, **config)
+                rock = falling_rock_factory.create_movableObject(space=self.space, **config)
                 self.falling_rocks.append(rock)
                 body, shape = rock.get_physics_components()
                 self.space.add(body, shape)
@@ -296,8 +282,6 @@ class Level3(Levels):
                 
                 PlayerMovementDirectionPenalty(self.level_configs.get("reward")),
             ],
-            window_x=window_x,
-            window_y=window_y,
         )
 
         if len(self.players) != 1 or len(self.falling_rocks) != 1:

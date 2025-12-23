@@ -3,9 +3,11 @@ import pymunk
 try:
     from role.roles import Role
     from role.shapes.circle import Circle
+    from game_config import GameConfig
 except ImportError:
     from game.role.roles import Role
     from game.role.shapes.circle import Circle
+    from game.game_config import GameConfig
 
 class Player(Role):
     def __init__(self, **kwargs):
@@ -84,8 +86,6 @@ class PlayerFactory:
         self.collision_type_player = collision_type_player
 
     def create_player(self,
-                      window_x: int = 1000,
-                      window_y: int = 600,
                       space: pymunk.Space = None,
                       shape_type: str = "circle",
                       size: tuple = None,
@@ -102,8 +102,6 @@ class PlayerFactory:
         """Create the ball with physics properties.
 
         Args:
-            window_x (int): Width of the game window.
-            window_y (int): Height of the game window.
             shape_type (str): Type of the shape, e.g., "circle", "rectangle".
             size (tuple): 
                 - If shape is Circle: It is a tuple (float,) and will be the radius of the ball as a proportion of window_x.
@@ -121,10 +119,11 @@ class PlayerFactory:
             Player: The created player object.
         """
 
+        
         dynamic_body = pymunk.Body(body_type=pymunk.Body.DYNAMIC)  # Ball body
         
         if shape_type == "circle":
-            ball_radius = int(window_x * size[0])
+            ball_radius = int(GameConfig.scale_x(size[0]))
             shape = Circle(
                 shape_size=ball_radius,
                 shape_mass=shape_mass,
@@ -135,8 +134,6 @@ class PlayerFactory:
                 is_draw_rotation_indicator=False,
 
                 # **kwargs
-                window_x=window_x,
-                window_y=window_y,
                 default_position=default_position,
                 default_velocity=default_velocity,
                 default_angular_velocity=default_angular_velocity,
