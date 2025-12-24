@@ -13,7 +13,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 # Now import from the project root
-from game.gym_env import BalancingBallEnv
+from game.script.gym_env import BalancingBallEnv
 
 
 from typing import TYPE_CHECKING

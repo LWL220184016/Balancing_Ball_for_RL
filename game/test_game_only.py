@@ -1,4 +1,4 @@
-from balancing_ball_game import BalancingBallGame
+from script.balancing_ball_game import BalancingBallGame
 
 # Example usage:
 collision_type = None
@@ -13,8 +13,7 @@ game = BalancingBallGame(render_mode="human",
                             player_configs=player_configs,
                             platform_configs=platform_configs,
                             environment_configs=environment_configs,
-                            level=4, 
-                            fps=360,
+                            level=3, 
                             capture_per_second=None
                         )
 

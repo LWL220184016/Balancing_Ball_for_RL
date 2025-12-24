@@ -3,11 +3,12 @@ import os
 
 from abc import ABC, abstractmethod
 from role.abilities.key_mapping import KeyMapping
+from script.game_config import GameConfig
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     # 將導致循環導入的 import 語句移到這裡
-    from game.role.player import Player
+    from script.role.player import Player
 
 class Ability(ABC):
     _default_configs = None  # 用於緩存配置的類變量
@@ -15,21 +16,27 @@ class Ability(ABC):
 
     @abstractmethod
     def __init__(self, ability_name: str):
-
         self.ability_name = ability_name
-        # 檢查配置是否已加載，如果沒有則加載一次
+        
         if Ability._default_configs is None:
-            print("Loading default ability configurations for the first time...")
+            print("Loading and mapping configurations...")
             dir_path = os.path.dirname(os.path.realpath(__file__))
             config_path = os.path.join(dir_path, './abilities_default_cfg.json')
             with open(config_path, 'r') as f:
-                Ability._default_configs = json.load(f)
+                raw_data = json.load(f)
+            
+            for name, cfg in raw_data.items():
+                if "key" in cfg:
+                    # 直接修改類變量中的內容，將字符串替換為具體數值/對象
+                    cfg["key"] = KeyMapping.get(cfg["key"])
+            
+            Ability._default_configs = raw_data
         
+        # 之後的實例直接讀取已經映射好的數據
         abilities_configs = Ability._default_configs.get(self.ability_name)
 
         if Ability._fps is None:
-            from RL.levels.level3.model1.config import model_config  # Adjust the import path as necessary
-            Ability._fps = model_config.fps  # Default to 60 FPS if not specified
+            Ability._fps = GameConfig.FPS  # Default to 60 FPS if not specified
 
         # Force 的意思是能力基於施加力來實現
         # Speed 的意思是能力基於直接修改速度來實現
@@ -39,7 +46,7 @@ class Ability(ABC):
             self.force = abilities_configs.get("force")
             self.speed = abilities_configs.get("speed")
             self.cooldown = abilities_configs.get("cooldown") * Ability._fps  # Default cooldown of 1 second
-            self.control_keys = KeyMapping.get(abilities_configs.get("key"))
+            self.control_keys = abilities_configs.get("key")
         else:
             # 即使配置已加載，仍需處理找不到特定能力配置的情況
             dir_path = os.path.dirname(os.path.realpath(__file__))

@@ -6,13 +6,13 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from game.levels.levels import *
-from game.levels.level4 import *
-from game_config import GameConfig
+from script.levels.levels import *
+from script.levels.level4 import *
+from script.game_config import GameConfig
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from game.balancing_ball_game import BalancingBallGame
+    from script.balancing_ball_game import BalancingBallGame
 
 def get_level(level: int, 
               game: 'BalancingBallGame' = None,

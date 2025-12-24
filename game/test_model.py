@@ -6,8 +6,8 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 from RL.train import Train
-from gym_env import BalancingBallEnv
-from exceptions import GameClosedException
+from script.gym_env import BalancingBallEnv
+from script.exceptions import GameClosedException
 
 def make_env(render_mode=None, model_cfg=None):
     """Create an environment function"""

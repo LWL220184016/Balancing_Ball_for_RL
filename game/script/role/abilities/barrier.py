@@ -7,7 +7,7 @@ from role.abilities.ability import Ability
 # 2. 建立一個只在類型檢查時才會執行的區塊
 if TYPE_CHECKING:
     # 將導致循環導入的 import 語句移到這裡
-    from game.role.player import Player
+    from script.role.player import Player
 
 class Barrier(Ability):
     def __init__(self):

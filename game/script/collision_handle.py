@@ -5,9 +5,9 @@ try:
     from role.player import Player
     from role.platform import Platform
 except ImportError:
-    from game.role.roles import Role
-    from game.role.player import Player
-    from game.role.platform import Platform
+    from script.role.roles import Role
+    from script.role.player import Player
+    from script.role.platform import Platform
 
 class CollisionHandler:
     """Handles collision detection and response in the game."""

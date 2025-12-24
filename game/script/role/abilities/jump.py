@@ -5,7 +5,7 @@ from role.abilities.ability import Ability
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from game.role.player import Player
+    from script.role.player import Player
 
 class Jump(Ability):
     def __init__(self):

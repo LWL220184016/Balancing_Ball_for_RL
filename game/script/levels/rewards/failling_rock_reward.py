@@ -4,9 +4,9 @@ from levels.rewards.reward_calculator import RewardComponent, terminates_round
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from game.role.player import Player
-    from game.role.movable_object import MovableObject
-    from game.collision_handle import CollisionHandler
+    from script.role.player import Player
+    from script.role.movable_object import MovableObject
+    from script.collision_handle import CollisionHandler
 
 @terminates_round
 class PlayerFallingRockCollisionReward(RewardComponent):

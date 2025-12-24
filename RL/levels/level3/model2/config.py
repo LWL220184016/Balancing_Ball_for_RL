@@ -11,7 +11,6 @@ class model_config:
     model_obs_type="state_based"
     level=3
     num_player=1
-    fps=360
     rl_algorithm = SAC
 
     level_config_path=str(pathlib.Path(__file__).parent.resolve()) + f"/level_{level}_default_cfg.json"

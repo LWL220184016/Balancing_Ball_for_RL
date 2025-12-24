@@ -2,7 +2,7 @@ import pymunk
 import random
 
 from typing import Tuple, Optional
-from game_config import GameConfig
+from script.game_config import GameConfig
 
 class Shape:
 

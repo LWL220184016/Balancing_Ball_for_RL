@@ -1,14 +1,14 @@
 import gymnasium as gym
 import numpy as np
-from gymnasium import spaces
 import cv2
 
-from game_config import GameConfig
+from gymnasium import spaces
+from script.game_config import GameConfig
 
 try:
     from balancing_ball_game import BalancingBallGame
 except ImportError:
-    from game.balancing_ball_game import BalancingBallGame
+    from script.balancing_ball_game import BalancingBallGame
 
 
 
@@ -52,7 +52,6 @@ class BalancingBallEnv(gym.Env):
             max_episode_step = train_cfg.max_episode_step,
             level_config_path=model_cfg.level_config_path,
             level = model_cfg.level,
-            fps = model_cfg.fps,
         )
         
         self.window_x = GameConfig.SCREEN_WIDTH
@@ -181,8 +180,8 @@ class BalancingBallEnv(gym.Env):
 
         # Take step in the game
         # transformed_action = [[action[0], action[1], (abs(action[2] * self.window_x), abs(action[3] * self.window_y))]] !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        transformed_action = [[0, 0, (abs(float(action[0] * self.window_x)), abs(float(action[1] * self.window_y)))]] # TODO 因爲 game 的 step 是根據玩家人數遍歷 action 的 list，如果只有一層 list，就會把一個玩家的 action 拆分而不是完整的 action 傳進去
-        _, step_rewards, terminated = self.game.step(transformed_action)
+        transformed_action = [{"Collision": (abs(float(action[0] * self.window_x)), abs(float(action[1] * self.window_y)))}] # TODO 因爲 game 的 step 是根據玩家人數遍歷 action 的 list，如果只有一層 list，就會把一個玩家的 action 拆分而不是完整的 action 傳進去
+        step_rewards, terminated = self.game.step(transformed_action)
 
         # Get state-based observation
         observation = self._preprocess_observation_state_base()

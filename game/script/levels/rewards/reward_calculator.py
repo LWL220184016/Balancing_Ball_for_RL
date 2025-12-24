@@ -1,14 +1,14 @@
 from abc import ABC, abstractmethod
 
 from typing import TYPE_CHECKING
-from game_config import GameConfig
+from script.game_config import GameConfig
 
 if TYPE_CHECKING:
-    from game.balancing_ball_game import BalancingBallGame
-    from game.role.player import Player
-    from game.role.platform import Platform
-    from game.role.roles import Role
-    from game.collision_handle import CollisionHandler
+    from script.balancing_ball_game import BalancingBallGame
+    from script.role.player import Player
+    from script.role.platform import Platform
+    from script.role.roles import Role
+    from script.collision_handle import CollisionHandler
 
 def terminates_round(cls):
     """一個裝飾器，用於標記可以結束回合的 RewardComponent。"""

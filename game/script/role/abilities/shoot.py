@@ -3,11 +3,11 @@ import pymunk
 
 from role.abilities.ability import Ability
 from role.movable_object import MovableObjectFactory, MovableObject
-from game_config import GameConfig
+from script.game_config import GameConfig
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from game.role.player import Player
+    from script.role.player import Player
 
 class Shoot(Ability):
     def __init__(self):
@@ -19,7 +19,7 @@ class Shoot(Ability):
             raise ValueError("配置錯誤：在 abilities_objects_configs 中找不到 'bullet' 的定義")
         collision_type_bullet = GameConfig.get_collision_type("bullet")
         self.bullet_factory = MovableObjectFactory(collision_type_bullet)
-        self.bullet_config["expired_time"] = self.bullet_config.get("expired_time", None) * GameConfig.fps if self.bullet_config.get("expired_time", None) else None
+        self.bullet_config["expired_time"] = self.bullet_config.get("expired_time", None) * GameConfig.FPS if self.bullet_config.get("expired_time", None) else None
         print('self.bullet_config["expired_time"]: ', self.bullet_config["expired_time"])
 
     def action(self, action_value: tuple[float, float], player: 'Player', current_step: int):

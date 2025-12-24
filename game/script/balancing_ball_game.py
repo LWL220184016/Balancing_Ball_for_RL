@@ -16,15 +16,15 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
  
-from game.record import Recorder
-from game.levels.get_levels import get_level
-from game.levels.levels import Levels
-from game.collision_handle import CollisionHandler
-from game.role.player import Player
-from game.role.platform import Platform
-from game.role.roles import Role
-from game.levels.rewards.reward_calculator import RewardCalculator
-from game_config import GameConfig
+from script.record import Recorder
+from script.levels.get_levels import get_level
+from script.levels.levels import Levels
+from script.collision_handle import CollisionHandler
+from script.role.player import Player
+from script.role.platform import Platform
+from script.role.roles import Role
+from script.levels.rewards.reward_calculator import RewardCalculator
+from script.game_config import GameConfig
 from exceptions import GameClosedException
 
 class BalancingBallGame:
@@ -46,7 +46,6 @@ class BalancingBallGame:
                  environment_configs: dict = None,
                  level_config_path: str = None,
                  level: int = None,
-                 fps: int = None,
                  capture_per_second: int = None,
                 ):
         """
@@ -56,12 +55,10 @@ class BalancingBallGame:
             render_mode: "human" for visible window, "rgb_array" for gym env, "headless" for no rendering
             sound_enabled: Whether to enable sound effects
             max_episode_step: 1 step = 1/fps, if fps = 120, 1 step = 1/120
-            fps: frame per second
             capture_per_second: save game screen as a image every second, None means no capture
         """
         # Game parameters
         self.max_episode_step = max_episode_step
-        self.fps = fps
 
         self.recorder = Recorder("game_history_record")
         self.render_mode = render_mode
@@ -83,7 +80,7 @@ class BalancingBallGame:
         )
         self.window_x = GameConfig.SCREEN_WIDTH
         self.window_y = GameConfig.SCREEN_HEIGHT
-        GameConfig.fps = self.fps
+        self.fps = GameConfig.FPS
         self.setup_pygame()
 
         self.players: list[Player]
@@ -193,7 +190,7 @@ class BalancingBallGame:
         self.winner = None
         self.last_speeds = [0] * self.num_players
 
-    def step(self, pactions: list = [Tuple[float, float]]) -> Tuple[np.ndarray, list, bool, Dict]:
+    def step(self, pactions: list = [Tuple[float, float]]):
         """
         Take a step in the game using the given actions.
 
@@ -453,7 +450,7 @@ class BalancingBallGame:
         try:
             from human_control import HumanControl
         except ImportError:
-            from game.human_control import HumanControl
+            from script.human_control import HumanControl
             
         self.human_control = HumanControl(self)
 

@@ -68,7 +68,8 @@
                 0,
                 9810
             ],
-            "damping": 0.9
+            "damping": 0.9,
+            "fps": 360
         },
         "reward": {
             "reward_per_step_fixed_value": 0.01,

@@ -28,6 +28,7 @@ class GameConfig:
             cls.SCREEN_HEIGHT = int(env_cfg["window_y"])
             cls.GRAVITY = tuple(env_cfg["gravity"])
             cls.DAMPING = float(env_cfg["damping"])
+            cls.FPS = float(env_cfg["fps"])
             cls.COLLISION_TYPES = collision_cfg
             cls.ABILITIES_OBJECTS_CONFIGS = abilities_objects_configs
         except (TypeError, ValueError) as e:
