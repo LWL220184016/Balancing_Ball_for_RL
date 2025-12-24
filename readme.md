@@ -17,9 +17,21 @@ Todo:
 
    7. 改進加載不同 Level 的 config 的方式
 
-   8. 解決 Level 3 模型訓練局部最優的問題
+   8. (✅️finished) 解決 Level 3 模型訓練局部最優的問題
 
    9. 添加 Level 4 用於對抗式訓練
+
+   10. (✅️finished) 把執行動作數據改成字典，技能名為 Key，把按鍵輸入轉化成 action value 移動到技能類類中，借此優化人類玩家的輸入邏輯
+
+   11. (✅️finished) 添加鍵盤按鍵映射，技能的 json 配置文件中儲存鍵盤按鈕名稱，key_mapping 把案件名稱映射到 pygame 對應的按鍵編號
+
+   12. (✅️finished) 加入鼠標按鍵映射
+
+   13. (✅️finished) 加入 GameConfig 類，改進初始化以及解耦
+
+   14. (✅️finished) 添加俯視角移動以及射擊技能
+
+   15. 修改游戲架構為 Client-Server 來應用對抗式訓練
 
 levels 介紹
 [level3](RL\levels\level3\readme)
