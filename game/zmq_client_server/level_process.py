@@ -45,10 +45,15 @@ def start_level(level_id, server_addr, level: int, max_episode_step, level_confi
     msg_level(level_id, "客戶端分配完成，發送客戶端設置數據...")
     draw_object = {}
     for obj in game.get_players() + game.get_platforms() + game.get_entities():
+        if obj.shape.__class__.__name__.lower() == "circle": # 因爲圓形的 get_size 實際上返回的是半徑，到了客戶端會被當成直徑來初始化，所以要在這裏先變成直徑
+            size = obj.get_size() * 2
+        else:
+            size = obj.get_size()
         draw_object[obj.role_id] = {}
-        draw_object[obj.role_id]["size"] = obj.get_size()
+        draw_object[obj.role_id]["size"] = size
         draw_object[obj.role_id]["color"] = obj.get_color()
         draw_object[obj.role_id]["shape_type"] = obj.shape.__class__.__name__.lower()
+
         for key, ability in obj.get_abilities().items():
             config = ability.ability_generated_object_config
             if config != None:
