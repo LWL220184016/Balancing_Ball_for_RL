@@ -56,7 +56,14 @@ class Levels:
         self.players: list['Player'] = [player_factory.create_player(space=self.space, **config) for config in self.player_configs]
         
         if self.level_configs.get("platform_configs") is not None:
-            self.platforms: list['Platform'] = [platform_factory.create_platform(space=self.space, **config) for config in self.level_configs.get("platform_configs")]
+            self.platforms: list['Platform'] = [
+                platform_factory.create_platform(
+                    space=self.space, 
+                    role_id=f"platform{i}", 
+                    **config
+                ) 
+                for i, config in enumerate(self.level_configs.get("platform_configs", []))
+            ]
 
         print(f"Created {len(self.players)} players and {len(self.platforms)} platforms.")
 
@@ -65,6 +72,14 @@ class Levels:
 
         for platform in self.platforms:
             platform.add_to_space()
+
+        abilities = player.get_abilities()
+        action_space_config = {}
+        for key, ability in abilities.items():
+            action_space_config[key] = ability.get_action_spec()
+
+        GameConfig.PLAYER_NUM = len(self.players)
+        GameConfig.ACTION_SPACE_CONFIG = action_space_config
 
         return self.players, self.platforms
 

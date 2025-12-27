@@ -7,7 +7,8 @@ from typing import Tuple, Optional
 try:
     from shapes.shape import Shape
 except ImportError:
-    from role.shapes.shape import Shape
+    # from role.shapes.shape import Shape
+    from script.role.shapes.shape import Shape
 
 class Rectangle(Shape):
 
@@ -19,6 +20,7 @@ class Rectangle(Shape):
                 shape_elasticity: float = None,
                 body: Optional[pymunk.Body] = None,
                 collision_type: Optional[int] = None,
+                is_load_by_game_class: bool = True,
                 **kwargs
             ):
         """
@@ -30,23 +32,33 @@ class Rectangle(Shape):
             shape_friction: Friction coefficient for the rectangle
             shape_elasticity: Elasticity (bounciness) of the rectangle
             body: The pymunk Body to attach this rectangle to
+            is_load_by_game_class: If this class is loaded by the BalancingBallGame, then pymunk will need self.shape for physics simulation.
         """
 
-        super().__init__(body=body, **kwargs)
         self.shape_size = shape_size
-        self.shape = pymunk.Poly.create_box(self.body, shape_size)
-        self.shape.mass = shape_mass
-        self.shape.friction = shape_friction
-        self.shape.elasticity = shape_elasticity
-        self.shape.collision_type = collision_type
+        if is_load_by_game_class:
+            super().__init__(body=body, **kwargs)
+            self.shape = pymunk.Poly.create_box(self.body, shape_size)
+            self.shape.mass = shape_mass
+            self.shape.friction = shape_friction
+            self.shape.elasticity = shape_elasticity
+            self.shape.collision_type = collision_type
 
-    def _draw(self, screen, rect_color):
-        points = [self.body.local_to_world(v) for v in self.shape.get_vertices()]
-        pygame.draw.polygon(screen, rect_color, points)
-        pygame.draw.polygon(screen, (255, 255, 255), points, 2)
+    def get_draw_data(self):
+        obj_pos = [self.body.local_to_world(v) for v in self.shape.get_vertices()]
+        return obj_pos
+    
+    def _draw(self, screen, color, obj_pos=None):
+        if obj_pos == None:
+            obj_pos = [self.body.local_to_world(v) for v in self.shape.get_vertices()]
+        pygame.draw.polygon(screen, color, obj_pos)
+        pygame.draw.polygon(screen, (255, 255, 255), obj_pos, 2)
+
+    def reset(self):
+        super().reset()
 
     def get_reward_width(self):
         return self.shape_size[0] / 2 - 5
     
-    def reset(self):
-        super().reset()
+
+    

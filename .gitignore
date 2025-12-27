@@ -4,6 +4,7 @@ capture/
 game_history/
 
 compare*
+json_view*
 
 trained_model*
 

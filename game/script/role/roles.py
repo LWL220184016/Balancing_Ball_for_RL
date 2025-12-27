@@ -13,6 +13,7 @@ class Role(ABC):
 
     @abstractmethod
     def __init__(self, 
+                 role_id: str = None,
                  shape: Shape = None, 
                  space: pymunk.Space = None, 
                  color: tuple = None, 
@@ -31,7 +32,8 @@ class Role(ABC):
             abilities (list[str]): List of ability class names as strings to be assigned to the role.
             health (int | str): Initial health of the role. Will be infinite health if it is a string.
         """
-
+        
+        self.role_id: str = role_id
         self.is_Role_sub_class = True  # 用於標記這是一個 Role 類別的實例，防止 isinstance 路徑誤判以及循環引用
         self.shape = shape
         self.space = space
@@ -44,12 +46,13 @@ class Role(ABC):
         self.expired_time = expired_time  # 用於標記角色的過期時間 (time * fps)
 
         # 使用列表推導式和 globals() 來動態實例化類別
-        print(f"Initializing Role with abilities: {abilities}")
+        name = "Role" if role_id == None else role_id
+        print(f"Initializing {name} with abilities: {abilities}")
         if abilities:
             self.abilities: Dict[str, Ability] = {name: globals()[name]() for name in abilities if name in globals()}
             print(f"Initialized Role with abilities: {list(self.abilities.keys())}")
         else:
-            self.abilities = {}
+            self.abilities: Dict[str, Ability] = {}
 
     def perform_action(self, action: dict, current_step: int):
         """
@@ -58,7 +61,7 @@ class Role(ABC):
         """
 
         # 用於儲存能力產生的物件 (比如子彈，屏障)
-        ability_objects: list[Role] = []
+        ability_generated_objects: list[Role] = []
 
         # 遍歷玩家擁有的所有能力
         for ability_name, ability_instance in self.abilities.items():
@@ -81,9 +84,9 @@ class Role(ABC):
                 if should_execute:
                     data = ability_instance.action(action_data, self, current_step)
                     if getattr(data, 'is_Role_sub_class', False):
-                        ability_objects.append(data)
+                        ability_generated_objects.append(data)
 
-        return ability_objects
+        return ability_generated_objects
                     
     @abstractmethod
     def reset(self, health: int = None):
@@ -203,11 +206,6 @@ class Role(ABC):
     def remove_from_space(self):
         body, shape = self.shape.get_physics_components()
         self.space.remove(body, shape)
-
-    def is_expired(self) -> bool:
-        if self.expired_time is not None:
-            return self.expired_time <= 0
-        return False
 
     def get_color(self):
         return self.color

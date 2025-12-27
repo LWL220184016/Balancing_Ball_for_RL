@@ -1,5 +1,13 @@
+from typing import Type # 記得導入 Type
 
-class GameConfig:
+class FrozenClass(type):
+    def __setattr__(cls, key, value):
+        # 如果屬性已經存在（且不是內部的私有變量），則禁止修改
+        if hasattr(cls, key) and not key.startswith("_"):
+            raise AttributeError(f"GameConfig 屬性 '{key}' 已鎖定，不可二次修改")
+        super().__setattr__(key, value)
+
+class GameConfig(metaclass=FrozenClass):
     # 僅定義類型註解（Type Hinting），不賦予初始值
     # 這樣在調用 init_from_configs 之前，存取這些變數會直接報錯 (AttributeError)
     SCREEN_WIDTH: int
@@ -9,6 +17,8 @@ class GameConfig:
     GRAVITY: tuple
     DAMPING: float
     FPS: int
+    PLAYER_NUM: int
+    ACTION_SPACE_CONFIG: dict
 
     @classmethod
     def init_from_configs(cls, env_cfg: dict, collision_cfg: dict, abilities_objects_configs: dict = {}):
@@ -50,13 +60,4 @@ class GameConfig:
         if name not in cls.COLLISION_TYPES:
             raise KeyError(f"配置錯誤：在 collision_type 中找不到名為 '{name}' 的定義")
         return cls.COLLISION_TYPES[name]
-    
-    @property
-    def fps(cls) -> int:
-        if not hasattr(cls, 'FPS'):
-            raise AttributeError("GameConfig 尚未初始化 FPS，請先調用 set_fps 方法")
-        return cls.FPS
-    
-    @fps.setter
-    def fps(cls, value):
-        cls.FPS = value
+        

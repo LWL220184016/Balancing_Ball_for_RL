@@ -7,7 +7,8 @@ from typing import Tuple, Optional
 try:
     from shapes.shape import Shape
 except ImportError:
-    from role.shapes.shape import Shape
+    # from role.shapes.shape import Shape
+    from script.role.shapes.shape import Shape
 
 class Circle(Shape): 
 
@@ -20,6 +21,7 @@ class Circle(Shape):
                 body: Optional[pymunk.Body] = None,
                 collision_type: Optional[int] = None,
                 is_draw_rotation_indicator: bool = None,
+                is_load_by_game_class: bool = True,
                 **kwargs
             ):
         """
@@ -31,24 +33,38 @@ class Circle(Shape):
             shape_friction: Friction coefficient for the circle
             shape_elasticity: Elasticity (bounciness) of the circle
             body: The pymunk Body to attach this circle to
+            is_load_by_game_class: If this class is loaded by the BalancingBallGame, then pymunk will need self.shape for physics simulation.
         """
 
-        super().__init__(body=body, **kwargs)
         self.shape_size = shape_size / 2  # radius
-        self.shape = pymunk.Circle(self.body, self.shape_size)
-        self.shape.mass = shape_mass
-        self.shape.friction = shape_friction
-        self.shape.elasticity = shape_elasticity
-        self.shape.collision_type = collision_type
+        if is_load_by_game_class:
+            super().__init__(body=body, **kwargs)
+            self.shape = pymunk.Circle(self.body, self.shape_size)
+            self.shape.mass = shape_mass
+            self.shape.friction = shape_friction
+            self.shape.elasticity = shape_elasticity
+            self.shape.collision_type = collision_type
         self.is_draw_rotation_indicator = is_draw_rotation_indicator
 
-    def _draw(self, screen, color):
+    def get_draw_data(self):
         x, y = self.body.position
-        ball_pos = (int(x), int(y))
-        pygame.draw.circle(screen, color, ball_pos, self.shape_size)
-        pygame.draw.circle(screen, (255, 255, 255), ball_pos, self.shape_size, 2)
+        obj_pos = (int(x), int(y))
+        return obj_pos
+
+    def _draw(self, screen, color, obj_pos=None):
+        if obj_pos == None:
+            x, y = self.body.position
+            obj_pos = (int(x), int(y))
+        pygame.draw.circle(screen, color, obj_pos, self.shape_size)
+        pygame.draw.circle(screen, (255, 255, 255), obj_pos, self.shape_size, 2)
         if self.is_draw_rotation_indicator == True:
-            self._draw_rotation_indicator(screen, ball_pos, self.shape_size, self.body.angular_velocity, self.body)
+            self._draw_rotation_indicator(screen, obj_pos, self.shape_size, self.body.angular_velocity, self.body)
+
+    def reset(self):
+        super().reset()
+
+    def get_reward_width(self):
+        return self.shape_size - 5
 
     def _draw_rotation_indicator(self, screen, position, radius, angular_velocity, body):
         """Draw an indicator showing the platform's rotation direction and speed"""
@@ -88,8 +104,5 @@ class Circle(Shape):
             arrowhead_size = 7
             pygame.draw.circle(screen, indicator_color, (tip_x, tip_y), arrowhead_size)
 
-    def get_reward_width(self):
-        return self.shape_size - 5
-    
-    def reset(self):
-        super().reset()
+
+

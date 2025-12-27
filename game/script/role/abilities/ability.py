@@ -7,7 +7,6 @@ from script.game_config import GameConfig
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    # 將導致循環導入的 import 語句移到這裡
     from script.role.player import Player
 
 class Ability(ABC):
@@ -17,22 +16,13 @@ class Ability(ABC):
     @abstractmethod
     def __init__(self, ability_name: str):
         self.ability_name = ability_name
+        self.ability_generated_object_name = None
+        self.ability_generated_object_config = None
         
+        # 確保只被初始化一次
         if Ability._default_configs is None:
-            print("Loading and mapping configurations...")
-            dir_path = os.path.dirname(os.path.realpath(__file__))
-            config_path = os.path.join(dir_path, './abilities_default_cfg.json')
-            with open(config_path, 'r') as f:
-                raw_data = json.load(f)
-            
-            for name, cfg in raw_data.items():
-                if "key" in cfg:
-                    # 直接修改類變量中的內容，將字符串替換為具體數值/對象
-                    cfg["key"] = KeyMapping.get(cfg["key"])
-            
-            Ability._default_configs = raw_data
+            Ability._initialize_class_assets()
         
-        # 之後的實例直接讀取已經映射好的數據
         abilities_configs = Ability._default_configs.get(self.ability_name)
 
         if Ability._fps is None:
@@ -47,6 +37,7 @@ class Ability(ABC):
             self.speed = abilities_configs.get("speed")
             self.cooldown = abilities_configs.get("cooldown") * Ability._fps  # Default cooldown of 1 second
             self.control_keys = abilities_configs.get("key")
+            self.action_space = abilities_configs.get("action_space")
         else:
             # 即使配置已加載，仍需處理找不到特定能力配置的情況
             dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -55,18 +46,12 @@ class Ability(ABC):
 
         self.last_used_step = None  # Track the last time the ability was used
 
-    def check_is_ready(self, current_step: int) -> bool:
-        """Check and update action cooldowns"""
-        if self.last_used_step is None or (current_step - self.last_used_step) >= self.cooldown:
-            return True
-        return False
-        
     @abstractmethod
     def action(self, action_value, player: 'Player'):
         raise NotImplementedError(f"This method '{self.action.__name__}' should be overridden by subclasses.")
 
     @abstractmethod
-    def human_control_interface(self, keyboard_keys, mouse_buttons):
+    def human_control_interface(self, keyboard_keys, mouse_buttons, mouse_position):
         """
         提供給 HumanControl 使用的接口方法，讓玩家能夠通過鍵盤/滑鼠輸入來控制此能力。
         這個方法目的在於將玩家的輸入轉換為能力所需的 action_value。
@@ -91,8 +76,74 @@ class Ability(ABC):
             if ms_state[m]: return True
         return False
     
+    @classmethod
+    def _initialize_class_assets(cls):
+        """一次性初始化配置、按鍵映射與動態 Action 類"""
+        print("Initializing Global Ability Assets...")
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        config_path = os.path.join(dir_path, './abilities_default_cfg.json')
+        
+        with open(config_path, 'r') as f:
+            raw_data = json.load(f)
+        
+        # 處理按鍵映射 (In-place)
+        for name, cfg in raw_data.items():
+            if "key" in cfg:
+                cfg["key"] = KeyMapping.get(cfg["key"])
+        
+        cls._default_configs = raw_data
+        cls._fps = GameConfig.FPS
+
+    def check_is_ready(self, current_step: int) -> bool:
+        """Check and update action cooldowns"""
+        if self.last_used_step is None or (current_step - self.last_used_step) >= self.cooldown:
+            return True
+        return False
+        
     def get_cooldown(self):
         return self.cooldown
+
+    def get_action_spec(self) -> dict:
+        """
+        返回該能力的動作空間規格說明 (Action Space Specification)。
+        
+        此規格定義了客戶端（人類或 AI 代理）在調用此能力時，必須提供的 `action_value` 
+        數據結構。此格式直接兼容 Gymnasium (OpenAI Gym) 的空間定義，
+        並可由 Ray RLlib 自動解析為模型輸出頭。
+
+        Returns:
+            dict: 包含動作空間定義的字典。結構如下：
+                {
+                    "type": str,      # 空間類型，例如 "dict", "box", "discrete"
+                    "spaces": dict,    # 當 type 為 "dict" 時，定義子空間的映射
+                    "description": str # (可選) 該能力的物理意義描述
+                }
+
+        Data Structure Detail (Example: Composite Ability):
+            若返回 "type": "dict"，`action_value` 應為一個字典，包含以下子項：
+            
+            1. "direction" (Box Space):
+                - 類型: 連續型數值向量 (Continuous)。
+                - 物理意義: 控制能力施放的方向。
+                - 數值範圍: [-3.14, 3.14] (弧度制，對應 -180° 到 180°)。
+                - AI 建議: RL 模型將使用高斯分佈 (Gaussian) 進行採樣。
+
+            2. "action" (Discrete Space):
+                - 類型: 離散型類別 (Categorical)。
+                - 物理意義: 觸發開關。0 代表不執行，1 代表執行/觸發。
+                - 選項數量 (n): 2。
+                - AI 建議: RL 模型將使用分類分佈 (Categorical/Softmax) 進行採樣。
+
+        Example Output Mapping:
+            >>> spec = ability.get_action_spec()
+            >>> print(spec["spaces"]["direction"]["range"])
+            [-3.14, 3.14]
+
+        Note:
+            在 Ray RLlib 環境中，此規格將被轉換為 `gym.spaces.Dict`，
+            確保策略網絡 (Policy Network) 的輸出維度與遊戲邏輯完美對齊。
+        """
+        return self.action_space
 
     def get_last_used_step(self):
         return self.last_used_step

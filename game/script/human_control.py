@@ -12,7 +12,7 @@ class HumanControl:
         self.player = self.game.get_players()[0]
         self.abilities = self.player.get_abilities() 
 
-    def get_player_actions(self) -> dict:
+    def get_player_actions(self, keyboard_keys = None, mouse_buttons = None, mouse_position = None) -> dict:
         """
         這是一個通用的方法，自動遍歷所有能力並獲取其輸入
         """
@@ -24,13 +24,14 @@ class HumanControl:
                 pygame.quit()
                 exit()
 
-        keyboard_keys = pygame.key.get_pressed()
-        mouse_buttons = pygame.mouse.get_pressed()
+        if keyboard_keys == None and mouse_buttons == None:
+            keyboard_keys = pygame.key.get_pressed()
+            mouse_buttons = pygame.mouse.get_pressed()
 
         action_dict = {}
 
         for name, ability_instance in self.abilities.items():
-            act_value = ability_instance.human_control_interface(keyboard_keys, mouse_buttons)
+            act_value = ability_instance.human_control_interface(keyboard_keys, mouse_buttons, mouse_position)
             
             if act_value is not None and act_value != 0:
                 action_dict[name] = act_value

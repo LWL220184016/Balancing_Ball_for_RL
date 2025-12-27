@@ -30,7 +30,7 @@ class Collision(Ability):
                 # 直接設置速度
                 player.set_velocity(velocity_vector)
 
-    def human_control_interface(self, keyboard_keys, mouse_buttons):
+    def human_control_interface(self, keyboard_keys, mouse_buttons, mouse_position):
         if self._is_pressed(self._keyboard_action, self._mouse_action, keyboard_keys, mouse_buttons):
             p1_ability1 = pygame.mouse.get_pos()  # Activate ability 1
             return p1_ability1

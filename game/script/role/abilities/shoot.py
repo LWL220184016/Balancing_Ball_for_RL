@@ -1,5 +1,6 @@
 import pygame
 import pymunk
+import copy
 
 from role.abilities.ability import Ability
 from role.movable_object import MovableObjectFactory, MovableObject
@@ -14,13 +15,19 @@ class Shoot(Ability):
         super().__init__(self.__class__.__name__)
         self._keyboard_action = self.control_keys["keyboard"].get("action", [])
         self._mouse_action = self.control_keys["mouse"].get("action", [])
-        self.bullet_config = GameConfig.ABILITIES_OBJECTS_CONFIGS.get("bullet", None)
-        if not self.bullet_config:
-            raise ValueError("配置錯誤：在 abilities_objects_configs 中找不到 'bullet' 的定義")
-        collision_type_bullet = GameConfig.get_collision_type("bullet")
-        self.bullet_factory = MovableObjectFactory(collision_type_bullet)
-        self.bullet_config["expired_time"] = self.bullet_config.get("expired_time", None) * GameConfig.FPS if self.bullet_config.get("expired_time", None) else None
-        print('self.bullet_config["expired_time"]: ', self.bullet_config["expired_time"])
+
+        self.ability_generated_object_name = "bullet"
+
+        if self.ability_generated_object_config == None:
+            _ability_generated_object_cfg = GameConfig.ABILITIES_OBJECTS_CONFIGS.get(self.ability_generated_object_name, None)
+            self.ability_generated_object_config = copy.deepcopy(_ability_generated_object_cfg)
+
+            if not self.ability_generated_object_config:
+                raise ValueError(f"配置錯誤：在 abilities_objects_configs 中找不到 '{self.ability_generated_object_name}' 的定義")
+            collision_type_bullet = GameConfig.get_collision_type(self.ability_generated_object_name)
+            self.bullet_factory = MovableObjectFactory(collision_type_bullet)
+            self.ability_generated_object_config["expired_time"] = _ability_generated_object_cfg.get("expired_time", None) * GameConfig.FPS if _ability_generated_object_cfg.get("expired_time", None) else None
+            # print('self.ability_generated_object_config["expired_time"]: ', self.ability_generated_object_config["expired_time"])
 
     def action(self, action_value: tuple[float, float], player: 'Player', current_step: int):
             
@@ -30,8 +37,9 @@ class Shoot(Ability):
             target_x, target_y = action_value
 
             new_bullet = self.bullet_factory.create_movableObject(
+                role_id="bullet",
                 space=player.space,
-                **self.bullet_config,
+                **self.ability_generated_object_config,
             )
             new_bullet.set_owner(player)
             new_bullet.set_position_absolute_value((x, y))
@@ -49,10 +57,12 @@ class Shoot(Ability):
 
             return new_bullet
 
-    def human_control_interface(self, keyboard_keys, mouse_buttons):
+    def human_control_interface(self, keyboard_keys, mouse_buttons, mouse_position):
         if self._is_pressed(self._keyboard_action, self._mouse_action, keyboard_keys, mouse_buttons):
-            p1_ability1 = pygame.mouse.get_pos()  # Activate ability 1
-            return p1_ability1
+            if mouse_position:
+                return mouse_position
+            mouse_position = pygame.mouse.get_pos()  # Activate ability 1
+            return mouse_position
         return None
 
     def reset(self):

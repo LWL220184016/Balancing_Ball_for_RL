@@ -20,7 +20,7 @@ class Jump(Ability):
             force_vector = pymunk.Vec2d(0, action_value * self.force)
             player.apply_force_at_world_point(force_vector, player.get_position())
 
-    def human_control_interface(self, keyboard_keys, mouse_buttons):
+    def human_control_interface(self, keyboard_keys, mouse_buttons, mouse_position):
         p1_y_force = 0
         if self._is_pressed(self._keyboard_action, self._mouse_action, keyboard_keys, mouse_buttons):
             p1_y_force = 1  # Jump force persentage (0 to 1)

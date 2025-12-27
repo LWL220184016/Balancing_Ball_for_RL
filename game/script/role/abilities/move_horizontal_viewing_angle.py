@@ -24,7 +24,7 @@ class Move_horizontal_viewing_angle(Ability):
             force_vector = pymunk.Vec2d(action_value * self.force, 0)
             player.apply_force_at_world_point(force_vector, player.get_position())
 
-    def human_control_interface(self, keyboard_keys, mouse_buttons):
+    def human_control_interface(self, keyboard_keys, mouse_buttons, mouse_position):
         # 使用 bool 的整數特性 (True=1, False=0)
         move_left = self._is_pressed(self._keyboard_left, self._mouse_left, keyboard_keys, mouse_buttons)
         move_right = self._is_pressed(self._keyboard_right, self._mouse_right, keyboard_keys, mouse_buttons)

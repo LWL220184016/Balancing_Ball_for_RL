@@ -33,6 +33,8 @@ Todo:
 
    15. 修改游戲架構為 Client-Server 來應用對抗式訓練
 
+   16. 評估使用 dict 的地方是否需要換成 NamedTuple
+
 levels 介紹
 [level3](RL\levels\level3\readme)
 

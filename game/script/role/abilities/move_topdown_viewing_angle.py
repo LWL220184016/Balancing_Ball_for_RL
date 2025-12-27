@@ -29,7 +29,7 @@ class Move_topdown_viewing_angle(Ability):
             force_vector = pymunk.Vec2d(action_value[0] * self.force, action_value[1] * self.force)
             player.apply_force_at_world_point(force_vector, player.get_position())
 
-    def human_control_interface(self, keyboard_keys, mouse_buttons):
+    def human_control_interface(self, keyboard_keys, mouse_buttons, mouse_position):
         # 使用 bool 的整數特性 (True=1, False=0)
 
         move_front = self._is_pressed(self._keyboard_front, self._mouse_front, keyboard_keys, mouse_buttons)

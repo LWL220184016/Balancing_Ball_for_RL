@@ -1,11 +1,13 @@
 import pymunk
 import random
 
+from abc import ABC, abstractmethod
 from typing import Tuple, Optional
 from script.game_config import GameConfig
 
-class Shape:
+class Shape(ABC):
 
+    @abstractmethod
     def __init__(
                 self,
                 body: pymunk.Body = None,
@@ -45,6 +47,15 @@ class Shape:
         self.set_velocity(self.default_velocity)
         self.set_angular_velocity(self.default_angular_velocity)
 
+    @abstractmethod
+    def get_draw_data(self):
+        raise NotImplementedError(f"This method '{self.get_draw_data.__name__}' should be implemented by subclasses.")
+
+    @abstractmethod
+    def _draw(self, screen, color, obj_pos=None):
+        raise NotImplementedError(f"This method '{self._draw.__name__}' should be implemented by subclasses.")
+
+    @abstractmethod
     def reset(self):
         """Reset the body to its default position, velocity and angular velocity."""
 
@@ -52,15 +63,13 @@ class Shape:
         self.set_velocity(self.default_velocity)
         self.set_angular_velocity(self.default_angular_velocity)
 
-    def apply_force_at_world_point(self, force, point):
-        self.body.apply_force_at_world_point(force, point)
-
-    def _draw(self, screen, color):
-        raise NotImplementedError(f"This method '{self._draw.__name__}' should be implemented by subclasses.")
-
+    @abstractmethod
     def get_reward_width(self):
         raise NotImplementedError(f"This method '{self.get_reward_width.__name__}' should be implemented by subclasses.")
     
+    def apply_force_at_world_point(self, force, point):
+        self.body.apply_force_at_world_point(force, point)
+
     def get_size(self):
         """
         shape_size is defined in the subclass.

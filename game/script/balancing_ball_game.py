@@ -47,6 +47,7 @@ class BalancingBallGame:
                  level_config_path: str = None,
                  level: int = None,
                  capture_per_second: int = None,
+                 is_enable_realistic_field_of_view_cropping: bool = False,
                 ):
         """
         Initialize the balancing ball game.
@@ -56,6 +57,7 @@ class BalancingBallGame:
             sound_enabled: Whether to enable sound effects
             max_episode_step: 1 step = 1/fps, if fps = 120, 1 step = 1/120
             capture_per_second: save game screen as a image every second, None means no capture
+            is_enable_realistic_field_of_view_cropping: With the realistic field of view mechanism enabled, characters will have their own field of view and will not be able to see things outside that field of view or that are obstructed.
         """
         # Game parameters
         self.max_episode_step = max_episode_step
@@ -63,6 +65,7 @@ class BalancingBallGame:
         self.recorder = Recorder("game_history_record")
         self.render_mode = render_mode
         self.sound_enabled = sound_enabled
+        self.human_control = None
 
         # Initialize physics space
         self.space = pymunk.Space()
@@ -86,7 +89,7 @@ class BalancingBallGame:
         self.players: list[Player]
         self.platforms: list[Platform]
         self.entities: list[Role]
-        self.ability_objects: list[Role] = []
+        self.ability_generated_objects: list[Role] = []
         self.reward_calculator: RewardCalculator
         self.players, self.platforms, self.entities, self.reward_calculator = self.level.setup()
         self.num_players = len(self.players)
@@ -107,7 +110,9 @@ class BalancingBallGame:
         self.step_rewards = [0] * self.num_players  # Rewards obtained in the last step
         self.step_action = None
         self.capture_per_second = capture_per_second
-        
+        self.is_enable_realistic_field_of_view_cropping = is_enable_realistic_field_of_view_cropping
+        if self.is_enable_realistic_field_of_view_cropping:
+            raise NotImplementedError("realistic_field_of_view_cropping not implement yet.")
 
         # Create folders for captures if needed
         # CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -127,6 +132,10 @@ class BalancingBallGame:
             self.screen = pygame.display.set_mode((self.window_x, self.window_y))
             pygame.display.set_caption("Balancing Ball - Indie Game")
             self.font = pygame.font.Font(None, int(self.window_x / 34))
+
+        elif self.render_mode == "server":
+            # 返回坐標到客戶端，沒有需要設置的東西
+            pass
 
         elif self.render_mode == "rgb_array":
             self.screen = pygame.Surface((self.window_x, self.window_y))
@@ -153,9 +162,8 @@ class BalancingBallGame:
             self.update_interval = 1.0 / 15  # Update display at 15 FPS to avoid overwhelming Colab
             self.font = pygame.font.Font(None, int(self.window_x / 34))
 
-
         else:
-            raise ValueError("Invalid render mode. Choose from 'human', 'rgb_array', 'rgb_array_and_human', 'rgb_array_and_human_in_colab'.")
+            raise ValueError("Invalid render mode. Choose from 'human', 'server', 'rgb_array', 'rgb_array_and_human', 'rgb_array_and_human_in_colab'.")
 
         self.clock = pygame.time.Clock()
 
@@ -190,7 +198,7 @@ class BalancingBallGame:
         self.winner = None
         self.last_speeds = [0] * self.num_players
 
-    def step(self, pactions: list = [Tuple[float, float]]):
+    def step(self, pactions: dict):
         """
         Take a step in the game using the given actions.
 
@@ -216,8 +224,10 @@ class BalancingBallGame:
         # actions = pactions if isinstance(pactions, list) else [pactions]
         # actions = self.calculate_player_speed_old(actions)
         self.step_action = pactions
-        for i, player in enumerate(self.players):
-            self.ability_objects.extend(player.perform_action(pactions[i], self.steps))
+        if pactions:
+            for player in self.players:
+                if pactions[player.role_id]:
+                    self.ability_generated_objects.extend(player.perform_action(pactions[player.role_id], self.steps))
 
         self.add_step(1)
         rewards, terminated = self.reward()
@@ -292,7 +302,15 @@ class BalancingBallGame:
 
     def render(self) -> Optional[np.ndarray]:
         """Render the current game state"""
-        if self.render_mode == "headless":
+        
+        if self.render_mode == "server":
+            self.screen_data = {}
+            for player in self.players:
+                self.screen_data[player.role_id] = {}
+                for obj in self.players + self.platforms + self.entities + self.ability_generated_objects:
+                    self.screen_data[player.role_id][obj.role_id] = obj.shape.get_draw_data()
+            return None
+        elif self.render_mode == "headless":
             return None
 
         # Clear screen with background color
@@ -300,7 +318,6 @@ class BalancingBallGame:
 
         # Custom drawing (for indie style)
         self._draw_indie_style()
-
 
         # Update display if in human mode
         if self.render_mode == "human":
@@ -351,7 +368,7 @@ class BalancingBallGame:
         for platform in self.platforms:
             platform._draw_indie_style(self.screen) 
         
-        for entity in self.entities + self.ability_objects:
+        for entity in self.entities + self.ability_generated_objects:
             if isinstance(entity, list):
                 for e in entity:
                     e._draw_indie_style(self.screen)
@@ -473,11 +490,11 @@ class BalancingBallGame:
         self.render()
 
         # 從後往前遍歷。這樣刪除後方的元素不會影響前方尚未遍歷的索引。
-        for i in range(len(self.ability_objects) - 1, -1, -1):
-            obj = self.ability_objects[i]
-            if obj.is_expired():
+        for i in range(len(self.ability_generated_objects) - 1, -1, -1):
+            obj = self.ability_generated_objects[i]
+            if obj.expired_time <= 0:
                 obj.remove_from_space()
-                self.ability_objects.pop(i) # 根據索引安全刪除
+                self.ability_generated_objects.pop(i) # 根據索引安全刪除
             else:
                 obj.expired_time -= 1
 
@@ -490,6 +507,25 @@ class BalancingBallGame:
                     self.run = False
                     raise GameClosedException("User closed the game window.") # <--- 修改點
 
+    def assign_players(self, player_id_list: list[str]):
+        msg = None
+        for p in self.players:
+            p.role_id = player_id_list.pop(0)
+            print(f"{p.role_id} assigned")
+            if "human" in p.role_id.lower() and self.human_control == None:
+                try:
+                    from human_control import HumanControl
+                except ImportError:
+                    from script.human_control import HumanControl
+                    
+                self.human_control = HumanControl(self)
+                
+
+        if len(player_id_list) > 0: 
+            msg = f"The following players are not assigned: {player_id_list}"
+
+        return msg
+
     def add_step(self, steps: int = None):
         self.steps += steps
 
@@ -501,6 +537,9 @@ class BalancingBallGame:
     
     def get_platforms(self):
         return self.platforms
+    
+    def get_entities(self):
+        return self.entities
     
     def get_game_over(self):
         return self.game_over

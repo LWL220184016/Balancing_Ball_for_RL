@@ -35,20 +35,21 @@ class MovableObjectFactory:
         self.collision_type_movableObject = collision_type_movableObject
 
     def create_movableObject(self,
-                              space: pymunk.Space = None,
-                              shape_type: str = "circle",
-                              size: tuple = None,
-                              shape_mass: float = None,
-                              shape_friction: float = None,
-                              shape_elasticity: float = None,
-                              default_position: tuple = None,
-                              default_velocity: tuple = None,
-                              default_angular_velocity: float = None,
-                              abilities: dict = None,
-                              health: int | str = None,
-                              color: tuple = None,
-                              expired_time: int = None,
-                             ) -> MovableObject:
+                             role_id: str = None,
+                             space: pymunk.Space = None,
+                             shape_type: str = "circle",
+                             size: tuple = None,
+                             shape_mass: float = None,
+                             shape_friction: float = None,
+                             shape_elasticity: float = None,
+                             default_position: tuple = None,
+                             default_velocity: tuple = None,
+                             default_angular_velocity: float = None,
+                             abilities: dict = None,
+                             health: int | str = None,
+                             color: tuple = None,
+                             expired_time: int = None,
+                            ) -> MovableObject:
         """Create the Movable Object with physics properties.
 
         Args:
@@ -106,8 +107,8 @@ class MovableObjectFactory:
             )
 
         movable_object = MovableObject(
-
             # **kwargs
+            role_id=role_id,
             shape=shape,
             space=space,
             color=color,

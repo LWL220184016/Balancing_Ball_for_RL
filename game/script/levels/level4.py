@@ -65,7 +65,6 @@ class Level4(Levels):
 
         return rewards, terminated
 
-
     def status_reset_step(self):
         """
         Reset status that needs to be reset every step.

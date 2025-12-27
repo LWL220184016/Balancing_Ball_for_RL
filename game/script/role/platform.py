@@ -58,7 +58,8 @@ class PlatformFactory:
                         default_angular_velocity: float = None,
                         abilities: dict = None,
                         health: int | str = None,
-                        color: tuple = None
+                        color: tuple = None,
+                        role_id: str = "platform",
                        ) -> Platform:
         """Create the platform with physics properties.
 
@@ -123,7 +124,8 @@ class PlatformFactory:
             space=space,
             color=color,
             abilities=abilities,
-            health=health
+            health=health,
+            role_id=role_id,
         )
 
         return platform

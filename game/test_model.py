@@ -62,7 +62,6 @@ def play_game(model_path: str = None, episodes: int = None):
         # 這裡的邏輯可以保留，用於處理終端機的中斷
     finally:
         # 確保在任何情況下都嘗試關閉環境
-        # 注意：evaluater.env 可能已經被 SB3 或其他地方關閉了
         print("Final cleanup.")
         # 可以加上檢查，避免重複關閉
         if evaluater and evaluater.env and evaluater.env.unwrapped:
