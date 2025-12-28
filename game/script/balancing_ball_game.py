@@ -124,6 +124,9 @@ class BalancingBallGame:
         """Set up PyGame for rendering"""
         pygame.init()
         self.frame_count = 0
+        self.render_fps_counter = 0      # 當前秒內的幀數計數
+        self.render_fps_timer = time.time() # 上一次更新 FPS 的時間
+        self.current_render_fps = 0.0    # 用於顯示的 FPS 數值
 
         if self.sound_enabled:
             self._load_sounds()
@@ -166,8 +169,6 @@ class BalancingBallGame:
             raise ValueError("Invalid render mode. Choose from 'human', 'server', 'rgb_array', 'rgb_array_and_human', 'rgb_array_and_human_in_colab'.")
 
         self.clock = pygame.time.Clock()
-
-        # Create custom draw options for indie style
 
     def _load_sounds(self):
         """Load game sound effects"""
@@ -324,6 +325,14 @@ class BalancingBallGame:
             # Draw game information
             self._draw_game_info()
             pygame.display.flip()
+            
+            self.render_fps_counter += 1
+            current_time = time.time()
+            time_diff = current_time - self.render_fps_timer
+            if time_diff >= 0.1: # 每秒更新一次
+                self.current_render_fps = self.render_fps_counter / time_diff
+                self.render_fps_counter = 0
+                self.render_fps_timer = current_time
             return None
 
         elif self.render_mode == "rgb_array":
@@ -379,19 +388,26 @@ class BalancingBallGame:
         """Draw game information on screen"""
         # Create texts
         time_text = f"Time: {self.end_time - self.start_time:.1f}, steps: {self.steps}/{self.max_episode_step}"
+        fps_text = f"FPS: {int(self.current_render_fps)}" # 新增 FPS 文本
         score_texts = [f"P{i+1}: {self.score[i]:.1f} + {self.step_rewards[i]} Health: {player.get_health():.1f}" for i, player in enumerate(self.players)]
 
         # Render texts
-        time_surface = self.font.render(time_text, True, (255, 255, 255))  # TODO Hard code
+        time_surface = self.font.render(time_text, True, (255, 255, 255))
+        fps_surface = self.font.render(fps_text, True, (200, 255, 200)) # 使用淡綠色顯示 FPS
         score_surfaces = [self.font.render(text, True, (255, 255, 255)) for text in score_texts]
 
-        # Draw text backgrounds and texts
+        # Draw text backgrounds and texts (Time)
         pygame.draw.rect(self.screen, (0, 0, 0, 128),
                         (5, 5, time_surface.get_width() + 10, time_surface.get_height() + 5))
         self.screen.blit(time_surface, (10, 10))
 
-        # Draw scores
-        y_offset = 40
+        # Draw FPS (Positioned below Time)
+        pygame.draw.rect(self.screen, (0, 0, 0, 128),
+                        (5, 40, fps_surface.get_width() + 10, fps_surface.get_height() + 5))
+        self.screen.blit(fps_surface, (10, 40))
+
+        # Draw scores (Adjusted y_offset to make room for FPS)
+        y_offset = 75 # 從 40 改為 75，避免遮擋 FPS
         for i, surface in enumerate(score_surfaces):
             color = self.players[i].get_color() if self.players[i].get_is_alive() else (100, 100, 100)
             pygame.draw.rect(self.screen, (0, 0, 0, 128),
@@ -459,7 +475,7 @@ class BalancingBallGame:
             force_vector = moving_direction[i]
             player.move(force_vector)
 
-    def run_standalone(self):
+    def run_standalone(self, players_id):
         """Run the game in standalone mode with keyboard controls"""
         if self.render_mode not in ["human", "rgb_array_and_human_in_colab"]:
             raise ValueError("Standalone mode requires render_mode='human' or 'rgb_array_and_human_in_colab'")
@@ -470,6 +486,7 @@ class BalancingBallGame:
             from script.human_control import HumanControl
             
         self.human_control = HumanControl(self)
+        self.assign_players(player_id_list=[players_id])
 
         self.run = True
         while self.run:
@@ -478,7 +495,7 @@ class BalancingBallGame:
 
             # Take game step
             if not self.game_over:
-                rewards, terminated = self.step([actions])
+                rewards, terminated = self.step(actions)
 
         self.close()
         
@@ -499,6 +516,7 @@ class BalancingBallGame:
                 obj.expired_time -= 1
 
         if self.render_mode == "human":
+            # 讓游戲幀率不超過設定幀率
             self.clock.tick(self.fps)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:

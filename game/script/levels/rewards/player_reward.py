@@ -124,7 +124,7 @@ class PlayerMovementDirectionPenalty(RewardComponent):
 
         step_actions = game.get_step_action()
         for i, player in enumerate(players):
-            if not player.get_is_alive():
+            if not player.get_is_alive() or step_actions:
                 continue
             
             history = self.action_histories[i]

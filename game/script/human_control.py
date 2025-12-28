@@ -28,12 +28,12 @@ class HumanControl:
             keyboard_keys = pygame.key.get_pressed()
             mouse_buttons = pygame.mouse.get_pressed()
 
-        action_dict = {}
+        action_dict = {self.player.role_id: {}}
 
         for name, ability_instance in self.abilities.items():
             act_value = ability_instance.human_control_interface(keyboard_keys, mouse_buttons, mouse_position)
             
             if act_value is not None and act_value != 0:
-                action_dict[name] = act_value
+                action_dict[self.player.role_id][name] = act_value
 
         return action_dict

@@ -17,5 +17,5 @@ game = BalancingBallGame(render_mode="human",
                             capture_per_second=None
                         )
 
-game.run_standalone()
+game.run_standalone("Human_player1")
 
