@@ -109,37 +109,12 @@ class RouterServer:
 
     def setup_for_training(self):
         
-        # 啟動 Level 子進程
-        module_path = f"RL.levels.level{self.level}.model1.config"
-        
-        try:
-            imported_module = importlib.import_module(module_path)
-            self.train_config = imported_module.train_config
-            self.model_config = imported_module.model_config
-        except ImportError as e:
-            msg_router(f"錯誤：找不到 Level {self.level} 的配置文件或是路徑錯誤。")
-            msg_router(f"嘗試路徑: {module_path}")
-            raise e
-        except AttributeError as e:
-            msg_router(f"錯誤：在 Level {self.level} 的 config.py 中找不到 model_config 或 train_config。")
-            raise e
-
 
         if self._is_running_in_colab():
             msg_router("目前運行在 Google Colab 中，因爲一次只能運行一個代碼塊，主進程需要分給 Ray rillib，子進程不能在作爲守護進程的情況下生成孫子進程，但是不使用守護進程將容易在主進程報錯停機的情況下產生多個僵尸進程。")
             msg_router("因此運行在 Google Colab 中的時候，路由服務器進程將不會創建環境子進程，所有子進程統一在 Ray rillib 的 Trainer 進程創建。")
         else:
-            for i in range(self.num_levels):
-                msg_router(f"創建關卡環境{i} 子進程中")
-                level_id = f"level{self.level}_{i}"
-                p = multiprocessing.Process(
-                    target=start_level, 
-                    args=(level_id, self.connect_string, self.level, self.train_config.total_timesteps, self.model_config.level_config_path),
-                    daemon=True # 設置為守護進程，主進程死掉時子進程通常會被系統回收
-                )
-                p.start()
-                self.level_to_clients[level_id]["process"] = p
-
+            self.run_level_subprocess()
         num_level_finish_init = 0
         num_level_finish_player_assign = 0
         num_level_finish_setup = 0
@@ -202,7 +177,7 @@ class RouterServer:
                 self.client_to_level[client_id] = key
                 value["client"].append(client_id)
                 # 給關卡環境進程發客戶端 ID 是爲了更好分辨玩家之間輸出的動作
-                self.router.send_multipart([level_id.encode(), b"", b"CLIENT_ASSIGN", pickle.dumps(client_id)])
+                self.router.send_multipart([key.encode(), b"", b"CLIENT_ASSIGN", pickle.dumps(client_id)])
                 msg_router(f"Assigned {client_id} to {key}")
             num_level_finish_player_assign += 1
         msg_router("分配客戶端完畢，開始把設置信息返回給對應客戶端...")
@@ -210,7 +185,7 @@ class RouterServer:
 
         # 返回各種物件的設置信息到客戶端 ----------------------------------------------------------------------------------------
         self.current_task = "返回各種物件的設置信息到客戶端"
-        while len(client_setup_data_cache_list) > 0:
+        while num_level_finish_setup < self.num_levels:
             has_processed = False # 標記這一輪有沒有處理數據
             try:
                 address, _, msg_type, data = self.router.recv_multipart()
@@ -232,6 +207,7 @@ class RouterServer:
                         self.router.send_multipart([client_id.encode(), b"", b"CLIENT_SETUP", value])
 
                     has_processed = True
+                    num_level_finish_setup += 1
                 
                 if not has_processed:
                     # 如果這一輪全是 None，休息一下避免 CPU 飆高到 100%
@@ -242,13 +218,38 @@ class RouterServer:
                 msg_router(f"Level {self.current_task} Timeout! Still waiting for {self.num_levels - num_level_finish_player_assign} levels...")
                 continue
 
-        for key, value in self.level_to_clients.items():
-            pass
         msg_router("已經把所以設置信息返回給對應客戶端，路由服務器設置完畢")
 
         # ---------------------------------------------------------------------------------------------------------------------
 
-    
+    def run_level_subprocess(self):
+        
+        # 啟動 Level 子進程
+        module_path = f"RL.levels.level{self.level}.model1.config"
+        
+        try:
+            imported_module = importlib.import_module(module_path)
+            self.train_config = imported_module.train_config
+            self.model_config = imported_module.model_config
+        except ImportError as e:
+            msg_router(f"錯誤：找不到 Level {self.level} 的配置文件或是路徑錯誤。")
+            msg_router(f"嘗試路徑: {module_path}")
+            raise e
+        except AttributeError as e:
+            msg_router(f"錯誤：在 Level {self.level} 的 config.py 中找不到 model_config 或 train_config。")
+            raise e
+
+        for i in range(self.num_levels):
+            msg_router(f"創建關卡環境{i} 子進程中")
+            level_id = f"level{self.level}_{i}"
+            p = multiprocessing.Process(
+                target=start_level, 
+                args=(level_id, self.connect_string, self.level, self.train_config.total_timesteps, self.model_config.level_config_path),
+                daemon=True # 設置為守護進程，主進程死掉時子進程通常會被系統回收
+            )
+            p.start()
+            self.level_to_clients[level_id]["process"] = p
+
     def _handle_exit_signal(self, signum, frame):
         msg_router(f"Received signal {signum}, shutting down...")
         self.shutdown()
