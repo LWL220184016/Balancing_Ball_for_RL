@@ -35,7 +35,7 @@ class MovableObjectFactory:
         self.collision_type_movableObject = collision_type_movableObject
 
     def create_movableObject(self,
-                             role_id: str = None,
+                             role_id: str = "moveable_object",
                              space: pymunk.Space = None,
                              shape_type: str = "circle",
                              size: tuple = None,

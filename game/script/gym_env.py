@@ -16,7 +16,6 @@ class BalancingBallEnv(gym.Env):
     """
     Gymnasium environment for the Balancing Ball game with continuous action space
     """
-    metadata = {'render_modes': ['human', 'rgb_array', 'rgb_array_and_human_in_colab']}
 
     def __init__(self,
                  render_mode: str = None,
@@ -26,7 +25,7 @@ class BalancingBallEnv(gym.Env):
         """
         envonment initialization
         Args:
-            render_mode (str): The mode to render the game. Options are 'human', 'rgb_array', 'rgb_array_and_human_in_colab'.
+            render_mode (str): The mode to render the game. Options are 'human', 'headless'.
             level (int): The game level to load.
             fps (int): Frames per second for the game.
             obs_type (str): Type of observation. "game_screen" for image-based, "state_based" for state vector.

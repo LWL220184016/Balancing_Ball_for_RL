@@ -7,7 +7,7 @@ import numpy as np
 import sys
 import IPython.display as ipd
 
-from typing import Dict, Tuple, Optional
+from typing import Optional
 # from IPython.display import display, Image, clear_output
 from io import BytesIO
 
@@ -25,6 +25,7 @@ from script.role.platform import Platform
 from script.role.roles import Role
 from script.levels.rewards.reward_calculator import RewardCalculator
 from script.game_config import GameConfig
+from script.renderer import ModernGLRenderer
 from exceptions import GameClosedException
 
 class BalancingBallGame:
@@ -53,7 +54,7 @@ class BalancingBallGame:
         Initialize the balancing ball game.
 
         Args:
-            render_mode: "human" for visible window, "rgb_array" for gym env, "headless" for no rendering
+            render_mode: "human" for visible window, "headless" for gym env
             sound_enabled: Whether to enable sound effects
             max_episode_step: 1 step = 1/fps, if fps = 120, 1 step = 1/120
             capture_per_second: save game screen as a image every second, None means no capture
@@ -84,6 +85,7 @@ class BalancingBallGame:
         self.window_x = GameConfig.SCREEN_WIDTH
         self.window_y = GameConfig.SCREEN_HEIGHT
         self.fps = GameConfig.FPS
+        self.capture_per_second = capture_per_second
         self.setup_pygame()
 
         self.players: list[Player]
@@ -109,7 +111,6 @@ class BalancingBallGame:
         self.last_speeds = [0] * self.num_players  # Track last speed for each player
         self.step_rewards = [0] * self.num_players  # Rewards obtained in the last step
         self.step_action = None
-        self.capture_per_second = capture_per_second
         self.is_enable_realistic_field_of_view_cropping = is_enable_realistic_field_of_view_cropping
         if self.is_enable_realistic_field_of_view_cropping:
             raise NotImplementedError("realistic_field_of_view_cropping not implement yet.")
@@ -119,9 +120,8 @@ class BalancingBallGame:
         CURRENT_DIR = "."
         os.makedirs(os.path.dirname(CURRENT_DIR + "/capture/"), exist_ok=True)
 
-
     def setup_pygame(self):
-        """Set up PyGame for rendering"""
+        """Set up PyGame and ModernGL"""
         pygame.init()
         self.frame_count = 0
         self.render_fps_counter = 0      # 當前秒內的幀數計數
@@ -131,42 +131,32 @@ class BalancingBallGame:
         if self.sound_enabled:
             self._load_sounds()
 
+        # 設置 OpenGL 標誌
+        flags = pygame.OPENGL | pygame.DOUBLEBUF
+        
         if self.render_mode == "human":
-            self.screen = pygame.display.set_mode((self.window_x, self.window_y))
-            pygame.display.set_caption("Balancing Ball - Indie Game")
+            self.screen = pygame.display.set_mode((self.window_x, self.window_y), flags)
+
+            pygame.display.set_caption("Balancing Ball - ModernGL")
+            # 初始化渲染器
+            self.mgl = ModernGLRenderer(self.window_x, self.window_y, headless=False)
+            
+            # 文字使用 Pygame Font，但渲染方式會改變
             self.font = pygame.font.Font(None, int(self.window_x / 34))
+            # 創建一個純 Pygame Surface 用於繪製 UI/文字
+            self.ui_surface = pygame.Surface((self.window_x, self.window_y), pygame.SRCALPHA)
+
+        elif self.render_mode == "headless":
+            self.mgl = ModernGLRenderer(self.window_x, self.window_y, headless=True)
+            if self.capture_per_second:
+                self.screen = pygame.Surface((self.window_x, self.window_y))
 
         elif self.render_mode == "server":
             # 返回坐標到客戶端，沒有需要設置的東西
             pass
 
-        elif self.render_mode == "rgb_array":
-            self.screen = pygame.Surface((self.window_x, self.window_y))
-
-        elif self.render_mode == "rgb_array_and_human": # todo
-            print("rgb_array_and_human mode is not supported yet.")
-
-        elif self.render_mode == "rgb_array_and_human_in_colab": # todo
-            import IPython.display as ipd
-            from pymunk.pygame_util import DrawOptions
-
-            self.screen = pygame.Surface((self.window_x, self.window_y))  # Create hidden surface
-
-            # Set up display in Colab
-            self.draw_options = DrawOptions(self.screen)
-            html_display = ipd.HTML('''
-                <div id="pygame-output" style="width:100%;">
-                    <img id="pygame-img" style="width:100%;">
-                </div>
-            ''')
-            self.display_handle = ipd.display(html_display, display_id='pygame_display')
-
-            self.last_update_time = time.time()
-            self.update_interval = 1.0 / 15  # Update display at 15 FPS to avoid overwhelming Colab
-            self.font = pygame.font.Font(None, int(self.window_x / 34))
-
         else:
-            raise ValueError("Invalid render mode. Choose from 'human', 'server', 'rgb_array', 'rgb_array_and_human', 'rgb_array_and_human_in_colab'.")
+            raise ValueError("Invalid render mode. Choose from 'human', 'server', 'headless'")
 
         self.clock = pygame.time.Clock()
 
@@ -227,9 +217,11 @@ class BalancingBallGame:
         self.step_action = pactions
         if pactions:
             for player in self.players:
-                if pactions[player.role_id]:
-                    self.ability_generated_objects.extend(player.perform_action(pactions[player.role_id], self.steps))
-
+                try:
+                    if pactions[player.role_id]:
+                        self.ability_generated_objects.extend(player.perform_action(pactions[player.role_id], self.steps))
+                except KeyError:
+                    continue
         self.add_step(1)
         rewards, terminated = self.reward()
         self.step_rewards = rewards
@@ -311,112 +303,123 @@ class BalancingBallGame:
                 for obj in self.players + self.platforms + self.entities + self.ability_generated_objects:
                     self.screen_data[player.role_id][obj.role_id] = obj.shape.get_draw_data()
             return None
-        elif self.render_mode == "headless":
-            return None
 
-        # Clear screen with background color
-        self.screen.fill(self.BACKGROUND_COLOR)
+        # 清除螢幕 (使用 ModernGL)
+        self.mgl.clear(self.BACKGROUND_COLOR)
+        self._draw_scene_moderngl()
+        self.render_fps_counter += 1
+        current_time = time.time()
+        time_diff = current_time - self.render_fps_timer
+        if time_diff >= 0.1: # 每秒更新一次
+            self.current_render_fps = self.render_fps_counter / time_diff
+            self.render_fps_counter = 0
+            self.render_fps_timer = current_time
+        print(F"FPS: {int(self.current_render_fps)}")
 
-        # Custom drawing (for indie style)
-        self._draw_indie_style()
-
-        # Update display if in human mode
+        # 3. 繪製 UI (文字)
         if self.render_mode == "human":
-            # Draw game information
-            self._draw_game_info()
+            # 清空 UI 層
+            self.ui_surface.fill((0,0,0,0)) 
+            # 在 Pygame Surface 上畫文字
+            self._draw_game_info_to_surface(self.ui_surface)
+            self.mgl.draw_texture(self.ui_surface)
+            # 將 UI Surface 轉為 Texture 並畫在 ModernGL 上
+            # (這一步需要實現 Texture Blit，見下文補充，或暫時忽略文字)
+            # 簡單替代方案：如果無法實現 Texture Blit，文字將不可見
+            
+            # 4. 交換緩衝區 (顯示畫面)
             pygame.display.flip()
+            return None
+
+        elif self.render_mode == "headless":
+            self.screen_data = self.mgl.read_pixels()
             
-            self.render_fps_counter += 1
-            current_time = time.time()
-            time_diff = current_time - self.render_fps_timer
-            if time_diff >= 0.1: # 每秒更新一次
-                self.current_render_fps = self.render_fps_counter / time_diff
-                self.render_fps_counter = 0
-                self.render_fps_timer = current_time
             return None
 
-        elif self.render_mode == "rgb_array":
-            # Return RGB array for gym environment
-            self.screen_data = pygame.surfarray.array3d(self.screen)
-            return None
+    def _draw_scene_moderngl(self):
+        """使用 ModernGL 繪製所有實體"""
+        
+        # 定義一個內部函數來處理單個實體的繪製
+        def draw_entity(entity: Role | Player | Platform):
+            color = entity.color
+            shape = entity.shape.shape
+            body = entity.shape.body
 
-        elif self.render_mode == "rgb_array_and_human": # todo
-            print("rgb_array_and_human mode is not supported yet.")
+            if isinstance(shape, pymunk.Circle):
+                pos = body.position
+                radius = shape.radius
+                self.mgl.draw_circle(pos, radius, color)
+                
+                # 繪製旋轉指示器 (原本代碼中的線)
+                if entity.shape.is_draw_rotation_indicator:
+                    line_end = pos + pymunk.Vec2d(radius, 0).rotated(body.angle)
+                    self.mgl.draw_polygon([pos, line_end], (255, 255, 255), outline_width=2)
 
-        elif self.render_mode == "rgb_array_and_human_in_colab":
-            self.space.debug_draw(self.draw_options)
-            current_time = time.time()
-            if current_time - self.last_update_time >= self.update_interval:
-                # Convert Pygame surface to an image that can be displayed in Colab
-                buffer = BytesIO()
-                pygame.image.save(self.screen, buffer, 'PNG')
-                buffer.seek(0)
-                img_data = base64.b64encode(buffer.read()).decode('utf-8')
-
-                # Update the HTML image
-                self.display_handle.update(ipd.HTML(f'''
-                    <div id="pygame-output" style="width:100%;">
-                        <img id="pygame-img" src="data:image/png;base64,{img_data}" style="width:100%;">
-                    </div>
-                '''))
-
-                self.last_update_time = current_time
+            elif isinstance(shape, pymunk.Poly):
+                # 獲取世界坐標系下的頂點
+                vertices = [body.local_to_world(v) for v in shape.get_vertices()]
+                self.mgl.draw_polygon(vertices, color)
             
-            self.screen_data = pygame.surfarray.array3d(self.screen)
-            return None
-        else:
-            pass
+            elif isinstance(shape, pymunk.Segment):
+                # 繪製線段
+                a = body.local_to_world(shape.a)
+                b = body.local_to_world(shape.b)
+                self.mgl.draw_polygon([a, b], color, outline_width=shape.radius * 2)
 
-    def _draw_indie_style(self):
-        """Draw game objects with indie game aesthetic"""
-        # Draw players
+        # 遍歷列表進行繪製
         for player in self.players:
             if player.get_is_alive():
-                player._draw_indie_style(self.screen)
+                draw_entity(player)
 
-        for platform in self.platforms:
-            platform._draw_indie_style(self.screen) 
-        
-        for entity in self.entities + self.ability_generated_objects:
-            if isinstance(entity, list):
-                for e in entity:
-                    e._draw_indie_style(self.screen)
-            else:
-                entity._draw_indie_style(self.screen)
+        entities = self.platforms + self.ability_generated_objects
+        for entity in self.entities:
+            entities += entity
 
-    def _draw_game_info(self):
-        """Draw game information on screen"""
-        # Create texts
+        for obj in entities:
+            draw_entity(obj)
+
+    def _draw_game_info_to_surface(self, target_surface):
+        """
+        Draw game information onto a specific surface (used for ModernGL texture overlay).
+        Args:
+            target_surface: A pygame.Surface with SRCALPHA flag enabled.
+        """
+        # 1. 準備文字內容
         time_text = f"Time: {self.end_time - self.start_time:.1f}, steps: {self.steps}/{self.max_episode_step}"
-        fps_text = f"FPS: {int(self.current_render_fps)}" # 新增 FPS 文本
+        fps_text = f"FPS: {int(self.current_render_fps)}"
         score_texts = [f"P{i+1}: {self.score[i]:.1f} + {self.step_rewards[i]} Health: {player.get_health():.1f}" for i, player in enumerate(self.players)]
 
-        # Render texts
+        # 2. 渲染文字本身
         time_surface = self.font.render(time_text, True, (255, 255, 255))
-        fps_surface = self.font.render(fps_text, True, (200, 255, 200)) # 使用淡綠色顯示 FPS
+        fps_surface = self.font.render(fps_text, True, (200, 255, 200))
         score_surfaces = [self.font.render(text, True, (255, 255, 255)) for text in score_texts]
 
-        # Draw text backgrounds and texts (Time)
-        pygame.draw.rect(self.screen, (0, 0, 0, 128),
+        # 3. 繪製 Time (背景 + 文字) -> 改用 target_surface
+        pygame.draw.rect(target_surface, (0, 0, 0, 128),
                         (5, 5, time_surface.get_width() + 10, time_surface.get_height() + 5))
-        self.screen.blit(time_surface, (10, 10))
+        target_surface.blit(time_surface, (10, 10))
 
-        # Draw FPS (Positioned below Time)
-        pygame.draw.rect(self.screen, (0, 0, 0, 128),
+        # 4. 繪製 FPS -> 改用 target_surface
+        pygame.draw.rect(target_surface, (0, 0, 0, 128),
                         (5, 40, fps_surface.get_width() + 10, fps_surface.get_height() + 5))
-        self.screen.blit(fps_surface, (10, 40))
+        target_surface.blit(fps_surface, (10, 40))
 
-        # Draw scores (Adjusted y_offset to make room for FPS)
-        y_offset = 75 # 從 40 改為 75，避免遮擋 FPS
+        # 5. 繪製 Scores -> 改用 target_surface
+        y_offset = 75
         for i, surface in enumerate(score_surfaces):
             color = self.players[i].get_color() if self.players[i].get_is_alive() else (100, 100, 100)
-            pygame.draw.rect(self.screen, (0, 0, 0, 128),
+            
+            # 繪製半透明背景
+            pygame.draw.rect(target_surface, (0, 0, 0, 128),
                             (5, y_offset, surface.get_width() + 10, surface.get_height() + 5))
+            
+            # 重新渲染帶顏色的文字 (因為原本 score_texts 只是字串，這裡為了變色需要重繪或優化)
+            # 原本代碼邏輯是這裡才變色，所以保持原樣：
             colored_surface = self.font.render(score_texts[i], True, color)
-            self.screen.blit(colored_surface, (10, y_offset))
+            target_surface.blit(colored_surface, (10, y_offset))
             y_offset += 30
 
-        # Draw game over screen
+        # 6. 處理 Game Over 畫面
         if self.game_over:
             if self.winner is not None:
                 game_over_text = f"WINNER: Player {self.winner + 1} - Press R to restart"
@@ -431,13 +434,14 @@ class BalancingBallGame:
             print(game_over_text)
             game_over_surface = self.font.render(game_over_text, True, (255, 255, 255))
 
-            # Draw semi-transparent background
+            # 繪製全螢幕半透明遮罩
+            # 直接畫在 target_surface 上即可，因為它是蓋在 3D 場景上的
             overlay = pygame.Surface((self.window_x, self.window_y), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 128))
-            self.screen.blit(overlay, (0, 0))
+            target_surface.blit(overlay, (0, 0))
 
-            # Draw text
-            self.screen.blit(game_over_surface,
+            # 繪製 Game Over 文字
+            target_surface.blit(game_over_surface,
                            (self.window_x/2 - game_over_surface.get_width()/2,
                             self.window_y/2 - game_over_surface.get_height()/2))
         else:
@@ -477,9 +481,6 @@ class BalancingBallGame:
 
     def run_standalone(self, players_id):
         """Run the game in standalone mode with keyboard controls"""
-        if self.render_mode not in ["human", "rgb_array_and_human_in_colab"]:
-            raise ValueError("Standalone mode requires render_mode='human' or 'rgb_array_and_human_in_colab'")
-        
         try:
             from human_control import HumanControl
         except ImportError:
@@ -527,8 +528,14 @@ class BalancingBallGame:
 
     def assign_players(self, player_id_list: list[str]):
         msg = None
+        RL_player_id = "RL_player"
+        RL_player_num = 0
         for p in self.players:
-            p.role_id = player_id_list.pop(0)
+            if player_id_list:
+                p.role_id = player_id_list.pop(0)
+            else:
+                RL_player_num += 1
+                p.role_id = f"{RL_player_id}{RL_player_num}"
             print(f"{p.role_id} assigned")
             if "human" in p.role_id.lower() and self.human_control == None:
                 try:

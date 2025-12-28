@@ -31,9 +31,33 @@ Todo:
 
    14. (✅️finished) 添加俯視角移動以及射擊技能
 
-   15. 修改游戲架構為 Client-Server 來應用對抗式訓練
+   15. (✅️finished) (已經完成但又發現對於單機訓練似乎沒必要) 修改游戲架構為 Client-Server 來應用對抗式訓練
 
    16. 評估使用 dict 的地方是否需要換成 NamedTuple
+
+   17. (✅️finished) 渲染切換到 ModernGL，然後和 Pygame 進行性能測試對比。(單環境，渲染模式：human，圖像大小：1000 x 1000)
+         測試結果  【Pygame FPS：+-1700】
+                  【ModernGL FPS：+-3400 (需要關閉文字顯示，不然 FPS 鎖定在 390 左右)】
+
+   18. 目前 ModernGL 繪製圖像訓練數據輸出依然需要經過 CPU，個人 windows 電腦測試下 FPS: 4000 上下 (渲染模式：headless，圖像 resize 大小：160 x 160)
+       完成對抗式訓練環境并且進行訓練性能測試，評估是否需要實現 Zero-Copy ( ModernGL 輸出數據直接留在 GPU 進行訓練，不經 CPU )
+
+   19. 完成對抗式訓練環境并且進行訓練性能測試，評估是否需要把通信方式從 ZMQ 切換到共享内存
+
+   20. 完成對抗式訓練環境并且進行訓練性能測試，評估是否需要把物理引擎從 Pymunk 切換到 NVIDIA Warp
+
+   21.
+
+   22.
+
+   23.
+
+   24.
+
+   25.
+
+
+
 
 levels 介紹
 [level3](RL\levels\level3\readme)

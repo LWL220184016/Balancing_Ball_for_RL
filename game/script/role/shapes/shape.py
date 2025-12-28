@@ -52,10 +52,6 @@ class Shape(ABC):
         raise NotImplementedError(f"This method '{self.get_draw_data.__name__}' should be implemented by subclasses.")
 
     @abstractmethod
-    def _draw(self, screen, color, obj_pos=None):
-        raise NotImplementedError(f"This method '{self._draw.__name__}' should be implemented by subclasses.")
-
-    @abstractmethod
     def reset(self):
         """Reset the body to its default position, velocity and angular velocity."""
 

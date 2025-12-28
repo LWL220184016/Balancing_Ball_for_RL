@@ -6,14 +6,14 @@ player_configs = None
 platform_configs = None
 environment_configs = None
 
-# rgb_array_and_human_in_colab
-game = BalancingBallGame(render_mode="human", 
-                            max_episode_step=30000,
+game = BalancingBallGame(render_mode="headless", 
+# game = BalancingBallGame(render_mode="human", 
+                            max_episode_step=300000,
                             collision_type=collision_type,
                             player_configs=player_configs,
                             platform_configs=platform_configs,
                             environment_configs=environment_configs,
-                            level=3, 
+                            level=4, 
                             capture_per_second=None
                         )
 

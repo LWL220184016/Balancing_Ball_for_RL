@@ -154,9 +154,6 @@ class Role(ABC):
 
         return state
 
-    def _draw_indie_style(self, screen: pygame.Surface):
-        self.shape._draw(screen, self.color)
-
     def add_collision_with(self, collision_with: int):
         self.collision_with.append(collision_with)
         self.last_collision_with = collision_with

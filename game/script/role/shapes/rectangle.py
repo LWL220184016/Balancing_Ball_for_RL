@@ -48,12 +48,6 @@ class Rectangle(Shape):
         obj_pos = [self.body.local_to_world(v) for v in self.shape.get_vertices()]
         return obj_pos
     
-    def _draw(self, screen, color, obj_pos=None):
-        if obj_pos == None:
-            obj_pos = [self.body.local_to_world(v) for v in self.shape.get_vertices()]
-        pygame.draw.polygon(screen, color, obj_pos)
-        pygame.draw.polygon(screen, (255, 255, 255), obj_pos, 2)
-
     def reset(self):
         super().reset()
 
