@@ -314,20 +314,16 @@ class BalancingBallGame:
             self.current_render_fps = self.render_fps_counter / time_diff
             self.render_fps_counter = 0
             self.render_fps_timer = current_time
-        print(F"FPS: {int(self.current_render_fps)}")
+
+            total_entities = len(self.players) + len(self.platforms) + len(self.ability_generated_objects)
+            print(F"FPS: {int(self.current_render_fps)}, total_entities: {total_entities}")
 
         # 3. 繪製 UI (文字)
         if self.render_mode == "human":
             # 清空 UI 層
             self.ui_surface.fill((0,0,0,0)) 
-            # 在 Pygame Surface 上畫文字
             self._draw_game_info_to_surface(self.ui_surface)
             self.mgl.draw_texture(self.ui_surface)
-            # 將 UI Surface 轉為 Texture 並畫在 ModernGL 上
-            # (這一步需要實現 Texture Blit，見下文補充，或暫時忽略文字)
-            # 簡單替代方案：如果無法實現 Texture Blit，文字將不可見
-            
-            # 4. 交換緩衝區 (顯示畫面)
             pygame.display.flip()
             return None
 
@@ -337,46 +333,110 @@ class BalancingBallGame:
             return None
 
     def _draw_scene_moderngl(self):
-        """使用 ModernGL 繪製所有實體"""
+        """ModernGL 繪製流程"""
         
-        # 定義一個內部函數來處理單個實體的繪製
-        def draw_entity(entity: Role | Player | Platform):
-            color = entity.color
+        # 準備數據容器
+        # 圓形數據: [x, y, radius, r, g, b]
+        circle_batch = []
+        
+        # 多邊形數據: [x, y, r, g, b, a]
+        # 我們直接構建一個大列表，最後再一次性轉 numpy
+        poly_verts = []
+        
+        # 預先定義常數以加速訪問
+        to_color = lambda c: (c[0]/255, c[1]/255, c[2]/255)
+        
+        # 收集所有實體
+        all_entities = []
+        # 這裡根據你的遊戲邏輯，只選活著的或者存在的
+        for p in self.players:
+            if p.get_is_alive(): all_entities.append(p)
+            
+        # 展開列表 (比 += 快)
+        all_entities.extend(self.platforms)
+        for obj_list in self.entities: # 假設 self.entities 是列表的列表
+            all_entities.extend(obj_list)
+        all_entities.extend(self.ability_generated_objects)
+
+        # 遍歷並分類數據 (純 CPU 計算，盡量用 NumPy 加速)
+        for entity in all_entities:
             shape = entity.shape.shape
             body = entity.shape.body
+            color_norm = to_color(entity.color) # (r, g, b) 0~1
 
             if isinstance(shape, pymunk.Circle):
+                # 圓形：只需提取位置和半徑
                 pos = body.position
-                radius = shape.radius
-                self.mgl.draw_circle(pos, radius, color)
+                # 添加數據: x, y, radius, r, g, b
+                circle_batch.append([pos.x, pos.y, shape.radius, *color_norm])
                 
-                # 繪製旋轉指示器 (原本代碼中的線)
+                # 如果需要繪製旋轉指示線 (Line)，將其視為細長的多邊形處理
                 if entity.shape.is_draw_rotation_indicator:
-                    line_end = pos + pymunk.Vec2d(radius, 0).rotated(body.angle)
-                    self.mgl.draw_polygon([pos, line_end], (255, 255, 255), outline_width=2)
+                    # 計算線段端點
+                    vec = pymunk.Vec2d(shape.radius, 0).rotated(body.angle)
+                    end = pos + vec
+                    # 線段稍微粗一點，這裡簡化為線段繪製 (或者用 GL_LINES)
+                    # 這裡為了簡單，我們忽略線段的寬度優化，或者你可以把它加到 poly_verts 裡
+                    # 為了極致效能，RL訓練時通常不需要這個視覺細節，建議註釋掉
+                    pass 
 
             elif isinstance(shape, pymunk.Poly):
-                # 獲取世界坐標系下的頂點
-                vertices = [body.local_to_world(v) for v in shape.get_vertices()]
-                self.mgl.draw_polygon(vertices, color)
+                # 多邊形：獲取世界坐標頂點
+                # Pymunk 的 get_vertices 是局部坐標，需要轉換
+                # 這裡是一個潛在的 CPU 瓶頸，如果物體不變形，可以緩存 world vertices
+                pts = [body.local_to_world(v) for v in shape.get_vertices()]
+                
+                # 簡單的三角剖分 (Triangle Fan -> Triangles)
+                # 假設凸多邊形，中心點為 pts[0]
+                c_r, c_g, c_b = color_norm
+                root = pts[0]
+                for i in range(1, len(pts) - 1):
+                    # 每個三角形由 root, pts[i], pts[i+1] 組成
+                    p1, p2 = pts[i], pts[i+1]
+                    # 展開頂點數據 [x, y, r, g, b, a] * 3
+                    poly_verts.extend([
+                        root.x, root.y, c_r, c_g, c_b, 1.0,
+                        p1.x,   p1.y,   c_r, c_g, c_b, 1.0,
+                        p2.x,   p2.y,   c_r, c_g, c_b, 1.0
+                    ])
             
             elif isinstance(shape, pymunk.Segment):
-                # 繪製線段
+                # ➖ 線段：轉換為矩形多邊形
                 a = body.local_to_world(shape.a)
                 b = body.local_to_world(shape.b)
-                self.mgl.draw_polygon([a, b], color, outline_width=shape.radius * 2)
+                r = shape.radius if shape.radius > 0 else 1.0
+                # 計算法線方向
+                delta = b - a
+                normal = pymunk.Vec2d(-delta.y, delta.x).normalized() * r
+                
+                v1 = a + normal
+                v2 = a - normal
+                v3 = b - normal
+                v4 = b + normal
+                
+                c_r, c_g, c_b = color_norm
+                # 兩個三角形組成一個矩形
+                poly_verts.extend([
+                    v1.x, v1.y, c_r, c_g, c_b, 1.0,
+                    v2.x, v2.y, c_r, c_g, c_b, 1.0,
+                    v3.x, v3.y, c_r, c_g, c_b, 1.0,
+                    v1.x, v1.y, c_r, c_g, c_b, 1.0,
+                    v3.x, v3.y, c_r, c_g, c_b, 1.0,
+                    v4.x, v4.y, c_r, c_g, c_b, 1.0
+                ])
 
-        # 遍歷列表進行繪製
-        for player in self.players:
-            if player.get_is_alive():
-                draw_entity(player)
+        # 提交給 GPU 渲染 (僅調用兩次 Draw Call) 
+        self.mgl.fbo_render.use()
+        
+        # 繪製所有多邊形
+        if poly_verts:
+            # 轉換為 numpy array (float32)
+            v_data = np.array(poly_verts, dtype='f4')
+            self.mgl.render_polygons(v_data.tobytes(), len(poly_verts) // 6)
 
-        entities = self.platforms + self.ability_generated_objects
-        for entity in self.entities:
-            entities += entity
-
-        for obj in entities:
-            draw_entity(obj)
+        # 繪製所有圓形
+        if circle_batch:
+            self.mgl.render_circles(circle_batch)
 
     def _draw_game_info_to_surface(self, target_surface):
         """
