@@ -1,30 +1,18 @@
-import random
-import time
-import pymunk
 import numpy as np
 
 from script.game_config import GameConfig
 
 try:
-    from role.player import PlayerFactory
-    from role.platform import PlatformFactory
-    from role.movable_object import MovableObjectFactory, MovableObject
     from levels.rewards.reward_calculator import RewardCalculator
     from levels.levels import Levels
 except ImportError:
-    from script.role.player import PlayerFactory
-    from script.role.platform import PlatformFactory
-    from script.role.movable_object import MovableObjectFactory, MovableObject
     from script.levels.rewards.reward_calculator import RewardCalculator
     from script.levels.levels import Levels
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     # 將導致循環導入的 import 語句移到這裡
-    from script.balancing_ball_game import BalancingBallGame
-    from script.collision_handle import CollisionHandler
-    from role.player import Player
-    from role.platform import Platform
+    pass
 
 class Level4(Levels):
     """
@@ -44,6 +32,9 @@ class Level4(Levels):
 
         players, platforms = super().setup()
         self.window_size = (GameConfig.SCREEN_WIDTH, GameConfig.SCREEN_HEIGHT)
+
+        for platform in platforms:
+            platform.set_is_alive(False) # 設置 is_alive 成 False 能讓他們不被渲染，本來都是在地圖外面的，不渲染提升性能
 
         reward_calculator = RewardCalculator(
             game=self.game,

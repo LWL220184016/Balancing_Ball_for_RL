@@ -3,7 +3,8 @@ import pymunk
 import copy
 
 from role.abilities.ability import Ability
-from role.movable_object import MovableObjectFactory, MovableObject
+from role.role_factory import RoleFactory
+from role.movable_object import MovableObject
 from script.game_config import GameConfig
 
 from typing import TYPE_CHECKING
@@ -25,7 +26,7 @@ class Shoot(Ability):
             if not self.ability_generated_object_config:
                 raise ValueError(f"配置錯誤：在 abilities_objects_configs 中找不到 '{self.ability_generated_object_name}' 的定義")
             collision_type_bullet = GameConfig.get_collision_type(self.ability_generated_object_name)
-            self.bullet_factory = MovableObjectFactory(collision_type_bullet)
+            self.bullet_factory = RoleFactory(collision_type_bullet)
             self.ability_generated_object_config["expired_time"] = _ability_generated_object_cfg.get("expired_time", None) * GameConfig.FPS if _ability_generated_object_cfg.get("expired_time", None) else None
             # print('self.ability_generated_object_config["expired_time"]: ', self.ability_generated_object_config["expired_time"])
 
@@ -36,11 +37,14 @@ class Shoot(Ability):
             x, y = player.get_position()
             target_x, target_y = action_value
 
-            new_bullet = self.bullet_factory.create_movableObject(
-                role_id="bullet",
-                space=player.space,
-                **self.ability_generated_object_config,
-            )
+            new_bullet = self.bullet_factory.create_role(
+                    space=player.space, 
+                    role_id=f"bullet", 
+                    is_alive=True,
+                    body=pymunk.Body.DYNAMIC,
+                    cls=MovableObject,
+                    **self.ability_generated_object_config
+                ) 
             new_bullet.set_owner(player)
             new_bullet.set_position_absolute_value((x, y))
             new_bullet.add_to_space()

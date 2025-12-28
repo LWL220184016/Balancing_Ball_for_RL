@@ -6,23 +6,22 @@ import numpy as np
 from script.game_config import GameConfig
 
 try:
-    from role.player import PlayerFactory
-    from role.platform import PlatformFactory
-    from role.movable_object import MovableObjectFactory, MovableObject
+    from role.role_factory import RoleFactory
+    from role.player import Player
+    from role.platform import Platform
+    from role.movable_object import MovableObject
     from levels.rewards.reward_calculator import RewardCalculator
 except ImportError:
-    from script.role.player import PlayerFactory
-    from script.role.platform import PlatformFactory
-    from script.role.movable_object import MovableObjectFactory, MovableObject
+    from script.role.role_factory import RoleFactory
+    from script.role.player import Player
+    from script.role.platform import Platform
+    from script.role.movable_object import MovableObject
     from script.levels.rewards.reward_calculator import RewardCalculator
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     # 將導致循環導入的 import 語句移到這裡
     from script.balancing_ball_game import BalancingBallGame
-    from script.collision_handle import CollisionHandler
-    from role.player import Player
-    from role.platform import Platform
     
 class Levels:
     def __init__(self, 
@@ -46,20 +45,23 @@ class Levels:
         self.collision_type_player: int = self.collision_type.get("player")
         self.collision_type_platform: int = self.collision_type.get("platform")
 
-        player_factory = PlayerFactory(self.collision_type_player)
-        platform_factory = PlatformFactory(self.collision_type_platform)
+        player_factory = RoleFactory(self.collision_type_player)
+        platform_factory = RoleFactory(self.collision_type_platform)
 
         if not self.collision_type_player or not self.collision_type_platform:
             raise ValueError(f"Invalid collision_type: {self.collision_type}, must contain 'player' and 'platform' keys with integer values")
         
         
-        self.players: list['Player'] = [player_factory.create_player(space=self.space, **config) for config in self.player_configs]
+        self.players: list['Player'] = [player_factory.create_role(space=self.space, is_alive=True, body=pymunk.Body.DYNAMIC, cls=Player, **config) for config in self.player_configs]
         
         if self.level_configs.get("platform_configs") is not None:
             self.platforms: list['Platform'] = [
-                platform_factory.create_platform(
+                platform_factory.create_role(
                     space=self.space, 
                     role_id=f"platform{i}", 
+                    is_alive=True,
+                    body=pymunk.Body.KINEMATIC,
+                    cls=Platform,
                     **config
                 ) 
                 for i, config in enumerate(self.level_configs.get("platform_configs", []))
@@ -264,13 +266,13 @@ class Level3(Levels):
         falling_rock_configs = self.level_configs.get("falling_rock_configs")
         entities_configs = self.level_configs.get("entities_configs")
 
-        falling_rock_factory = MovableObjectFactory(self.collision_type.get("fallingRock"))
+        falling_rock_factory = RoleFactory(self.collision_type.get("fallingRock"))
 
         # 根據 entity_configs 的配置來創建對應數量的 falling rocks
         quantities = entities_configs.get("quantity")
         for config in falling_rock_configs:
             for _ in range(quantities.get("fallingRock")):
-                rock = falling_rock_factory.create_movableObject(space=self.space, **config)
+                rock = falling_rock_factory.create_role(space=self.space, is_alive=True, body=pymunk.Body.DYNAMIC, cls=MovableObject, **config)
                 self.falling_rocks.append(rock)
                 body, shape = rock.get_physics_components()
                 self.space.add(body, shape)

@@ -2,14 +2,11 @@ import pymunk
 import pygame
 import time
 import os
-import base64
 import numpy as np
 import sys
-import IPython.display as ipd
 
 from typing import Optional
-# from IPython.display import display, Image, clear_output
-from io import BytesIO
+# from IPython.display import ipd, display, Image, clear_output
 
 # Add project root to the Python path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -35,9 +32,10 @@ class BalancingBallGame:
     # Game constants
 
     # Visual settings for indie style
-    BACKGROUND_COLOR = (41, 50, 65)  # Dark blue background TODO Hard code
+    BACKGROUND_COLOR: tuple  # Dark blue background TODO Hard code
 
     def __init__(self,
+                 BACKGROUND_COLOR = (41, 50, 65),
                  render_mode: str = None,
                  sound_enabled: bool = True,
                  max_episode_step: int = None,
@@ -61,6 +59,11 @@ class BalancingBallGame:
             is_enable_realistic_field_of_view_cropping: With the realistic field of view mechanism enabled, characters will have their own field of view and will not be able to see things outside that field of view or that are obstructed.
         """
         # Game parameters
+            
+        self.BACKGROUND_COLOR=BACKGROUND_COLOR
+        if render_mode == "headless":
+            self.BACKGROUND_COLOR = (0,0,0)
+            
         self.max_episode_step = max_episode_step
 
         self.recorder = Recorder("game_history_record")

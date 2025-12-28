@@ -1,18 +1,13 @@
 import pymunk
 
-from script.game_config import GameConfig
-
 try:
     from role.roles import Role
-    from role.shapes.circle import Circle
 except ImportError:
     from script.role.roles import Role
-    from script.role.shapes.circle import Circle
 
 class Player(Role):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.is_alive = True
         self.is_on_ground = False
         self.last_direction = None  # 用於追踪玩家上一次移動的方向
         self.direction_count = 0  # 用於追踪玩家是否一直向同一方向移動
@@ -81,75 +76,4 @@ class Player(Role):
     def add_direction_count(self, count: int):
         self.direction_count += count
 
-class PlayerFactory:
-    def __init__(self, collision_type_player: int):
-        self.collision_type_player = collision_type_player
 
-    def create_player(self,
-                      space: pymunk.Space = None,
-                      shape_type: str = "circle",
-                      size: tuple = None,
-                      shape_mass: float = None,
-                      shape_friction: float = None,
-                      shape_elasticity: float = None,
-                      default_position: tuple = None,
-                      default_velocity: tuple = None,
-                      default_angular_velocity: float = None,
-                      abilities: dict = None,
-                      health: int | str = None,
-                      color: tuple = None
-                     ) -> Player:
-        """Create the ball with physics properties.
-
-        Args:
-            shape_type (str): Type of the shape, e.g., "circle", "rectangle".
-            size (tuple): 
-                - If shape is Circle: It is a tuple (float,) and will be the radius of the ball as a proportion of window_x.
-                - If shape is Rectangle: It is a tuple (float, float, ...) and will be side lengths as a proportion of window_x and window_y.
-            shape_mass (float): Mass of the ball.
-            shape_friction (float): Friction of the ball.
-            shape_elasticity (float): Elasticity of the ball.
-            default_position (tuple(float, float)): Proportion of window_x and window_y.
-            default_velocity (tuple(float, float)): Initial velocity of the player.
-            abilities (dict{str, str, ...}): Abilities of the player.
-            health (int | str): Initial health of the player. Will be infinite health if it is a string.
-            color (tuple(int, int, int)): Color of the player.
-
-        Returns:
-            Player: The created player object.
-        """
-
-        
-        dynamic_body = pymunk.Body(body_type=pymunk.Body.DYNAMIC)  # Ball body
-        
-        if shape_type == "circle":
-            ball_radius = int(GameConfig.scale_x(size[0]))
-            shape = Circle(
-                shape_size=ball_radius,
-                shape_mass=shape_mass,
-                shape_friction=shape_friction,
-                shape_elasticity=shape_elasticity,
-                body=dynamic_body,
-                collision_type=self.collision_type_player,
-                is_draw_rotation_indicator=False,
-
-                # **kwargs
-                default_position=default_position,
-                default_velocity=default_velocity,
-                default_angular_velocity=default_angular_velocity,
-            )
-        else:
-            raise ValueError(f"Unsupported shape_type: {shape_type}. Currently, only 'circle' is supported.")
-
-        player = Player(
-
-            # **kwargs
-            shape=shape,
-            space=space,
-            color=color,
-            abilities=abilities,
-            health=health
-        )
-        self.collision_type_player += 1
-        # Store initial values for reset
-        return player

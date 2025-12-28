@@ -1,5 +1,4 @@
 import time
-import pygame
 import pymunk
 import numpy as np
 
@@ -14,6 +13,7 @@ class Role(ABC):
     @abstractmethod
     def __init__(self, 
                  role_id: str = None,
+                 is_alive: bool = None,
                  shape: Shape = None, 
                  space: pymunk.Space = None, 
                  color: tuple = None, 
@@ -34,6 +34,7 @@ class Role(ABC):
         """
         
         self.role_id: str = role_id
+        self.is_alive = is_alive
         self.is_Role_sub_class = True  # 用於標記這是一個 Role 類別的實例，防止 isinstance 路徑誤判以及循環引用
         self.shape = shape
         self.space = space
