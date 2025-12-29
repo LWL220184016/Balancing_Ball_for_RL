@@ -43,15 +43,14 @@ class Role(ABC):
         self.last_collision_with = -1  # 用於記錄最後一次碰撞的類型，會在 add_collision_with 中更新
         self.health = health  # 初始生命值
         self.default_health = health  # 用於重置生命值
-        self.owner = owner  # 可以用於標記該角色的擁有者（例如玩家ID）
         self.expired_time = expired_time  # 用於標記角色的過期時間 (time * fps)
 
         # 使用列表推導式和 globals() 來動態實例化類別
-        name = "Role" if role_id == None else role_id
-        print(f"Initializing {name} with abilities: {abilities}")
+        # name = "Role" if role_id == None else role_id
+        # print(f"Initializing {name} with abilities: {abilities}")
         if abilities:
             self.abilities: Dict[str, Ability] = {name: globals()[name]() for name in abilities if name in globals()}
-            print(f"Initialized Role with abilities: {list(self.abilities.keys())}")
+            # print(f"Initialized Role with abilities: {list(self.abilities.keys())}")
         else:
             self.abilities: Dict[str, Ability] = {}
 
@@ -204,7 +203,7 @@ class Role(ABC):
     def remove_from_space(self):
         body, shape = self.shape.get_physics_components()
         self.space.remove(body, shape)
-
+    
     def get_color(self):
         return self.color
     
@@ -245,9 +244,6 @@ class Role(ABC):
     def get_health(self):
         return self.health
     
-    def get_owner(self):
-        return self.owner
-    
     def get_abilities(self):
         return self.abilities
     
@@ -281,5 +277,3 @@ class Role(ABC):
     def set_health(self, health: int):
         self.health = health
 
-    def set_owner(self, owner: 'Role'):
-        self.owner = owner

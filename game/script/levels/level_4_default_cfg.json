@@ -207,7 +207,11 @@
             "damping": 0.01,
             "fps": 360
         },
-        "reward": {}
+        "reward": {
+            "shooting_hit_reward": 1,
+            "being_hit_penalty": -0.3,
+            "round_end_reward": 20
+        }
     }
 }
 

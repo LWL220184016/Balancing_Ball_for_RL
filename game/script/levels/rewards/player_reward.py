@@ -1,6 +1,6 @@
 import collections
 
-from script.role import player
+from script.game_config import GameConfig
 from levels.rewards.reward_calculator import RewardComponent, terminates_round
 
 from typing import TYPE_CHECKING
@@ -110,6 +110,40 @@ class PlayerStayInPlatformCenterReward(RewardComponent):
                 center_reward = self.reward_ball_centered * (1.0 - normalized_distance) # TODO Hard code
             player.add_reward_per_step(center_reward)
 
+class PlayerShotHitReward(RewardComponent):
+    """處理玩家一直向同一個方向移動的懲罰"""
+
+    def calculate(self, players: list['Player'], collision_handler: 'CollisionHandler', **kwargs):
+        default_collision_type = GameConfig.COLLISION_TYPES
+        rev_default_collision_type = {v: k for k, v in default_collision_type.items()}
+
+        for player in players:
+            if not player.get_is_alive():
+                continue
+            
+            for ct in player.get_collision_with():
+                _ct = ct - default_collision_type["player"]
+                try:
+                    target_key = rev_default_collision_type[_ct]
+                except KeyError:
+                    # 我設計的判斷機制是 player 的 collision_type 是 1000 開始，平臺是 2000 開始，子彈是 3000 開始，
+                    # 如果會同時存在多個玩家/平臺就會在基礎上+1，子彈的 collision_type 不太一樣，創建的時候會把發動技能的玩家的 collision_type + 他自己基礎的 3000，并不會+1。
+                    # 因此如果玩家數量少於平臺的時候(兩個玩家四個平臺)，就有可能出現 ct 是 1002 的結果，但是判斷的都是整的千位數，
+                    # 因此出現 1002 會導致 KeyError 但實際上不用管
+                    return
+                
+                if target_key == "bullet":
+                    player_ct = ct - default_collision_type[target_key]
+                    if player_ct != player.get_collision_type():
+                        shotted_player = collision_handler.get_player_from_collision_type(player_ct)
+                        print(f"玩家{shotted_player.role_id}, 使用技能射擊命中了玩家{player.role_id}")
+                        shotted_player.add_reward_per_step(self.shooting_hit_reward)
+                        player.add_reward_per_step(self.being_hit_penalty)
+                        player.decrease_health(1)
+                        if player.health == 0:
+                            shotted_player.add_reward_per_step(self.round_end_reward)
+                            player.set_is_alive(False)
+
 class PlayerMovementDirectionPenalty(RewardComponent):
     """處理玩家一直向同一個方向移動的懲罰"""
     action_histories = None
@@ -135,3 +169,7 @@ class PlayerMovementDirectionPenalty(RewardComponent):
                 player.set_special_status("movement_penalty", True)
 
             history.append(current_action)
+
+
+
+

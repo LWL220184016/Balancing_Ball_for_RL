@@ -4,9 +4,11 @@ from script.game_config import GameConfig
 
 try:
     from levels.rewards.reward_calculator import RewardCalculator
+    from levels.rewards.player_reward import PlayerShotHitReward
     from levels.levels import Levels
 except ImportError:
     from script.levels.rewards.reward_calculator import RewardCalculator
+    from script.levels.rewards.player_reward import PlayerShotHitReward
     from script.levels.levels import Levels
 
 from typing import TYPE_CHECKING
@@ -42,8 +44,12 @@ class Level4(Levels):
             platforms=None, # useless in this level
             entities=None,
             reward_components_terminates=[
+                PlayerShotHitReward(self.level_configs.get("reward")),
             ],
             reward_components=[
+                # 站著不動懲罰
+                # 不開槍懲罰
+                # 躲避子彈獎勵
             ],
         )
 

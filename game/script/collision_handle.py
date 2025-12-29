@@ -44,7 +44,6 @@ class CollisionHandler:
         if arbiter.shapes[1].collision_type in self.movable_objects:
             self.movable_objects[arbiter.shapes[1].collision_type].add_collision_with(arbiter.shapes[0].collision_type)
         
-
     def check_is_player(self, collision_type: int) -> bool:
         return collision_type in self.players
 

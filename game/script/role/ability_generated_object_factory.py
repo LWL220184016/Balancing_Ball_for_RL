@@ -8,14 +8,13 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from role.roles import Role
 
-class RoleFactory:
-    def __init__(self, collision_type_role: int):
-        self.collision_type_role = collision_type_role
+class AbilityGeneratedObjectFactory:
 
     def create_role(self,
                     role_id: str = None,
                     is_alive: bool = None,
                     body: pymunk.Body = None,
+                    collision_type_role = None,
                     cls: 'Role' = None,
                     space: pymunk.Space = None,
                     shape_type: str = None,
@@ -59,7 +58,7 @@ class RoleFactory:
                 shape_friction=shape_friction,
                 shape_elasticity=shape_elasticity,
                 body=pymunk.Body(body_type=body),
-                collision_type=self.collision_type_role,
+                collision_type=collision_type_role,
                 is_draw_rotation_indicator=True,
 
                 # **kwargs
@@ -77,7 +76,7 @@ class RoleFactory:
                 shape_friction=shape_friction,
                 shape_elasticity=shape_elasticity,
                 body=pymunk.Body(body_type=body),
-                collision_type=self.collision_type_role,
+                collision_type=collision_type_role,
 
                 # **kwargs
                 default_position=default_position,
@@ -97,8 +96,6 @@ class RoleFactory:
             health=health,
             expired_time=expired_time,
         )
-
-        self.collision_type_role += 1
 
         return role
     

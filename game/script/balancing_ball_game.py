@@ -71,11 +71,7 @@ class BalancingBallGame:
         self.sound_enabled = sound_enabled
         self.human_control = None
 
-        # Initialize physics space
         self.space = pymunk.Space()
-        self.collision_handler = CollisionHandler(self.space)
-
-
         self.level: Levels = get_level(
             level=level, 
             game=self,
@@ -88,6 +84,7 @@ class BalancingBallGame:
         self.window_x = GameConfig.SCREEN_WIDTH
         self.window_y = GameConfig.SCREEN_HEIGHT
         self.fps = GameConfig.FPS
+        self.collision_handler = CollisionHandler(self.space)
         self.capture_per_second = capture_per_second
         self.setup_pygame()
 
@@ -98,6 +95,8 @@ class BalancingBallGame:
         self.reward_calculator: RewardCalculator
         self.players, self.platforms, self.entities, self.reward_calculator = self.level.setup()
         self.num_players = len(self.players)
+
+        # Initialize physics space
 
         self.collision_handler.set_players(self.players)
         self.collision_handler.set_platforms(self.platforms)
@@ -318,8 +317,8 @@ class BalancingBallGame:
             self.render_fps_counter = 0
             self.render_fps_timer = current_time
 
-            total_entities = len(self.players) + len(self.platforms) + len(self.ability_generated_objects)
-            print(F"FPS: {int(self.current_render_fps)}, total_entities: {total_entities}")
+            # total_entities = len(self.players) + len(self.platforms) + len(self.ability_generated_objects)
+            # print(F"FPS: {int(self.current_render_fps)}, total_entities: {total_entities}")
 
         # 3. 繪製 UI (文字)
         if self.render_mode == "human":
