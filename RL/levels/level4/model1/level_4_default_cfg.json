@@ -67,15 +67,93 @@
             {
                 "shape_type": "rectangle",
                 "size": [
-                    1.0,
-                    0.01
+                    1.2,
+                    0.1
                 ],
                 "shape_mass": 1,
                 "shape_friction": 0.7,
                 "shape_elasticity": 0.1,
                 "default_position": [
                     0.5,
-                    1.0
+                    1.05
+                ],
+                "default_velocity": [
+                    0,
+                    0
+                ],
+                "default_angular_velocity": 0,
+                "abilities": [],
+                "health": "infinite",
+                "color": [
+                    235,
+                    64,
+                    52
+                ]
+            },
+            {
+                "shape_type": "rectangle",
+                "size": [
+                    1.2,
+                    0.1
+                ],
+                "shape_mass": 1,
+                "shape_friction": 0.7,
+                "shape_elasticity": 0.1,
+                "default_position": [
+                    0.5,
+                    -0.05
+                ],
+                "default_velocity": [
+                    0,
+                    0
+                ],
+                "default_angular_velocity": 0,
+                "abilities": [],
+                "health": "infinite",
+                "color": [
+                    235,
+                    64,
+                    52
+                ]
+            },
+            {
+                "shape_type": "rectangle",
+                "size": [
+                    0.1,
+                    1.2
+                ],
+                "shape_mass": 1,
+                "shape_friction": 0.7,
+                "shape_elasticity": 0.1,
+                "default_position": [
+                    1.05,
+                    0.5
+                ],
+                "default_velocity": [
+                    0,
+                    0
+                ],
+                "default_angular_velocity": 0,
+                "abilities": [],
+                "health": "infinite",
+                "color": [
+                    235,
+                    64,
+                    52
+                ]
+            },
+            {
+                "shape_type": "rectangle",
+                "size": [
+                    0.1,
+                    1.2
+                ],
+                "shape_mass": 1,
+                "shape_friction": 0.7,
+                "shape_elasticity": 0.1,
+                "default_position": [
+                    -0.05,
+                    0.5
                 ],
                 "default_velocity": [
                     0,
@@ -129,7 +207,11 @@
             "damping": 0.01,
             "fps": 360
         },
-        "reward": {}
+        "reward": {
+            "shooting_hit_reward": 1,
+            "being_hit_penalty": -0.3,
+            "round_end_reward": 20
+        }
     }
 }
 

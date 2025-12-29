@@ -5,9 +5,10 @@ from zmq_client_server.client_human import GameClientHuman
 
 
 if __name__ == "__main__":
-    client_id1 = "human_client1"
     fps = 100
     server_addr = "tcp://localhost:5555"
+    
+    client_id1 = "human_client1"
     client1 = GameClientHuman(
         client_id=client_id1,
         fps=fps,

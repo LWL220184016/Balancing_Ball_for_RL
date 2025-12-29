@@ -106,16 +106,16 @@ def start_level(level_id, server_addr, level: int, max_episode_step, level_confi
 
             # msg_level(level_id, f"接收到用戶輸入... \n {payload}")
             if msg_type == b"ACTION_RL":
-                player_actions.update(payload)
+                player_actions[key] = payload[key]
             elif msg_type == b"ACTION_HUMAN":
                 key, item = payload.popitem()
-                payload[key] = game.human_control.get_player_actions(keyboard_keys=item["keyboard_keys"], mouse_buttons=item["mouse_buttons"], mouse_position=item["mouse_position"])
-                player_actions.update(payload)
+                player_actions[key] = game.human_control.get_player_actions(keyboard_keys=item["keyboard_keys"], mouse_buttons=item["mouse_buttons"], mouse_position=item["mouse_position"])
                 # msg_level(level_id, f"轉換後的人類用戶輸入... \n {payload}")
             else:
                 warning_msg_not_expect_type(sender_id=sender_id, msg_type=msg_type, payload=payload)
 
         # 接收到了動作數據 payload = {client_id: action_dict}
+        # msg_level(level_id, f"轉換後的人類用戶輸入... \n {player_actions}")
         game.step(player_actions)
         obs_dict = game.screen_data
         # msg_level(level_id, f"發送環境觀察數據... \n {obs_dict}")

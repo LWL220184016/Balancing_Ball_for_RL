@@ -56,7 +56,7 @@ class Player(Role):
         return self.direction_count
     
     def get_special_status(self, status_key: str):
-        return self.special_status.get(status_key, False)
+        return self.special_status.get(status_key, 0)
     
     def set_reward_per_step(self, reward: float):
         self.reward_per_step = reward

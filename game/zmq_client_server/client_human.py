@@ -1,10 +1,10 @@
 import zmq
 import pickle
 import pygame
+import numpy as np
 
 from script.exceptions import GameClosedException
-from script.role.shapes.circle import Circle
-from script.role.shapes.rectangle import Rectangle
+from script.renderer import ModernGLRenderer
 from zmq_client_server.warning_msg import msg_client, warning_msg_not_expect_type
 
 from typing import TYPE_CHECKING
@@ -22,7 +22,6 @@ class GameClientHuman:
         self.server_addr = server_addr
         self.run_flag = True
         self.BACKGROUND_COLOR = None
-        self.draw_object = {}
 
     def start(self):
         # 在子進程開始運行時，才初始化 ZMQ，Pygame
@@ -41,6 +40,7 @@ class GameClientHuman:
         if msg_type == b"CLIENT_SETUP":
             config = pickle.loads(data)
             self.setup(config["client_setup"]) # setup 裡有 set_mode，這是正確的
+            pygame.display.set_caption(f"Balancing Ball - {self.client_id}")
 
         try:
             while self.run_flag:
@@ -75,12 +75,22 @@ class GameClientHuman:
 
     def render(self, obs: dict, clock):
         # 在這裡進行畫面渲染，obs 只含有真實視野的數據
-        msg_client(self.client_id, f"Rendering FOV: {obs}")
+        # msg_client(self.client_id, f"Rendering FOV: {obs}")
     
-        self.screen.fill(self.BACKGROUND_COLOR)
-        for key, data in obs.items():
-            draw_obj = self.draw_object[key] 
-            draw_obj["obj"]._draw(self.screen, draw_obj["color"], data)
+        self.mgl.clear(self.BACKGROUND_COLOR)
+        self.mgl.fbo_render.use()
+        poly_verts = obs[0]
+        circle_batch = obs[1]
+        
+        # 繪製所有多邊形
+        if poly_verts:
+            v_data = np.array(poly_verts, dtype='f4')
+            self.mgl.render_polygons(v_data.tobytes(), len(poly_verts) // 6)
+
+        # 繪製所有圓形
+        if circle_batch:
+            self.mgl.render_circles(circle_batch)
+
 
         pygame.display.flip()
         clock.tick(self.fps)
@@ -94,25 +104,17 @@ class GameClientHuman:
     def setup(self, config: dict[dict,dict]):
         # 顯示窗口設置
         msg_client(self.client_id, f"收到 Config: {config}")
-        self.screen = pygame.display.set_mode((config["window_x"], config["window_y"]))
-        pygame.display.set_caption("Balancing Ball - Indie Game")
+        flags = pygame.OPENGL | pygame.DOUBLEBUF
+        self.screen = pygame.display.set_mode((config["window_x"], config["window_y"]), flags=flags)
+        self.mgl = ModernGLRenderer(config["window_x"], config["window_y"], headless=False)
         self.font = pygame.font.Font(None, int(config["window_x"] / 34))
 
         # 初始化需要繪製的物件
         self.BACKGROUND_COLOR = config["background_color"]
-        for key, data in config["draw_object"].items():
-            self.draw_object[key] = {}
-            if "circle" == data["shape_type"]:
-                self.draw_object[key]["obj"] = Circle(shape_size=data["size"], is_load_by_game_class=False)
-
-            elif "rectangle" == data["shape_type"]:
-                self.draw_object[key]["obj"] = Rectangle(shape_size=data["size"], is_load_by_game_class=False)
-            
-            self.draw_object[key]["color"] = data["color"]
         
 if __name__ == "__main__":
     client_id = "human_client1"
-    fps = 100
+    fps = 360
     client = GameClientHuman(
         client_id=client_id,
         fps=fps,

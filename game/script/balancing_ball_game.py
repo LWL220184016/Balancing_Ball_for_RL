@@ -63,6 +63,8 @@ class BalancingBallGame:
         self.BACKGROUND_COLOR=BACKGROUND_COLOR
         if render_mode == "headless":
             self.BACKGROUND_COLOR = (0,0,0)
+        self.self_color = (0,255,0)
+        self.enemy_color = (255,0,0)
             
         self.max_episode_step = max_episode_step
 
@@ -300,15 +302,12 @@ class BalancingBallGame:
         
         if self.render_mode == "server":
             self.screen_data = {}
-            for player in self.players:
-                self.screen_data[player.role_id] = {}
-                for obj in self.players + self.platforms + self.entities + self.ability_generated_objects:
-                    self.screen_data[player.role_id][obj.role_id] = obj.shape.get_draw_data()
+            for p in self.players:
+                self.screen_data[p.role_id] = self.calculate_verts(p.role_id)
             return None
-
-        # 清除螢幕 (使用 ModernGL)
+        
+        # 清除螢幕 
         self.mgl.clear(self.BACKGROUND_COLOR)
-        self._draw_scene_moderngl()
         self.render_fps_counter += 1
         current_time = time.time()
         time_diff = current_time - self.render_fps_timer
@@ -317,26 +316,31 @@ class BalancingBallGame:
             self.render_fps_counter = 0
             self.render_fps_timer = current_time
 
-            # total_entities = len(self.players) + len(self.platforms) + len(self.ability_generated_objects)
-            # print(F"FPS: {int(self.current_render_fps)}, total_entities: {total_entities}")
+            total_entities = len(self.players) + len(self.platforms) + len(self.ability_generated_objects)
+            print(F"FPS: {int(self.current_render_fps)}, total_entities: {total_entities}")
 
         # 3. 繪製 UI (文字)
         if self.render_mode == "human":
+
             # 清空 UI 層
+            poly_verts, circle_batch = self.calculate_verts()
+            self._draw_scene_moderngl(poly_verts, circle_batch)
             self.ui_surface.fill((0,0,0,0)) 
             self._draw_game_info_to_surface(self.ui_surface)
             self.mgl.draw_texture(self.ui_surface)
             pygame.display.flip()
             return None
-
+        
         elif self.render_mode == "headless":
-            self.screen_data = self.mgl.read_pixels()
-            
+            self.screen_data = {}
+            for p in self.players:
+                poly_verts, circle_batch = self.calculate_verts(p.role_id)
+                self._draw_scene_moderngl(poly_verts, circle_batch)
+                self.screen_data[p.role_id] = self.mgl.read_pixels()
             return None
 
-    def _draw_scene_moderngl(self):
-        """ModernGL 繪製流程"""
-        
+    def calculate_verts(self, player_role_id = None):
+
         # 準備數據容器
         # 圓形數據: [x, y, radius, r, g, b]
         circle_batch = []
@@ -352,15 +356,25 @@ class BalancingBallGame:
         all_entities = []
         # 這裡根據你的遊戲邏輯，只選活著的或者存在的
         for p in self.players:
-            if p.get_is_alive(): all_entities.append(p)
+            if p.get_is_alive(): 
+                if player_role_id != None and p.role_id == player_role_id:
+                    p.color = self.self_color
+                    target_digit = p.get_collision_type() % 1000
+                else:
+                    p.color = self.enemy_color
+                all_entities.append(p)
             
-        # 展開列表 (比 += 快)
         all_entities.extend(self.platforms)
         for obj_list in self.entities: # 假設 self.entities 是列表的列表
             all_entities.extend(obj_list)
-        all_entities.extend(self.ability_generated_objects)
 
-        # 遍歷並分類數據 (純 CPU 計算，盡量用 NumPy 加速)
+        for obj in self.ability_generated_objects:
+            if obj.get_collision_type() % 1000 == target_digit:
+                obj.color = self.self_color
+            else:
+                obj.color = self.enemy_color
+            all_entities.append(obj)
+
         for entity in all_entities:
             shape = entity.shape.shape
             body = entity.shape.body
@@ -426,6 +440,10 @@ class BalancingBallGame:
                     v3.x, v3.y, c_r, c_g, c_b, 1.0,
                     v4.x, v4.y, c_r, c_g, c_b, 1.0
                 ])
+        return poly_verts, circle_batch
+
+    def _draw_scene_moderngl(self, poly_verts, circle_batch):
+        """ModernGL 繪製流程"""
 
         # 提交給 GPU 渲染 (僅調用兩次 Draw Call) 
         self.mgl.fbo_render.use()
@@ -589,7 +607,6 @@ class BalancingBallGame:
                     raise GameClosedException("User closed the game window.") # <--- 修改點
 
     def assign_players(self, player_id_list: list[str]):
-        msg = None
         RL_player_id = "RL_player"
         RL_player_num = 0
         for p in self.players:
@@ -606,12 +623,10 @@ class BalancingBallGame:
                     from script.human_control import HumanControl
                     
                 self.human_control = HumanControl(self)
-                
 
         if len(player_id_list) > 0: 
-            msg = f"The following players are not assigned: {player_id_list}"
+            print(f"The following players are not assigned: {player_id_list}")
 
-        return msg
 
     def add_step(self, steps: int = None):
         self.steps += steps

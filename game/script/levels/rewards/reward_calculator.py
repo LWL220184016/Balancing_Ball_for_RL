@@ -23,6 +23,7 @@ class RewardComponent(ABC):
 
         # define reward parameters
         for key, value in reward_parameters.items():
+            # print(f"設置獎勵參數 {key}: {value}")
             setattr(self, key, value)
 
     @property
