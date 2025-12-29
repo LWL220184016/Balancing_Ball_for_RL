@@ -1,0 +1,5 @@
+C:\Users\User\Desktop\AI\Balancing_Ball_for_RL\.conda\python.exe -m pyinstrument --html c:/Users/User/Desktop/AI/Balancing_Ball_for_RL/game/test_server.py > report.html
+C:\Users\User\Desktop\AI\Balancing_Ball_for_RL\.conda\python.exe -m pyinstrument c:/Users/User/Desktop/AI/Balancing_Ball_for_RL/game/test_server.py
+
+C:\Users\User\Desktop\AI\Balancing_Ball_for_RL\.conda\python.exe -m pyinstrument --html C:/Users/User/Desktop/AI/Balancing_Ball_for_RL/game/test_game_only.py > report.html
+C:\Users\User\Desktop\AI\Balancing_Ball_for_RL\.conda\python.exe -m pyinstrument C:/Users/User/Desktop/AI/Balancing_Ball_for_RL/game/test_game_only.py

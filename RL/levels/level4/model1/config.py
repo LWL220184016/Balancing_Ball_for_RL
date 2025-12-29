@@ -1,11 +1,7 @@
-
 import pathlib
-import torch
 # <<< 導入正確的 SAC 策略網路 >>>
 # MlpPolicy 用於狀態輸入 (state_based)
 # CnnPolicy 用於圖像輸入 (game_screen)
-from stable_baselines3 import SAC
-from stable_baselines3.sac.policies import MlpPolicy, CnnPolicy
 
 class model_config:
     level=4

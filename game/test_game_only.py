@@ -8,7 +8,7 @@ environment_configs = None
 
 game = BalancingBallGame(render_mode="headless", 
 # game = BalancingBallGame(render_mode="human", 
-                            max_episode_step=300000,
+                            max_episode_step=30000,
                             collision_type=collision_type,
                             player_configs=player_configs,
                             platform_configs=platform_configs,

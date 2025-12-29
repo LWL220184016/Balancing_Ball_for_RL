@@ -356,12 +356,13 @@ class BalancingBallGame:
         all_entities = []
         # 這裡根據你的遊戲邏輯，只選活著的或者存在的
         for p in self.players:
+            if player_role_id != None and p.role_id == player_role_id:
+                p.color = self.self_color
+                target_digit = p.get_collision_type() % 1000
+            else:
+                p.color = self.enemy_color
+                
             if p.get_is_alive(): 
-                if player_role_id != None and p.role_id == player_role_id:
-                    p.color = self.self_color
-                    target_digit = p.get_collision_type() % 1000
-                else:
-                    p.color = self.enemy_color
                 all_entities.append(p)
             
         all_entities.extend(self.platforms)
