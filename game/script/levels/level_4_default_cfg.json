@@ -10,7 +10,7 @@
             "shape_elasticity": 0.8,
             "default_position": [
                 0.3,
-                0.6
+                0.5
             ],
             "default_velocity": [
                 0,
@@ -19,6 +19,7 @@
             "default_angular_velocity": 0,
             "abilities": [
                 "Move_topdown_viewing_angle",
+                "Turning_topdown_viewing_angle",
                 "Shoot"
             ],
             "health": 10,
@@ -38,7 +39,7 @@
             "shape_elasticity": 0.8,
             "default_position": [
                 0.7,
-                0.6
+                0.5
             ],
             "default_velocity": [
                 0,
@@ -47,6 +48,7 @@
             "default_angular_velocity": 0,
             "abilities": [
                 "Move_topdown_viewing_angle",
+                "Turning_topdown_viewing_angle",
                 "Shoot"
             ],
             "health": 10,

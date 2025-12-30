@@ -4,6 +4,11 @@ import pathlib
 # CnnPolicy 用於圖像輸入 (game_screen)
 
 class model_config:
+    model_obs_type = "game_screen"
+    image_size = (160, 160)
+    stack_size = 3
+    channels = 1
+
     level=4
     level_config_path=str(pathlib.Path(__file__).parent.resolve()) + f"/level_{level}_default_cfg.json"
     
@@ -16,6 +21,7 @@ class train_config:
     tensorboard_log="./logs/"
     model_dir="./models/"
     render_mode="headless"  
+    seed=31415926
 
     msg = """
     render_mode = "human" Suitable for testing models on a local computer, and can display the game screen while the model is playing the game

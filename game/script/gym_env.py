@@ -4,15 +4,16 @@ import cv2
 
 from gymnasium import spaces
 from script.game_config import GameConfig
+from script.schema_to_gym_space import schema_to_gym_space
+from ray.rllib.env.multi_agent_env import MultiAgentEnv
+
 
 try:
     from balancing_ball_game import BalancingBallGame
 except ImportError:
     from script.balancing_ball_game import BalancingBallGame
 
-
-
-class BalancingBallEnv(gym.Env):
+class BalancingBallEnv(MultiAgentEnv):
     """
     Gymnasium environment for the Balancing Ball game with continuous action space
     """
@@ -38,41 +39,59 @@ class BalancingBallEnv(gym.Env):
         # Initialize game
 
         # Image preprocessing settings
-        self.image_size = model_cfg.image_size
-        self.action_size = model_cfg.action_size
+        self.image_size = model_cfg.image_size if model_cfg.image_size else (0, 0)
 
-        self.stack_size = 3  # Number of frames to stack
-        self.observation_stack = []  # Initialize the stack
+        self.stack_size = model_cfg.stack_size  # Number of frames to stack
+        self.observation_stack_dict: dict[list, list] = {} # Initialize the stack
         self.render_mode = render_mode
 
         self.game = BalancingBallGame(
             render_mode=render_mode,
+            obs_width=self.image_size[0],
+            obs_height=self.image_size[1],
             sound_enabled=(render_mode == "human"),
             max_episode_step = train_cfg.max_episode_step,
             level_config_path=model_cfg.level_config_path,
             level = model_cfg.level,
+            capture_per_second = None,
         )
-        
         self.window_x = GameConfig.SCREEN_WIDTH
         self.window_y = GameConfig.SCREEN_HEIGHT
-
         self.num_players = self.game.num_players
 
+        players_role_ids = []
+        for i in range(self.num_players):
+            players_role_ids.append(f"RL_player{i}")
+
+        self.game.assign_players(players_role_ids)
+        
+
         # Action space: continuous - Box space for horizontal force [-1.0, 1.0] for each player
-        self.action_space = spaces.Box(low=model_cfg.action_space_low, high=model_cfg.action_space_high, shape=(model_cfg.action_size,), dtype=np.float32)
+
+        self.action_space = schema_to_gym_space(GameConfig.ACTION_SPACE_CONFIG)
+        print("self.action_space: ", self.action_space)
+        # self.action_space = spaces.Box(low=model_cfg.action_space_low, high=model_cfg.action_space_high, shape=(model_cfg.action_size,), dtype=np.float32)
 
         if model_cfg.model_obs_type == "game_screen":
-            channels = 1
-
             # Image observation space with stacked frames
             self.observation_space = spaces.Box(
                 low=0, high=255,
-                shape=(self.image_size[0], self.image_size[1], channels * self.stack_size),
+                shape=(self.image_size[0], self.image_size[1], model_cfg.channels * self.stack_size),
                 dtype=np.uint8,
             )
             self.step = self.step_game_screen
             self.reset = self.reset_game_screen
+            
+            self.game.render()
+            obs = self.game._get_observation_game_screen()
+            for key, obs in obs.items():
+                self.observation_stack_dict[key] = []
+                while len(self.observation_stack_dict[key]) < self.stack_size:
+                    self.observation_stack_dict[key].insert(0, obs)  # Pad with current frame at the beginning
+            
         elif model_cfg.model_obs_type == "state_based":
+            raise ValueError(f"obs_type: {model_cfg.model_obs_type} is out of support")
+
             obs_size = model_cfg.obs_size
             self.observation_space = spaces.Box(
                 low=np.full(obs_size, -1.0),
@@ -93,55 +112,42 @@ class BalancingBallEnv(gym.Env):
         Returns:
             Processed observation ready for RL
         """
-
+        # 一個環境多於一個 Agent，返回的是 dict
         observation = self.game._get_observation_game_screen()
-        observation = np.transpose(observation, (1, 0, 2))
+        # observation = np.transpose(observation, (1, 0, 2))
 
-        observation = cv2.cvtColor(observation, cv2.COLOR_RGB2GRAY)
-        observation = np.expand_dims(observation, axis=-1)  # Add channel dimension back
-
-        # Resize to target size
-        if observation.shape[0] != self.image_size[0] or observation.shape[1] != self.image_size[1]:
-            # For grayscale, temporarily remove the channel dimension for cv2.resize
-            observation = cv2.resize(
-                observation.squeeze(-1),
-                (self.image_size[1], self.image_size[0]),
-                interpolation=cv2.INTER_AREA
-            )
-            observation = np.expand_dims(observation, axis=-1)  # Add channel dimension back
+        # observation = cv2.cvtColor(observation, cv2.COLOR_RGB2GRAY)
+        # observation = np.expand_dims(observation, axis=-1)  # Add channel dimension back
 
         return observation
 
     def step_game_screen(self, action):
         """Take a step in the environment with continuous actions"""
-        # Ensure action is the right shape
 
         step_rewards, terminated = self.game.step(action)
-        obs = self._preprocess_observation_game_screen()
+        new_obs = self._preprocess_observation_game_screen()
 
         # Stack the frames
-        self.observation_stack.append(obs)
-        if len(self.observation_stack) > self.stack_size:
-            self.observation_stack.pop(0)  # Remove the oldest frame
-
-        # If the stack isn't full yet, pad it with the current frame
-        while len(self.observation_stack) < self.stack_size:
-            self.observation_stack.insert(0, obs)  # Pad with current frame at the beginning
-
-        stacked_obs = np.concatenate(self.observation_stack, axis=-1)
-
-        # For multi-agent, return sum of rewards or individual rewards based on your preference
-        # Here we return the sum for single-agent training on multi-player game
-        total_reward = sum(step_rewards) if isinstance(step_rewards, list) else step_rewards
+        stacked_obs = {}
+        for key, obs in self.observation_stack_dict.items():
+            obs.append(new_obs[key])
+            obs.pop(0)
+            stacked_obs[key] = np.concatenate(obs, axis=-1)
 
         # Gymnasium expects (observation, reward, terminated, truncated, info)
+        terminateds = {agent_id: terminated for agent_id in stacked_obs.keys()}
+        terminateds["__all__"] = terminated
+        
+        truncateds = {agent_id: False for agent_id in stacked_obs.keys()}
+        truncateds["__all__"] = False
+
         info = {
-            'individual_rewards': step_rewards if isinstance(step_rewards, list) else [step_rewards],
+            'individual_rewards': step_rewards,
             'winner': getattr(self.game, 'winner', None),
             'scores': getattr(self.game, 'score', [0])
         }
 
-        return stacked_obs, total_reward, terminated, False, info
+        return stacked_obs, step_rewards, terminateds, truncateds, info
 
     def reset_game_screen(self, seed=None, options=None):
         """Reset the environment"""
@@ -151,14 +157,18 @@ class BalancingBallEnv(gym.Env):
         observation = self._preprocess_observation_game_screen()
 
         # Reset the observation stack
-        self.observation_stack = []
+        self.observation_stack_dict = {}
 
-        # Fill the stack with the initial observation
-        for _ in range(self.stack_size):
-            self.observation_stack.append(observation)
+        stacked_obs = {}
+        for key, obs in observation.items():
+            self.observation_stack_dict[key] = []
+            self.observation_stack_dict[key].append(obs)
+            # If the stack isn't full yet, pad it with the current frame
+            while len(self.observation_stack_dict[key]) < self.stack_size:
+                self.observation_stack_dict[key].insert(0, obs)  # Pad with current frame at the beginning
 
         # Create stacked observation
-        stacked_obs = np.concatenate(self.observation_stack, axis=-1)
+            stacked_obs[key] = np.concatenate(self.observation_stack_dict[key], axis=-1)
 
         info = {}
         return stacked_obs, info
@@ -206,10 +216,6 @@ class BalancingBallEnv(gym.Env):
 
         info = {}
         return observation, info
-
-    def render(self):
-        """Render the environment"""
-        return self.game.render()
 
     def close(self):
         """Clean up resources"""

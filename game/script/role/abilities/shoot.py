@@ -30,45 +30,42 @@ class Shoot(Ability):
             self.collision_type_bullet = GameConfig.get_collision_type(self.ability_generated_object_name)
             self.bullet_factory = AbilityGeneratedObjectFactory()
 
-    def action(self, action_value: tuple[float, float], player: 'Player', current_step: int):
+    def action(self, action_value: int, player: 'Player', current_step: int):
+        if action_value <= 0: 
+            return
             
-        if self.check_is_ready(current_step):
-            self.set_last_used_step(current_step)
-            x, y = player.get_position()
-            target_x, target_y = action_value
+        if not self.check_is_ready(current_step):
+            return
+        
+        self.set_last_used_step(current_step)
+        
+        x, y = player.get_position()
+        facing_angle = player.shape.body.angle 
 
-            collision_type = player.get_collision_type() + self.collision_type_bullet
-            new_bullet = self.bullet_factory.create_role(
-                    space=player.space, 
-                    role_id=f"bullet", 
-                    is_alive=True,
-                    body=pymunk.Body.DYNAMIC,
-                    collision_type_role=collision_type,
-                    cls=MovableObject,
-                    **self.ability_generated_object_config
-                ) 
-            new_bullet.set_position_absolute_value((x, y))
-            new_bullet.add_to_space()
+        collision_type = player.get_collision_type() + self.collision_type_bullet
+        new_bullet = self.bullet_factory.create_role(
+                space=player.space, 
+                role_id=f"bullet", 
+                is_alive=True,
+                body=pymunk.Body.DYNAMIC,
+                collision_type_role=collision_type,
+                cls=MovableObject,
+                **self.ability_generated_object_config
+            ) 
+        
+        new_bullet.set_position_absolute_value((x, y))
+        new_bullet.shape.body.angle = facing_angle
+        new_bullet.add_to_space()
 
-            # 計算方向向量
-            direction_vector = pymunk.Vec2d(target_x - x, target_y - y)
+        velocity_vector = pymunk.Vec2d(1, 0).rotated(facing_angle) * self.speed
+        new_bullet.set_velocity(velocity_vector)
 
-            # 只有在向量長度不為零時才進行計算，以避免除以零的錯誤
-            if direction_vector.length > 0:
-                # 正規化向量（使其長度為1）並乘以速度
-                velocity_vector = direction_vector.normalized() * self.speed
-                # 直接設置速度
-                new_bullet.set_velocity(velocity_vector)
-
-            return new_bullet
+        return new_bullet
 
     def human_control_interface(self, keyboard_keys, mouse_buttons, mouse_position):
         if self._is_pressed(self._keyboard_action, self._mouse_action, keyboard_keys, mouse_buttons):
-            if mouse_position:
-                return mouse_position
-            mouse_position = pygame.mouse.get_pos()  # Activate ability 1
-            return mouse_position
-        return None
-
+            return 1
+        return 0
+    
     def reset(self):
         return super().reset()

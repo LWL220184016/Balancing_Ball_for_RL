@@ -64,27 +64,14 @@ class Role(ABC):
         ability_generated_objects: list[Role] = []
 
         # 遍歷玩家擁有的所有能力
-        for ability_name, ability_instance in self.abilities.items():
+        for ability_name, action_data in action.items():
             # 從 action 字典中獲取對應的數據
-            action_data = action.get(ability_name)
+            ability_instance = self.abilities[ability_name]
 
-            # 只有當 action 中有對應資料且資料不為「無效值」時執行
             if action_data is not None:
-                # 這裡的判斷邏輯可以根據你的需求調整
-                # 通常 0 代表不執行動作，但某些 tuple (0,0) 可能有意義，所以需要小心處理
-                should_execute = False
-                
-                if isinstance(action_data, (int, float)) and action_data != 0:
-                    should_execute = True
-                elif isinstance(action_data, (tuple, list)) and any(v != 0 for v in action_data):
-                    should_execute = True
-                elif isinstance(action_data, bool) and action_data is True:
-                    should_execute = True
-
-                if should_execute:
-                    data = ability_instance.action(action_data, self, current_step)
-                    if getattr(data, 'is_Role_sub_class', False):
-                        ability_generated_objects.append(data)
+                data = ability_instance.action(action_data, self, current_step)
+                if getattr(data, 'is_Role_sub_class', False):
+                    ability_generated_objects.append(data)
 
         return ability_generated_objects
                     

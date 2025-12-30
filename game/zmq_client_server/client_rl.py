@@ -6,7 +6,7 @@ import os
 import gymnasium as gym
 import numpy as np
 
-from schema_to_gym_space import schema_to_gym_space
+from game.script.schema_to_gym_space import schema_to_gym_space
 
 class GameClientRL:
     def __init__(self, client_id, server_addr="ipc:///tmp/zmq_router_pipe"):

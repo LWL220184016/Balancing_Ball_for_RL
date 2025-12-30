@@ -5,6 +5,7 @@ import os
 import numpy as np
 import sys
 
+from PIL import Image
 from typing import Optional
 # from IPython.display import ipd, display, Image, clear_output
 
@@ -37,6 +38,8 @@ class BalancingBallGame:
     def __init__(self,
                  BACKGROUND_COLOR = (41, 50, 65),
                  render_mode: str = None,
+                 obs_width: int = 160,
+                 obs_height: int = 160,
                  sound_enabled: bool = True,
                  max_episode_step: int = None,
                  collision_type: dict = None,
@@ -63,8 +66,10 @@ class BalancingBallGame:
         self.BACKGROUND_COLOR=BACKGROUND_COLOR
         if render_mode == "headless":
             self.BACKGROUND_COLOR = (0,0,0)
-        self.self_color = (0,255,0)
-        self.enemy_color = (255,0,0)
+            self.self_color = (0,255,0)
+            self.enemy_color = (255,0,0)
+        self.obs_width = obs_width
+        self.obs_height = obs_height
             
         self.max_episode_step = max_episode_step
 
@@ -88,6 +93,10 @@ class BalancingBallGame:
         self.fps = GameConfig.FPS
         self.collision_handler = CollisionHandler(self.space)
         self.capture_per_second = capture_per_second
+        if capture_per_second:
+            self.capture_per_second = capture_per_second * self.fps
+            os.makedirs("./capture/", exist_ok=True)
+
         self.setup_pygame()
 
         self.players: list[Player]
@@ -143,7 +152,7 @@ class BalancingBallGame:
 
             pygame.display.set_caption("Balancing Ball - ModernGL")
             # 初始化渲染器
-            self.mgl = ModernGLRenderer(self.window_x, self.window_y, headless=False)
+            self.mgl = ModernGLRenderer(self.window_x, self.window_y, obs_width=self.obs_width, obs_height=self.obs_height, headless=False)
             
             # 文字使用 Pygame Font，但渲染方式會改變
             self.font = pygame.font.Font(None, int(self.window_x / 34))
@@ -281,14 +290,28 @@ class BalancingBallGame:
 
         return rewards, terminated
 
-    def _get_observation_game_screen(self) -> np.ndarray:
+    def _get_observation_game_screen(self) -> dict[np.ndarray, np.ndarray]:
         """Convert game state to observation for RL agent"""
         # update particles and draw them
 
-        if isinstance(self.capture_per_second, int) and self.frame_count % self.capture_per_second == 0:  # Every second at 60 FPS
-            pygame.image.save(self.screen, f"capture/frame_{self.frame_count/60}.png")
+        if isinstance(self.capture_per_second, int | float):
+            if self.frame_count % self.capture_per_second == 0:  # Every second at 60 FPS
+                pixels = self.screen_data # 得到 (H, W, 1) 的 numpy 數組
+                if isinstance(pixels, dict):
+                    for key, pixel in pixels.items():
+                        img_to_save = pixel.squeeze() 
 
+                        # 轉換為 Image 對象並保存 (mode='L' 表示 8-bit 灰階)
+                        Image.fromarray(img_to_save, mode='L').save(f"capture/frame_{key}_{self.frame_count/60}.png")
+                        print(f"圖片已保存為 capture/frame_{self.frame_count/60}.png")
+                else:
+                    img_to_save = pixel.squeeze() 
+
+                    # 轉換為 Image 對象並保存 (mode='L' 表示 8-bit 灰階)
+                    Image.fromarray(img_to_save, mode='L').save(f"capture/frame_{key}_{self.frame_count/60}.png")
+                    print(f"圖片已保存為 capture/frame_{self.frame_count/60}.png")
             self.frame_count += 1
+
         return self.screen_data
     
     def _get_observation_state_based(self) -> np.ndarray:
@@ -348,33 +371,40 @@ class BalancingBallGame:
         # 多邊形數據: [x, y, r, g, b, a]
         # 我們直接構建一個大列表，最後再一次性轉 numpy
         poly_verts = []
-        
         # 預先定義常數以加速訪問
         to_color = lambda c: (c[0]/255, c[1]/255, c[2]/255)
         
         # 收集所有實體
         all_entities = []
         # 這裡根據你的遊戲邏輯，只選活著的或者存在的
-        for p in self.players:
-            if player_role_id != None and p.role_id == player_role_id:
-                p.color = self.self_color
-                target_digit = p.get_collision_type() % 1000
-            else:
-                p.color = self.enemy_color
-                
-            if p.get_is_alive(): 
-                all_entities.append(p)
+        if player_role_id:
+            for p in self.players:
+                if p.role_id == player_role_id:
+                    p.color = self.self_color
+                    target_digit = p.get_collision_type() % 1000
+                else:
+                    p.color = self.enemy_color
+                    
+                if p.get_is_alive(): 
+                    all_entities.append(p)
             
+            for obj in self.ability_generated_objects:
+                if obj.get_collision_type() % 1000 == target_digit:
+                    obj.color = self.self_color
+                else:
+                    obj.color = self.enemy_color
+                all_entities.append(obj)
+                
+        else:
+            for p in self.players:
+                if p.get_is_alive(): 
+                    all_entities.append(p)
+            all_entities.extend(self.ability_generated_objects)
+
+
         all_entities.extend(self.platforms)
         for obj_list in self.entities: # 假設 self.entities 是列表的列表
             all_entities.extend(obj_list)
-
-        for obj in self.ability_generated_objects:
-            if obj.get_collision_type() % 1000 == target_digit:
-                obj.color = self.self_color
-            else:
-                obj.color = self.enemy_color
-            all_entities.append(obj)
 
         for entity in all_entities:
             shape = entity.shape.shape

@@ -27,6 +27,7 @@ class HumanControl:
         if keyboard_keys == None and mouse_buttons == None:
             keyboard_keys = pygame.key.get_pressed()
             mouse_buttons = pygame.mouse.get_pressed()
+            mouse_position = pygame.mouse.get_pos() 
 
             action_dict = {self.player.role_id: {}}
 

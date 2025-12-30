@@ -51,7 +51,6 @@ class Levels:
         if not self.collision_type_player or not self.collision_type_platform:
             raise ValueError(f"Invalid collision_type: {self.collision_type}, must contain 'player' and 'platform' keys with integer values")
         
-        
         self.players: list['Player'] = [player_factory.create_role(space=self.space, is_alive=True, body=pymunk.Body.DYNAMIC, cls=Player, **config) for config in self.player_configs]
         
         if self.level_configs.get("platform_configs") is not None:
@@ -82,6 +81,7 @@ class Levels:
 
         GameConfig.PLAYER_NUM = len(self.players)
         GameConfig.ACTION_SPACE_CONFIG = action_space_config
+        print(action_space_config, flush=True)
 
         return self.players, self.platforms
 

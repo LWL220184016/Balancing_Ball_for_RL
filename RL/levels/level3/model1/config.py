@@ -19,6 +19,7 @@ class model_config:
     action_space_high=1.0
     action_num = 1
     action_size = 2
+    stack_size = 3
     obs_size = 12
 
     image_size=(84, 84) if model_obs_type == "game_screen" else None

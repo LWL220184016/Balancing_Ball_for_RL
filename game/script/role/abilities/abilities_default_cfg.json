@@ -17,21 +17,16 @@
             "mouse": {}
         },
         "action_space": {
-            "type": "dict",
-            "spaces": {
-                "move": {
-                    "type": "box",
-                    "dtype": "float32",
-                    "shape": [
-                        1
-                    ],
-                    "range": [
-                        -1.0,
-                        1.0
-                    ],
-                    "description": "Multiply the output by Force for moving"
-                }
-            }
+            "type": "box",
+            "dtype": "float32",
+            "shape": [
+                1
+            ],
+            "range": [
+                -1.0,
+                1.0
+            ],
+            "description": "Multiply the output by Force for moving"
         }
     },
     "Move_topdown_viewing_angle": {
@@ -60,21 +55,16 @@
             "mouse": {}
         },
         "action_space": {
-            "type": "dict",
-            "spaces": {
-                "move": {
-                    "type": "box",
-                    "dtype": "float32",
-                    "shape": [
-                        2
-                    ],
-                    "range": [
-                        -1.0,
-                        1.0
-                    ],
-                    "description": "Multiply the output by Force for moving"
-                }
-            }
+            "type": "box",
+            "dtype": "float32",
+            "shape": [
+                2
+            ],
+            "range": [
+                -1.0,
+                1.0
+            ],
+            "description": "Multiply the output by Force for moving"
         }
     },
     "Jump": {
@@ -90,14 +80,9 @@
             "mouse": {}
         },
         "action_space": {
-            "type": "dict",
-            "spaces": {
-                "action": {
-                    "type": "discrete",
-                    "dtype": "int64",
-                    "n": 2
-                }
-            }
+            "type": "discrete",
+            "dtype": "int64",
+            "n": 2
         }
     },
     "Collision": {
@@ -113,26 +98,9 @@
             }
         },
         "action_space": {
-            "type": "dict",
-            "spaces": {
-                "Rotate": {
-                    "type": "box",
-                    "dtype": "float32",
-                    "shape": [
-                        1
-                    ],
-                    "range": [
-                        -1.0,
-                        1.0
-                    ],
-                    "description": "Multiply the output by 180 degrees for rotation"
-                },
-                "action": {
-                    "type": "discrete",
-                    "dtype": "int64",
-                    "n": 2
-                }
-            }
+            "type": "discrete",
+            "dtype": "int64",
+            "n": 2
         }
     },
     "Shoot": {
@@ -148,27 +116,30 @@
             }
         },
         "action_space": {
-            "type": "dict",
-            "spaces": {
-                "Rotate": {
-                    "type": "box",
-                    "dtype": "float32",
-                    "shape": [
-                        1
-                    ],
-                    "range": [
-                        -1.0,
-                        1.0
-                    ],
-                    "description": "Multiply the output by 180 degrees for rotation"
-                },
-                "action": {
-                    "type": "discrete",
-                    "dtype": "int64",
-                    "n": 2
-                }
-            }
+            "type": "discrete",
+            "dtype": "int64",
+            "n": 2
+        }
+    },
+    "Turning_topdown_viewing_angle": {
+        "force": 0,
+        "speed": 0,
+        "cooldown": 0,
+        "key": {
+            "keyboard": {},
+            "mouse": {}
+        },
+        "action_space": {
+            "type": "box",
+            "dtype": "float32",
+            "shape": [
+                1
+            ],
+            "range": [
+                -1.0,
+                1.0
+            ],
+            "description": "Multiply the output by 180 degrees for rotation"
         }
     }
 }
-

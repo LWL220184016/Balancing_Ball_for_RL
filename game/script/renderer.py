@@ -9,8 +9,8 @@ class ModernGLRenderer:
         self.height = height
         self.obs_width = obs_width
         self.obs_height = obs_height
+        self.headless = headless
         
-        # 上下文初始化 (保持不變)
         if headless:
             if sys.platform.startswith('linux'):
                 try:
@@ -19,18 +19,21 @@ class ModernGLRenderer:
                     self.ctx = moderngl.create_context(standalone=True)
             else:
                 self.ctx = moderngl.create_context(standalone=True)
-            self.fbo_render = self.ctx.simple_framebuffer((obs_width, obs_height), components=3)
+            # 使用單通道 (Luminance) 緩衝區，節省 GPU 記憶體和 read_pixels 頻寬
+            self.fbo_render = self.ctx.simple_framebuffer((obs_width, obs_height), components=1)
+            self._build_ctx_program_gray()
         else:
             self.ctx = moderngl.create_context(standalone=False)
             self.fbo_render = self.ctx.screen
             self._init_texture_renderer()
             self.ui_texture = self.ctx.texture((width, height), 4)
+            self._build_ctx_program_rgb()
 
         # 啟用混合模式
         self.ctx.enable(moderngl.BLEND)
         self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
         
-        # 預計算投影矩陣 (保持不變)
+        # 預計算投影矩陣
         self.proj_matrix = self.get_ortho_matrix(0, width, height, 0)
         
         # 初始化兩個專用的批量渲染器 
@@ -51,46 +54,6 @@ class ModernGLRenderer:
         使用實例化渲染畫圓。
         我們不畫32邊形，而是畫一個正方形，然後在 Shader 裡把多餘的像素丟掉變成圓。
         """
-        self.circle_prog = self.ctx.program(
-            vertex_shader='''
-                #version 330
-                in vec2 in_vert;      // 正方形的基礎頂點 (-1~1)
-                in vec2 in_pos;       // 圓心位置 (Instance Data)
-                in float in_radius;   // 半徑 (Instance Data)
-                in vec3 in_color;     // 顏色 (Instance Data)
-                
-                uniform mat4 proj;
-                
-                out vec2 v_uv;        // 用於計算圓形的 UV
-                out vec3 v_color;
-                
-                void main() {
-                    v_uv = in_vert;
-                    v_color = in_color;
-                    // 將單位正方形縮放並移動到圓心
-                    vec2 pos = in_pos + (in_vert * in_radius);
-                    gl_Position = proj * vec4(pos, 0.0, 1.0);
-                }
-            ''',
-            fragment_shader='''
-                #version 330
-                in vec2 v_uv;
-                in vec3 v_color;
-                out vec4 f_color;
-                
-                void main() {
-                    // 計算當前像素距離中心的距離 (SDF)
-                    float dist = length(v_uv);
-                    // 如果距離大於1 (在圓外)，丟棄像素；否則平滑邊緣 (Anti-aliasing)
-                    float delta = fwidth(dist);
-                    float alpha = 1.0 - smoothstep(1.0 - delta, 1.0, dist);
-                    
-                    if (alpha <= 0.0) discard;
-                    
-                    f_color = vec4(v_color, alpha);
-                }
-            '''
-        )
         self.circle_prog['proj'].write(self.proj_matrix)
         
         # 基礎幾何體：一個單位正方形 (2x2)
@@ -131,27 +94,6 @@ class ModernGLRenderer:
     # ⚡️ 多邊形渲染器 (Batching)
     # ==========================================
     def _init_poly_renderer(self):
-        self.poly_prog = self.ctx.program(
-            vertex_shader='''
-                #version 330
-                in vec2 in_pos;
-                in vec4 in_color;
-                uniform mat4 proj;
-                out vec4 v_color;
-                void main() {
-                    gl_Position = proj * vec4(in_pos, 0.0, 1.0);
-                    v_color = in_color;
-                }
-            ''',
-            fragment_shader='''
-                #version 330
-                in vec4 v_color;
-                out vec4 f_color;
-                void main() {
-                    f_color = v_color;
-                }
-            '''
-        )
         self.poly_prog['proj'].write(self.proj_matrix)
         
         # 預分配大緩衝區 (支持 10000 個頂點)
@@ -178,10 +120,12 @@ class ModernGLRenderer:
         self.fbo_render.clear(color[0]/255, color[1]/255, color[2]/255)
 
     def read_pixels(self):
-        # 保持與原本相同，這一步在 GPU 上非常快
-        raw = self.fbo_render.read(components=3)
-        img = np.frombuffer(raw, dtype=np.uint8).reshape((self.obs_height, self.obs_width, 3))
-        return np.flipud(img)
+        raw = self.fbo_render.read(components=1, dtype='f1') # 'f1' 對應 uint8
+        img = np.frombuffer(raw, dtype=np.uint8).reshape((self.obs_height, self.obs_width))
+        
+        # RL 通常需要 (H, W, 1) 的形狀
+        # np.flipud 會產生一個視圖或副本，如果 RL 框架支持，可以考慮在 Shader 裡直接翻轉 Y 以節省此步驟
+        return np.flipud(img)[:, :, np.newaxis]
 
     def _init_texture_renderer(self):
         self.tex_shader = self.ctx.program(
@@ -225,3 +169,140 @@ class ModernGLRenderer:
         self.ui_texture.use(0)
         self.ctx.enable(moderngl.BLEND) 
         self.quad_vao.render(moderngl.TRIANGLE_STRIP)
+
+
+    def _build_ctx_program_rgb(self):
+        
+        self.circle_prog = self.ctx.program(
+            vertex_shader='''
+                #version 330
+                in vec2 in_vert;      // 正方形的基礎頂點 (-1~1)
+                in vec2 in_pos;       // 圓心位置 (Instance Data)
+                in float in_radius;   // 半徑 (Instance Data)
+                in vec3 in_color;     // 顏色 (Instance Data)
+                
+                uniform mat4 proj;
+                
+                out vec2 v_uv;        // 用於計算圓形的 UV
+                out vec3 v_color;
+                
+                void main() {
+                    v_uv = in_vert;
+                    v_color = in_color;
+                    // 將單位正方形縮放並移動到圓心
+                    vec2 pos = in_pos + (in_vert * in_radius);
+                    gl_Position = proj * vec4(pos, 0.0, 1.0);
+                }
+            ''',
+            fragment_shader='''
+                #version 330
+                in vec2 v_uv;
+                in vec3 v_color;
+                out vec4 f_color;
+                
+                void main() {
+                    // 計算當前像素距離中心的距離 (SDF)
+                    float dist = length(v_uv);
+                    // 如果距離大於1 (在圓外)，丟棄像素；否則平滑邊緣 (Anti-aliasing)
+                    float delta = fwidth(dist);
+                    float alpha = 1.0 - smoothstep(1.0 - delta, 1.0, dist);
+                    
+                    if (alpha <= 0.0) discard;
+                    
+                    f_color = vec4(v_color, alpha);
+                }
+            '''
+        )
+
+        self.poly_prog = self.ctx.program(
+            vertex_shader='''
+                #version 330
+                in vec2 in_pos;
+                in vec4 in_color;
+                uniform mat4 proj;
+                out vec4 v_color;
+                void main() {
+                    gl_Position = proj * vec4(in_pos, 0.0, 1.0);
+                    v_color = in_color;
+                }
+            ''',
+            fragment_shader='''
+                #version 330
+                in vec4 v_color;
+                out vec4 f_color;
+                void main() {
+                    f_color = v_color;
+                }
+            '''
+        )
+
+    def _build_ctx_program_gray(self):
+
+        self.circle_prog = self.ctx.program(
+            vertex_shader='''
+                #version 330
+                in vec2 in_vert;      // 正方形的基礎頂點 (-1~1)
+                in vec2 in_pos;       // 圓心位置 (Instance Data)
+                in float in_radius;   // 半徑 (Instance Data)
+                in vec3 in_color;     // 顏色 (Instance Data)
+                
+                uniform mat4 proj;
+                
+                out vec2 v_uv;        // 用於計算圓形的 UV
+                out vec3 v_color;
+                
+                void main() {
+                    v_uv = in_vert;
+                    v_color = in_color;
+                    // 將單位正方形縮放並移動到圓心
+                    vec2 pos = in_pos + (in_vert * in_radius);
+                    gl_Position = proj * vec4(pos, 0.0, 1.0);
+                }
+            ''',
+            fragment_shader='''
+                #version 330
+                in vec2 v_uv;
+                in vec3 v_color;
+                out vec4 f_color;
+                
+                void main() {
+                    // 計算當前像素距離中心的距離 (SDF)
+                    float dist = length(v_uv);
+                    // 如果距離大於1 (在圓外)，丟棄像素；否則平滑邊緣 (Anti-aliasing)
+                    float delta = fwidth(dist);
+                    float alpha = 1.0 - smoothstep(1.0 - delta, 1.0, dist);
+                    
+                    if (alpha <= 0.0) discard;
+                    
+                    // 標準灰度公式 (Luminance): 0.299R + 0.587G + 0.114B
+                    float gray = dot(v_color, vec3(0.299, 0.587, 0.114));
+                    
+                    // 寫入 vec4。因為 FBO components=1，它會取第一個值 (gray)
+                    f_color = vec4(gray, gray, gray, alpha);
+                }
+            '''
+        )
+
+        self.poly_prog = self.ctx.program(
+            vertex_shader='''
+                #version 330
+                in vec2 in_pos;
+                in vec4 in_color;
+                uniform mat4 proj;
+                out vec4 v_color;
+                void main() {
+                    gl_Position = proj * vec4(in_pos, 0.0, 1.0);
+                    v_color = in_color;
+                }
+            ''',
+            fragment_shader='''
+                #version 330
+                in vec4 v_color;
+                out vec4 f_color;
+                void main() {
+                    // 將傳入的 RGB 轉換為灰度，保留 Alpha 用於混合
+                    float gray = dot(v_color.rgb, vec3(0.299, 0.587, 0.114));
+                    f_color = vec4(gray, gray, gray, v_color.a);
+                }
+            '''
+        )
