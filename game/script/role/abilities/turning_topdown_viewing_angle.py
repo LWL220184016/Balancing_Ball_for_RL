@@ -11,10 +11,10 @@ class Turning_topdown_viewing_angle(Ability):
     def __init__(self):
         super().__init__(self.__class__.__name__)\
 
-    def action(self, action_value: tuple[float, float], player: 'Player', current_step: int):
+    def action(self, action_value, player: 'Player', current_step: int):
         
         if len(action_value) == 1: 
-            player.shape.body.angle = action_value * math.pi
+            player.shape.body.angle = action_value[0] * math.pi
         else: 
             x, y = player.get_position()
             

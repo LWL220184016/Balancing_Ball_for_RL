@@ -1,207 +1,150 @@
+import importlib
 import sys
 import os
-from typing import Callable
 
-from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
-from stable_baselines3.common.evaluation import evaluate_policy
-from stable_baselines3.common.vec_env import VecNormalize
-
-# Go up one level from the current notebook's directory to the project root
-project_root = os.path.abspath(os.path.join(os.getcwd(), '..'))
+current_dir = os.path.dirname(os.path.abspath(__file__)) 
+project_root = os.path.dirname(current_dir)
 if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+    sys.path.append(project_root)
 
-# Now import from the project root
+import ray
+from ray import tune
+from ray.rllib.algorithms.ppo import PPOConfig
+from ray.tune.registry import register_env
+from ray.rllib.policy.policy import PolicySpec
+from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from game.script.gym_env import BalancingBallEnv
 
 
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from RL.levels.level3.model1.config import model_config, train_config
+# 假設你的環境類在 environment.py 中
+# from your_module import BalancingBallEnv
+
+def env_creator(env_config):
+    # env_config 是從 AlgorithmConfig 傳進來的字典
+    return BalancingBallEnv(
+        render_mode=env_config.get("render_mode"),
+        model_cfg=env_config.get("model_cfg"),
+        train_cfg=env_config.get("train_cfg")
+    )
+
+# 註冊環境
+register_env("balancing_ball_v1", env_creator)
+
+def run_training(level: int):
+    ray.init()
 
 
-# <<< 新增：學習率排程函數 >>>
-def get_step_lr_schedule(
-    initial_lr: float,
-    drop_factor: float,
-    drop_progress_threshold: float
-) -> Callable[[float], float]:
-    """
-    創建一個階梯式學習率排程 (Step Learning Rate Schedule)。
+    module_path = f"RL.levels.level{level}.model1.config"
 
-    :param initial_lr: 初始學習率。
-    :param drop_factor: 學習率下降的倍數（例如 0.1 表示下降到原來的 10%）。
-    :param drop_progress_threshold: 訓練進度達到多少時開始下降（例如 0.5 表示訓練一半後）。
-    :return: 一個 schedule 函數，可傳入 PPO 模型。
-    """
-    def schedule(progress_remaining: float) -> float:
-        """
-        這個函數會被 SB3 調用，progress_remaining 從 1.0 逐漸下降到 0.0。
-        """
-        # 當剩餘進度小於等於閾值時，降低學習率
-        # (1.0 - progress_remaining) 代表已完成的訓練進度
-        if (1.0 - progress_remaining) >= drop_progress_threshold:
-            return initial_lr * drop_factor
+    try:
+        imported_module = importlib.import_module(module_path)
+        train_config = imported_module.train_config
+        model_config = imported_module.model_config
+    except ImportError as e:
+        print(f"錯誤：找不到 Level {level} 的配置文件或是路徑錯誤。")
+        print(f"嘗試路徑: {module_path}")
+        raise e
+    except AttributeError as e:
+        print(f"錯誤：在 Level {level} 的 config.py 中找不到 model_config 或 train_config。")
+        raise e
+
+    # 1. 定義 Policy
+    # 這裡我們定義兩個 policy，它們共用同樣的 observation 和 action space
+    # 假設 agent_id 是 RL_player0 和 RL_player1
+    
+    # 這裡只是占位，你需要根據你的實例獲取 space
+    # 建議先實例化一個環境來抓取 space 屬性
+    test_env = BalancingBallEnv(render_mode="headless", model_cfg=model_config, train_cfg=train_config)
+    obs_space = test_env.observation_space
+    act_space = test_env.action_space
+    player_num = test_env.num_players
+    test_env.close()
+
+    player_role_id = train_config.player_role_id
+    player_list = []
+    for i in range(player_num):
+        player_list.append(f"{player_role_id}{i}")
+
+    def policy_mapping_fn(agent_id, episode, worker, **kwargs):
+        # 決定哪個 agent 使用哪個 policy
+        # 在 1v1 中，通常 player0 是 main，player1 是 opponent
+        if agent_id == player_list[0]:
+            return "main"
         else:
-            return initial_lr
+            return "main_opponent"
 
-    return schedule
-
-# --- 您也可以考慮使用更平滑的「線性衰減」，這是非常常用的策略 ---
-def get_linear_lr_schedule(
-    initial_lr: float,
-    final_lr: float
-) -> Callable[[float], float]:
-    """
-    創建一個線性學習率排程 (Linear Learning Rate Schedule)。
-    """
-    def schedule(progress_remaining: float) -> float:
-        return final_lr + (initial_lr - final_lr) * progress_remaining
-    return schedule
-
-
-class Train:
-    def __init__(self,
-                 model_cfg: 'model_config'=None,
-                 train_cfg: 'train_config'=None,
-                 n_envs: int=None,
-                 load_model=None,
-                ):
-
-        # Create directories
-        os.makedirs(train_cfg.tensorboard_log, exist_ok=True)
-        os.makedirs(train_cfg.model_dir, exist_ok=True)
-        self.model_cfg = model_cfg
-        self.train_cfg = train_cfg
-        self.log_dir = train_cfg.tensorboard_log
-        self.model_dir = train_cfg.model_dir
-        self.n_envs = n_envs
-        self.obs_type = model_cfg.model_obs_type
-        self.load_model = load_model
-
-        # Setup environments
-        env = make_vec_env(self.make_env(), n_envs=n_envs)
-        self.env = VecNormalize(env, norm_obs=True, norm_reward=True, clip_obs=10.)
-        
-        eval_env = make_vec_env(self.make_env(), n_envs=1)
-        self.eval_env = VecNormalize(eval_env, norm_obs=True, norm_reward=True, clip_obs=10.)
-        self.eval_env.training = False 
-        self.eval_env.norm_reward = False
-
-        # <<< 修改：在創建模型前，將學習率設置為排程函數 >>>
-        # 假設您的 model_param 是一個字典
-        # 從 config 中取出初始學習率
-        initial_learning_rate = self.model_cfg.model_param.get('learning_rate') # 默認值以防萬一
-
-        # --- 選擇您想要的排程方式 ---
-        # 方案一：階梯式下降 (Step Decay)
-        # 例如：訓練 50% 後，學習率下降為原來的 10%
-        lr_schedule = get_step_lr_schedule(
-            initial_lr=initial_learning_rate,
-            drop_factor=0.1, 
-            drop_progress_threshold=0.5
+    # 2. 配置演算法
+    config = (
+        PPOConfig()
+        .environment(
+            env="balancing_ball_v1",
+            env_config={
+                "model_cfg": model_config, 
+                "train_cfg": train_config,
+                "render_mode": "headless"
+            }
         )
+        .api_stack(
+            enable_rl_module_and_learner=False,
+            enable_env_runner_and_connector_v2=False,
+        )
+        .training(
+            model={
+                "conv_filters": [
+                    [16, [8, 8], 4],   # 160x160 -> 40x40 (160/4=40)
+                    [32, [4, 4], 2],   # 40x40 -> 20x20  (40/2=20)
+                    [64, [5, 5], 5],   # 20x20 -> 4x4    (20/5=4)
+                    [256, [4, 4], 1],  # 4x4 -> 1x1 (這裡將 4x4 的區域捲積成 1x1，輸出 256 個通道)
+                ],
+                "post_fcnet_hiddens": [256, 256], # 現在 CNN 輸出是 256，對接這裡的 256
+                "post_fcnet_activation": "relu",
+            }
+        )
+        .framework("torch")  # 或 "tf2"
+        .env_runners(
+            num_env_runners=4, 
+            num_envs_per_env_runner=2, 
+        )
+        .multi_agent(
+            policies={
+                "main": PolicySpec(
+                    observation_space=obs_space[player_list[0]],
+                    action_space=act_space[player_list[1]],
+                ),
+                "main_opponent": PolicySpec(
+                    observation_space=obs_space[player_list[0]],
+                    action_space=act_space[player_list[1]],
+                ),
+            },
+            policy_mapping_fn=policy_mapping_fn,
+            policies_to_train=["main"], # 重要：只訓練 main，對手是固定的
+        )
+        .resources(num_gpus=1) # 如果有 GPU 設置為 1
+    )
 
-        # 方案二：線性下降 (Linear Decay) - 推薦嘗試
-        # lr_schedule = get_linear_lr_schedule(
-        #     initial_lr=initial_learning_rate,
-        #     final_lr=1e-6 # 設置一個很小的最終學習率
-        # )
+    # 3. 設置 Self-Play Callback (關鍵)
+    # 用於定期將 main 的權重複製給 main_opponent
+    class SelfPlayCallback(DefaultCallbacks):
+        def __init__(self):
+            super().__init__()
+            self.win_rate_threshold = 0.6 # 勝率超過 0.6 就更新對手
 
-        # 更新模型參數字典，使用排程函數替換固定的學習率
-        self.model_cfg.model_param['learning_rate'] = lr_schedule
-        # <<< 修改結束 >>>
-
-        # Create or load the PPO model
-        if load_model and os.path.exists(load_model):
-            print(f"Loading model from {load_model}")
-            self.model = model_cfg.rl_algorithm.load(
-                load_model,
-                env=self.env,
-                tensorboard_log=self.log_dir,
-                # 當載入模型時，SB3 會自動處理學習率排程的狀態，但最好也傳入
-                custom_objects={"learning_rate": lr_schedule}
-            )
+        def on_train_result(self, *, algorithm, result, **kwargs):
+            # 這裡可以根據自定義的 win_rate 決定是否更新
+            # result['hist_stats'] 裡可以拿到你的 winner info
             
-            stats_path = os.path.splitext(load_model)[0] + ".pkl"
-            if os.path.exists(stats_path):
-                print(f"Loading VecNormalize stats from: {stats_path}")
-                self.env = VecNormalize.load(stats_path, self.env)
-                self.eval_env = VecNormalize.load(stats_path, self.eval_env)
-                self.eval_env.training = False
-                self.eval_env.norm_reward = False
-            else:
-                print(f"WARNING: VecNormalize stats not found at {stats_path}. Model performance may be affected.")
-        else:
-            print("Creating a new model with learning rate schedule.")
-            self.model = model_cfg.rl_algorithm(
-                env=self.env,
-                tensorboard_log=self.log_dir,
-                # 這裡會傳入包含學習率排程的參數
-                **model_cfg.model_param 
-            )
+            # 簡單範例：每隔一段時間強制更新
+            if algorithm.iteration % 10 == 0:
+                print(f"Updating opponent policy at iteration {algorithm.iteration}")
+                main_weights = algorithm.get_policy("main").get_weights()
+                algorithm.get_policy("main_opponent").set_weights(main_weights)
 
-        # Setup callbacks
-        self.checkpoint_callback = CheckpointCallback(
-            save_freq=train_cfg.save_freq // self.n_envs,
-            save_path=self.model_dir,
-            name_prefix= self.model_cfg.rl_algorithm.__name__ + "_checkpoint_" + str(self.obs_type),
-            save_vecnormalize=True,
-        )
+    config.callbacks(SelfPlayCallback)
 
-        self.eval_callback = EvalCallback(
-            self.eval_env,
-            best_model_save_path=self.model_dir,
-            log_path=self.log_dir,
-            eval_freq=train_cfg.eval_freq // self.n_envs,
-            n_eval_episodes=train_cfg.eval_episodes,
-            deterministic=True,
-            render=False
-        )
+    # 4. 開始訓練
+    stop = {"training_iteration": 1000}
+    tune.run("PPO", config=config.to_dict(), stop=stop)
 
-    def make_env(self):
-        """Create and return an environment function to be used with VecEnv"""
-        def _init():
-            env = BalancingBallEnv(
-                render_mode=self.train_cfg.render_mode,
-                model_cfg=self.model_cfg,
-                train_cfg=self.train_cfg,
-            )
-            return env
-        return _init
-
-    def train_ppo(self):
-        """
-        訓練 PPO agent
-        """
-        print("\nStarting training... Press Ctrl+C to interrupt and save progress.")
-
-        reset_num_timesteps = False
-        if isinstance(self.load_model, str):
-            if os.path.exists(self.load_model):
-                reset_num_timesteps = True
-        self.model.learn(
-            total_timesteps=self.train_cfg.total_timesteps,
-            callback=[self.checkpoint_callback, self.eval_callback],
-            reset_num_timesteps=reset_num_timesteps # 繼續訓練時不要重置步數
-        )
-        
-        final_model_path = os.path.join(self.model_dir, self.model_cfg.rl_algorithm.__name__ + "_balancing_ball_final")
-        self.model.save(final_model_path)
-        self.env.save(f"{final_model_path}.pkl")
-        print("Training completed!")
-        
-        return self.model
-
-    def evaluate(self, n_episodes=10, deterministic: bool = None):
-        """Evaluate a trained model"""
-        mean_reward, std_reward = evaluate_policy(
-            self.model,
-            self.eval_env,
-            n_eval_episodes=n_episodes,
-            deterministic=deterministic,
-            render=True
-        )
-        print(f"Mean reward: {mean_reward:.2f} +/- {std_reward:.2f}")
-        self.eval_env.close()
+if __name__ == "__main__":
+    level = 4
+    run_training(level=level)

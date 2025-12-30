@@ -73,7 +73,10 @@ def get_level(level: int,
     print(f"Using abilities_objects_configs: {abilities_objects_configs}")
     print(f"Using level_configs: {level_cfg}")
 
-    GameConfig.init_from_configs(environment_configs, collision_type, abilities_objects_configs)
+    try:
+        GameConfig.init_from_configs(environment_configs, collision_type, abilities_objects_configs)
+    except AttributeError:
+        print("GameConfig 的屬性禁止二次修改")
     space = game.get_space()
     space.gravity = tuple(environment_configs.get("gravity"))
     space.damping = environment_configs.get("damping")

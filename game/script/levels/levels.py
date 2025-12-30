@@ -79,8 +79,12 @@ class Levels:
         for key, ability in abilities.items():
             action_space_config[key] = ability.get_action_spec()
 
-        GameConfig.PLAYER_NUM = len(self.players)
-        GameConfig.ACTION_SPACE_CONFIG = action_space_config
+        
+        try:
+            GameConfig.PLAYER_NUM = len(self.players)
+            GameConfig.ACTION_SPACE_CONFIG = action_space_config
+        except AttributeError:
+            print("GameConfig 的屬性禁止二次修改")
         print(action_space_config, flush=True)
 
         return self.players, self.platforms

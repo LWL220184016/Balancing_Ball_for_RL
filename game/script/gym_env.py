@@ -1,3 +1,11 @@
+import sys
+import os
+
+current_dir = os.path.dirname(os.path.abspath(__file__)) 
+project_root = os.path.dirname(current_dir)
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
 import gymnasium as gym
 import numpy as np
 import cv2
@@ -6,7 +14,6 @@ from gymnasium import spaces
 from script.game_config import GameConfig
 from script.schema_to_gym_space import schema_to_gym_space
 from ray.rllib.env.multi_agent_env import MultiAgentEnv
-
 
 try:
     from balancing_ball_game import BalancingBallGame
@@ -68,13 +75,12 @@ class BalancingBallEnv(MultiAgentEnv):
 
         # Action space: continuous - Box space for horizontal force [-1.0, 1.0] for each player
 
-        self.action_space = schema_to_gym_space(GameConfig.ACTION_SPACE_CONFIG)
-        print("self.action_space: ", self.action_space)
+        action_space = schema_to_gym_space(GameConfig.ACTION_SPACE_CONFIG)
         # self.action_space = spaces.Box(low=model_cfg.action_space_low, high=model_cfg.action_space_high, shape=(model_cfg.action_size,), dtype=np.float32)
 
         if model_cfg.model_obs_type == "game_screen":
             # Image observation space with stacked frames
-            self.observation_space = spaces.Box(
+            observation_space = spaces.Box(
                 low=0, high=255,
                 shape=(self.image_size[0], self.image_size[1], model_cfg.channels * self.stack_size),
                 dtype=np.uint8,
@@ -88,6 +94,16 @@ class BalancingBallEnv(MultiAgentEnv):
                 self.observation_stack_dict[key] = []
                 while len(self.observation_stack_dict[key]) < self.stack_size:
                     self.observation_stack_dict[key].insert(0, obs)  # Pad with current frame at the beginning
+
+            self.agent_ids = [f"RL_player{i}" for i in range(self.num_players)]
+            self.observation_space = {
+                agent_id: observation_space for agent_id in self.agent_ids
+            }
+            self.action_space = {
+                agent_id: action_space for agent_id in self.agent_ids
+            }
+            print("self.observation_space: ", self.observation_space)
+            print("self.action_space: ", self.action_space)
             
         elif model_cfg.model_obs_type == "state_based":
             raise ValueError(f"obs_type: {model_cfg.model_obs_type} is out of support")
@@ -123,8 +139,9 @@ class BalancingBallEnv(MultiAgentEnv):
 
     def step_game_screen(self, action):
         """Take a step in the environment with continuous actions"""
-
-        step_rewards, terminated = self.game.step(action)
+        
+        processed_action = _numpy_to_python(action)
+        step_rewards, terminated = self.game.step(processed_action)
         new_obs = self._preprocess_observation_game_screen()
 
         # Stack the frames
@@ -223,3 +240,14 @@ class BalancingBallEnv(MultiAgentEnv):
 
     def get_game(self):
         return self.game
+
+
+def _numpy_to_python(data):
+    """遞歸地將 dict 或 list 中的 numpy 數據轉換為 python 原生類型"""
+    if isinstance(data, np.ndarray):
+        return data.tolist()
+    elif isinstance(data, dict):
+        return {k: _numpy_to_python(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [_numpy_to_python(v) for v in data]
+    return data

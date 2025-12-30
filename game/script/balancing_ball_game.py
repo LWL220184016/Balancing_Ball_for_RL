@@ -169,7 +169,7 @@ class BalancingBallGame:
             pass
 
         else:
-            raise ValueError("Invalid render mode. Choose from 'human', 'server', 'headless'")
+            raise ValueError(f"Invalid render mode: {self.render_mode}. Choose from 'human', 'server', 'headless'")
 
         self.clock = pygame.time.Clock()
 
