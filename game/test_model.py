@@ -1,84 +1,124 @@
-import os
+import ray
+import gymnasium as gym
+import importlib
 import sys
+import os
+
+current_dir = os.path.dirname(os.path.abspath(__file__)) 
+project_root = os.path.dirname(current_dir)
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
+import ray
+from ray import tune
+from ray.rllib.algorithms.ppo import PPOConfig
+from ray.tune.registry import register_env
+from ray.rllib.policy.policy import PolicySpec
+from ray.rllib.algorithms.callbacks import DefaultCallbacks
+from ray.rllib.algorithms.algorithm import Algorithm
+from game.script.gym_env import BalancingBallEnv
 
 
-# Add the game directory to the system path
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
-
-from RL.train import Train
-from script.gym_env import BalancingBallEnv
-from script.exceptions import GameClosedException
-
-def make_env(render_mode=None, model_cfg=None):
-    """Create an environment function"""
-    def _init():
-        env = BalancingBallEnv(render_mode=render_mode, model_cfg=model_cfg)
-        return env
-    return _init
-
-def play_game(model_path: str = None, episodes: int = None):
-    """
-    Play the game using a trained model
-    
-    Args:
-        model_path: Path to the saved model
-        episodes: Number of episodes to play
-    """
-    # Create environment
-    from RL.levels.level3.model1.config import model_config, train_config
-
-    model_cfg = model_config()
-    train_cfg = train_config()
-    train_cfg.render_mode = "human"  # Set render mode to human for visualization
-
-    path = os.path.abspath(__file__)
-    msg = f"""
-    Already changed render_mode to "{train_cfg.render_mode}" in  {path}. Suitable for testing models on a local computer, and can display the game screen while the model is playing the game
-    """
-    print(f"\n\033[38;5;220m {msg}\033[0m")
-
-    train_cfg.total_timesteps = 3000
-
-    evaluater = Train(
-        model_cfg=model_cfg,
-        train_cfg=train_cfg,
-        n_envs=1,
-        load_model=model_path,
+def env_creator(env_config):
+    # env_config 是從 AlgorithmConfig 傳進來的字典
+    return BalancingBallEnv(
+        render_mode=env_config.get("render_mode"),
+        model_cfg=env_config.get("model_cfg"),
+        train_cfg=env_config.get("train_cfg")
     )
+# 註冊環境名稱，必須與訓練時使用的字符串一致
+register_env("balancing_ball_v1", env_creator)
+# 1. 啟動 Ray (如果尚未啟動)
+ray.init()
 
-    try:
-        if model_path:
-            print(f"\n\033[38;5;190m model_path exists, start evaluation. \033[0m")
-            evaluater.evaluate(episodes, deterministic=True)
-        else:   
-            print(f"\n\033[38;5;190m model_path does not exist, start training. \033[0m")
-            evaluater.train_ppo()
-    except GameClosedException:
-        print("Game was closed by the user. Shutting down gracefully.")
-        # 不需要做任何事，程式會自然結束。
-        # SB3 的 `learn()` 方法會因為異常而停止，並執行其內部的 finally 清理。
-    except KeyboardInterrupt:
-        print("\nTraining interrupted by user (Ctrl+C). Shutting down.")
-        # 這裡的邏輯可以保留，用於處理終端機的中斷
-    finally:
-        # 確保在任何情況下都嘗試關閉環境
-        print("Final cleanup.")
-        # 可以加上檢查，避免重複關閉
-        if evaluater and evaluater.env and evaluater.env.unwrapped:
-            evaluater.env.close()
-        if evaluater and evaluater.eval_env and evaluater.eval_env.unwrapped:
-            evaluater.eval_env.close()
+# 2. 指定 Checkpoint 的路徑
+# 注意：路徑通常指向名為 "checkpoint_000xxx" 的文件夾
+checkpoint_path1 = "C:/Users/User/ray_results/PPO_2025-12-31_15-04-36/PPO_balancing_ball_v1_f7697_00000_0_2025-12-31_15-04-36/checkpoint_000019"
+checkpoint_path2 = "C:/Users/User/ray_results/PPO_2025-12-31_15-04-36/PPO_balancing_ball_v1_f7697_00000_0_2025-12-31_15-04-36/checkpoint_000004"
 
+# 3. 從 Checkpoint 恢復算法實例
+# 不需要重新定義 config，它會自動從 checkpoint 中讀取
+algo1 = Algorithm.from_checkpoint(checkpoint_path1)
+policy_ids1 = algo1.get_policy()
+print(f"當前可用的 Policies: {policy_ids1}")
+
+algo2 = Algorithm.from_checkpoint(checkpoint_path2)
+policy_ids2 = algo2.get_policy()
+print(f"當前可用的 Policies: {policy_ids2}")
+
+level = 4
+module_path = f"RL.levels.level{level}.model1.config"
+
+try:
+    imported_module = importlib.import_module(module_path)
+    train_config = imported_module.train_config
+    model_config = imported_module.model_config
+except ImportError as e:
+    print(f"錯誤：找不到 Level {level} 的配置文件或是路徑錯誤。")
+    print(f"嘗試路徑: {module_path}")
+    raise e
+except AttributeError as e:
+    print(f"錯誤：在 Level {level} 的 config.py 中找不到 model_config 或 train_config。")
+    raise e
+
+env = BalancingBallEnv(render_mode="human", model_cfg=model_config, train_cfg=train_config)
+obs_dict, info = env.reset()
+
+done = {"__all__": False}
+total_rewards = {}
+
+while not done["__all__"]:
+    action_dict = {}
     
-if __name__ == "__main__":
-    # play_game(
-    #     model_path="./ppo_game_screen_315000_steps_level1",
-    #     episodes=10
-    # )
+    # 為環境中的每個 Agent 計算動作
+    for agent_id, obs in obs_dict.items():
+        # --- Self-play 測試策略選擇邏輯 ---
+        # 假設 agent_0 是你要測試的最新模型，agent_1 是對手
+        # if agent_id == "RL_player0":
+        #     policy_id = "main"  # 使用當前最強的 Policy
+        # else:
+        #     policy_id = "main_opponent" # 使用之前的舊版本作為對手，或者 "random"
+            
+        # # 計算動作
+        # action = algo.compute_single_action(
+        #     observation=obs,
+        #     policy_id=policy_id,
+        #     explore=False # 測試時關閉隨機性
+        # )
+        # action_dict[agent_id] = action
+        
+        if agent_id == "RL_player0":
+            action = algo1.compute_single_action(
+                observation=obs,
+                policy_id="main",
+                explore=False # 測試時關閉隨機性
+            )
+            action_dict[agent_id] = action
+        else:
+            action = algo2.compute_single_action(
+                observation=obs,
+                policy_id="main",
+                explore=False # 測試時關閉隨機性
+            )
+            action_dict[agent_id] = action
+            
+        # 計算動作
 
+    # 執行動作
+    obs_dict, reward_dict, terminated, truncated, info = env.step(action_dict)
+    
+    # 累積獎勵
+    for agent_id, r in reward_dict.items():
+        total_rewards[agent_id] = total_rewards.get(agent_id, 0) + r
+    
+    # 判斷是否結束
+    done = terminated
+    done.update(truncated)
+    
+    env.render()
+    print("test_model: ", terminated)
+    for key, value in terminated.items():
+        if value:
+            env.reset()
 
-    play_game(
-        model_path="./trained_model/level3/2/SAC_checkpoint_state_based_5000000_steps.zip",
-        # model_path=None,
-        episodes=1
-    )
+print(f"測試結束，各玩家獎勵: {total_rewards}")

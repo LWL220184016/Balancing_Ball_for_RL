@@ -78,7 +78,7 @@ class GameClientHuman:
         # msg_client(self.client_id, f"Rendering FOV: {obs}")
     
         self.mgl.clear(self.BACKGROUND_COLOR)
-        self.mgl.fbo_render.use()
+        self.mgl.fbo_render_gray.use()
         poly_verts = obs[0]
         circle_batch = obs[1]
         

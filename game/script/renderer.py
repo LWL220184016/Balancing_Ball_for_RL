@@ -20,11 +20,13 @@ class ModernGLRenderer:
             else:
                 self.ctx = moderngl.create_context(standalone=True)
             # 使用單通道 (Luminance) 緩衝區，節省 GPU 記憶體和 read_pixels 頻寬
-            self.fbo_render = self.ctx.simple_framebuffer((obs_width, obs_height), components=1)
+            self.fbo_render_rgb = None
+            self.fbo_render_gray = self.ctx.simple_framebuffer((obs_width, obs_height), components=1)
             self._build_ctx_program_gray()
         else:
             self.ctx = moderngl.create_context(standalone=False)
-            self.fbo_render = self.ctx.screen
+            self.fbo_render_rgb = self.ctx.screen
+            self.fbo_render_gray = self.ctx.simple_framebuffer((obs_width, obs_height), components=1)
             self._init_texture_renderer()
             self.ui_texture = self.ctx.texture((width, height), 4)
             self._build_ctx_program_rgb()
@@ -115,12 +117,13 @@ class ModernGLRenderer:
         self.vbo_poly.write(vertices_data)
         self.vao_poly.render(moderngl.TRIANGLES, vertices=vertex_count)
 
-    def clear(self, color=(0, 0, 0)):
-        self.fbo_render.use()
-        self.fbo_render.clear(color[0]/255, color[1]/255, color[2]/255)
+    def clear(self, color_gray=(0, 0, 0), color_rgb=None):
+        self.fbo_render_gray.clear(color_gray[0]/255, color_gray[1]/255, color_gray[2]/255)
+        if self.fbo_render_rgb:
+            self.fbo_render_rgb.clear(color_rgb[0]/255, color_rgb[1]/255, color_rgb[2]/255)
 
     def read_pixels(self):
-        raw = self.fbo_render.read(components=1, dtype='f1') # 'f1' 對應 uint8
+        raw = self.fbo_render_gray.read(components=1, dtype='f1') # 'f1' 對應 uint8
         img = np.frombuffer(raw, dtype=np.uint8).reshape((self.obs_height, self.obs_width))
         
         # RL 通常需要 (H, W, 1) 的形狀

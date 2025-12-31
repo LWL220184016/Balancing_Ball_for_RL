@@ -98,11 +98,15 @@ def run_training(level: int):
                 ],
                 "post_fcnet_hiddens": [256, 256], # 現在 CNN 輸出是 256，對接這裡的 256
                 "post_fcnet_activation": "relu",
-            }
+            },
+            train_batch_size=10000, 
         )
+        .update_from_dict({
+            "sgd_minibatch_size": 512,
+        })
         .framework("torch")  # 或 "tf2"
         .env_runners(
-            num_env_runners=4, 
+            num_env_runners=8,
             num_envs_per_env_runner=2, 
         )
         .multi_agent(
@@ -120,6 +124,10 @@ def run_training(level: int):
             policies_to_train=["main"], # 重要：只訓練 main，對手是固定的
         )
         .resources(num_gpus=1) # 如果有 GPU 設置為 1
+        .checkpointing(
+            export_native_model_files=True, # 導出模型文件
+        )
+        
     )
 
     # 3. 設置 Self-Play Callback (關鍵)
@@ -134,7 +142,7 @@ def run_training(level: int):
             # result['hist_stats'] 裡可以拿到你的 winner info
             
             # 簡單範例：每隔一段時間強制更新
-            if algorithm.iteration % 10 == 0:
+            if algorithm.iteration % 5 == 0:
                 print(f"Updating opponent policy at iteration {algorithm.iteration}")
                 main_weights = algorithm.get_policy("main").get_weights()
                 algorithm.get_policy("main_opponent").set_weights(main_weights)
@@ -142,8 +150,15 @@ def run_training(level: int):
     config.callbacks(SelfPlayCallback)
 
     # 4. 開始訓練
-    stop = {"training_iteration": 1000}
-    tune.run("PPO", config=config.to_dict(), stop=stop)
+    stop = {"training_iteration": 200}
+    tune.run(
+        "PPO", 
+        config=config.to_dict(), 
+        stop=stop,
+        checkpoint_freq=10,             #  每 10 個 iteration 存一次檔，放這裡才對！
+        checkpoint_at_end=True,         #  結束時存檔，也放這裡
+        # storage_path="./ray_results"  #  順便指定存檔路徑，比較好找
+)
 
 if __name__ == "__main__":
     level = 4

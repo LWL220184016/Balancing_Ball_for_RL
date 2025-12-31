@@ -64,10 +64,9 @@ class BalancingBallGame:
         # Game parameters
             
         self.BACKGROUND_COLOR=BACKGROUND_COLOR
-        if render_mode == "headless":
-            self.BACKGROUND_COLOR = (0,0,0)
-            self.self_color = (0,255,0)
-            self.enemy_color = (255,0,0)
+        self.BACKGROUND_COLOR_RL = (0,0,0)
+        self.self_color_RL = (0,255,0)
+        self.enemy_color_RL = (255,0,0)
         self.obs_width = obs_width
         self.obs_height = obs_height
             
@@ -119,10 +118,10 @@ class BalancingBallGame:
         self.start_time = time.time()
         self.end_time = self.start_time
         self.game_over = False
-        self.score = [0] * self.num_players  # Total Score for each player
+        self.score = {p.role_id: 0 for p in self.players}  # Total Score for each player
         self.winner = None
         self.last_speeds = [0] * self.num_players  # Track last speed for each player
-        self.step_rewards = [0] * self.num_players  # Rewards obtained in the last step
+        self.step_rewards = {p.role_id: 0 for p in self.players}  # Rewards obtained in the last step
         self.step_action = None
         self.is_enable_realistic_field_of_view_cropping = is_enable_realistic_field_of_view_cropping
         if self.is_enable_realistic_field_of_view_cropping:
@@ -198,7 +197,7 @@ class BalancingBallGame:
         self.steps = 0
         self.start_time = time.time()
         self.game_over = False
-        self.score = [0] * self.num_players
+        self.score = {p.role_id: 0 for p in self.players}
         self.winner = None
         self.last_speeds = [0] * self.num_players
 
@@ -242,6 +241,10 @@ class BalancingBallGame:
 
         rewards, terminated = self.level.action(rewards, terminated)
 
+        for key, reward in rewards.items():
+            if reward > 0:
+                print(f"{key} reward: {rewards}")
+
         return rewards, terminated 
 
     def reward(self):
@@ -264,26 +267,26 @@ class BalancingBallGame:
 
             # Determine winner (last player alive or highest score)
             if alive_count == 1 and self.num_players > 1:
-                self.winner = next(i for i in range(self.num_players) if self.players[i].get_is_alive()) 
+                self.winner = next(p for p in self.players if p.get_is_alive()) 
                 # Give bonus to winner
-                self.players[self.winner].add_reward_per_step(0.5 * self.steps / 100)  # 生存時間越長獎勵越多 TODO Hard code
-                self.score[self.winner] += self.players[self.winner].get_reward_per_step()
+                self.winner.add_reward_per_step(0.5 * self.steps / 100)  # 生存時間越長獎勵越多 TODO Hard code
+                self.score[self.winner.role_id] += self.winner.get_reward_per_step()
             elif self.steps == self.max_episode_step:
                 # Game ended due to max steps, winner is highest score
                 self.winner = np.argmax(self.score)
             else:
                 self.winner = None
 
-        rewards = [0] * self.num_players
-        for i, player in enumerate(self.players):
-            rewards[i] = player.get_reward_per_step()
-            self.score[i] += rewards[i]
+        rewards = {}
+        for player in self.players:
+            rewards[player.role_id] = player.get_reward_per_step()
+            self.score[player.role_id] += rewards[player.role_id]
 
         if self.game_over:
             result = {
                 "game_total_duration": f"{time.time() - self.start_time:.2f}",
                 "scores": self.score,
-                "winner": self.winner,
+                "winner": self.winner.role_id,
                 "steps": self.steps
             }
             self.recorder.add_no_limit(result)
@@ -329,38 +332,39 @@ class BalancingBallGame:
                 self.screen_data[p.role_id] = self.calculate_verts(p.role_id)
             return None
         
-        # 清除螢幕 
-        self.mgl.clear(self.BACKGROUND_COLOR)
-        self.render_fps_counter += 1
-        current_time = time.time()
-        time_diff = current_time - self.render_fps_timer
-        if time_diff >= 0.1: # 每秒更新一次
-            self.current_render_fps = self.render_fps_counter / time_diff
-            self.render_fps_counter = 0
-            self.render_fps_timer = current_time
+        # self.render_fps_counter += 1
+        # current_time = time.time()
+        # time_diff = current_time - self.render_fps_timer
+        # if time_diff >= 0.1: # 每秒更新一次
+        #     self.current_render_fps = self.render_fps_counter / time_diff
+        #     self.render_fps_counter = 0
+        #     self.render_fps_timer = current_time
 
-            total_entities = len(self.players) + len(self.platforms) + len(self.ability_generated_objects)
-            print(F"FPS: {int(self.current_render_fps)}, total_entities: {total_entities}")
+        #     total_entities = len(self.players) + len(self.platforms) + len(self.ability_generated_objects)
+        #     print(F"FPS: {int(self.current_render_fps)}, total_entities: {total_entities}")
 
         # 3. 繪製 UI (文字)
         if self.render_mode == "human":
 
             # 清空 UI 層
+            self.mgl.fbo_render_rgb.use()
+            self.mgl.clear(self.BACKGROUND_COLOR_RL, self.BACKGROUND_COLOR)
             poly_verts, circle_batch = self.calculate_verts()
             self._draw_scene_moderngl(poly_verts, circle_batch)
             self.ui_surface.fill((0,0,0,0)) 
             self._draw_game_info_to_surface(self.ui_surface)
             self.mgl.draw_texture(self.ui_surface)
             pygame.display.flip()
-            return None
-        
-        elif self.render_mode == "headless":
-            self.screen_data = {}
-            for p in self.players:
-                poly_verts, circle_batch = self.calculate_verts(p.role_id)
-                self._draw_scene_moderngl(poly_verts, circle_batch)
-                self.screen_data[p.role_id] = self.mgl.read_pixels()
-            return None
+
+        # output for RL
+        self.mgl.fbo_render_gray.use()
+        self.mgl.clear(self.BACKGROUND_COLOR_RL, self.BACKGROUND_COLOR)
+        self.screen_data = {}
+        for p in self.players:
+            poly_verts, circle_batch = self.calculate_verts(p.role_id)
+            self._draw_scene_moderngl(poly_verts, circle_batch)
+            self.screen_data[p.role_id] = self.mgl.read_pixels()
+        return None
 
     def calculate_verts(self, player_role_id = None):
 
@@ -380,19 +384,19 @@ class BalancingBallGame:
         if player_role_id:
             for p in self.players:
                 if p.role_id == player_role_id:
-                    p.color = self.self_color
+                    p.color = self.self_color_RL
                     target_digit = p.get_collision_type() % 1000
                 else:
-                    p.color = self.enemy_color
+                    p.color = self.enemy_color_RL
                     
                 if p.get_is_alive(): 
                     all_entities.append(p)
             
             for obj in self.ability_generated_objects:
                 if obj.get_collision_type() % 1000 == target_digit:
-                    obj.color = self.self_color
+                    obj.color = self.self_color_RL
                 else:
-                    obj.color = self.enemy_color
+                    obj.color = self.enemy_color_RL
                 all_entities.append(obj)
                 
         else:
@@ -476,9 +480,6 @@ class BalancingBallGame:
     def _draw_scene_moderngl(self, poly_verts, circle_batch):
         """ModernGL 繪製流程"""
 
-        # 提交給 GPU 渲染 (僅調用兩次 Draw Call) 
-        self.mgl.fbo_render.use()
-        
         # 繪製所有多邊形
         if poly_verts:
             # 轉換為 numpy array (float32)
@@ -498,7 +499,7 @@ class BalancingBallGame:
         # 1. 準備文字內容
         time_text = f"Time: {self.end_time - self.start_time:.1f}, steps: {self.steps}/{self.max_episode_step}"
         fps_text = f"FPS: {int(self.current_render_fps)}"
-        score_texts = [f"P{i+1}: {self.score[i]:.1f} + {self.step_rewards[i]} Health: {player.get_health():.1f}" for i, player in enumerate(self.players)]
+        score_texts = [f"{player.role_id}: {self.score[player.role_id]:.1f} + {self.step_rewards[player.role_id]} Health: {player.get_health():.1f}" for player in self.players]
 
         # 2. 渲染文字本身
         time_surface = self.font.render(time_text, True, (255, 255, 255))
@@ -533,11 +534,11 @@ class BalancingBallGame:
         # 6. 處理 Game Over 畫面
         if self.game_over:
             if self.winner is not None:
-                game_over_text = f"WINNER: Player {self.winner + 1} - Press R to restart"
+                game_over_text = f"WINNER: Player {self.winner.role_id} - Press R to restart"
             elif self.num_players == 1:
                 game_over_text = "GAME OVER - Press R to restart"
             elif self.steps == self.max_episode_step:
-                game_over_text = f"Time limit reached. Winner by score: Player {self.winner + 1}"
+                game_over_text = f"Time limit reached. Winner by score: Player {self.winner.role_id}"
             else:
                 game_over_text = "DRAW - Press R to restart"
 
@@ -654,6 +655,9 @@ class BalancingBallGame:
                     from script.human_control import HumanControl
                     
                 self.human_control = HumanControl(self)
+
+        self.score = {p.role_id: 0 for p in self.players}  # Total Score for each player
+        self.step_rewards = {p.role_id: 0 for p in self.players} 
 
         if len(player_id_list) > 0: 
             print(f"The following players are not assigned: {player_id_list}")

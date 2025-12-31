@@ -158,11 +158,21 @@ class BalancingBallEnv(MultiAgentEnv):
         truncateds = {agent_id: False for agent_id in stacked_obs.keys()}
         truncateds["__all__"] = False
 
-        info = {
-            'individual_rewards': step_rewards,
-            'winner': getattr(self.game, 'winner', None),
+        info = {}
+        
+        # 1. Provide info for each active agent
+        for agent_id in stacked_obs.keys():
+            info[agent_id] = {
+                # You can put agent-specific info here if needed
+                "step_reward": step_rewards.get(agent_id, 0) 
+            }
+
+        # 2. Use "__common__" for global game state information
+        info["__common__"] = {
+            'winner': getattr(self.game.winner, 'role_id', None),
             'scores': getattr(self.game, 'score', [0])
         }
+
 
         return stacked_obs, step_rewards, terminateds, truncateds, info
 
@@ -216,7 +226,7 @@ class BalancingBallEnv(MultiAgentEnv):
         total_reward = sum(step_rewards) if isinstance(step_rewards, list) else step_rewards
 
         info = {
-            'individual_rewards': step_rewards if isinstance(step_rewards, list) else [step_rewards],
+            'rewards': step_rewards if isinstance(step_rewards, list) else [step_rewards],
             'winner': getattr(self.game, 'winner', None),
             'scores': getattr(self.game, 'score', [0])
         }
