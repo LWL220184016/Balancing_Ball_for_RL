@@ -33,8 +33,8 @@ ray.init()
 
 # 2. 指定 Checkpoint 的路徑
 # 注意：路徑通常指向名為 "checkpoint_000xxx" 的文件夾
-checkpoint_path1 = "C:/Users/User/ray_results/PPO_2025-12-31_15-04-36/PPO_balancing_ball_v1_f7697_00000_0_2025-12-31_15-04-36/checkpoint_000019"
-checkpoint_path2 = "C:/Users/User/ray_results/PPO_2025-12-31_15-04-36/PPO_balancing_ball_v1_f7697_00000_0_2025-12-31_15-04-36/checkpoint_000004"
+checkpoint_path1 = "C:/Users/User/ray_results/PPO_2026-01-01_18-22-05/PPO_balancing_ball_v1_b83ff_00000_0_2026-01-01_18-22-05/checkpoint_000009"
+checkpoint_path2 = "C:/Users/User/ray_results/PPO_2026-01-01_18-22-05/PPO_balancing_ball_v1_b83ff_00000_0_2026-01-01_18-22-05/checkpoint_000004"
 
 # 3. 從 Checkpoint 恢復算法實例
 # 不需要重新定義 config，它會自動從 checkpoint 中讀取
@@ -105,6 +105,7 @@ while not done["__all__"]:
         # 計算動作
 
     # 執行動作
+    print(action_dict)
     obs_dict, reward_dict, terminated, truncated, info = env.step(action_dict)
     
     # 累積獎勵

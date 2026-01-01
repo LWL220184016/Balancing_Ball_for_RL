@@ -51,6 +51,7 @@ class BalancingBallEnv(MultiAgentEnv):
         self.stack_size = model_cfg.stack_size  # Number of frames to stack
         self.observation_stack_dict: dict[list, list] = {} # Initialize the stack
         self.render_mode = render_mode
+        self.seed = train_cfg.seed
 
         self.game = BalancingBallGame(
             render_mode=render_mode,
@@ -178,7 +179,7 @@ class BalancingBallEnv(MultiAgentEnv):
 
     def reset_game_screen(self, seed=None, options=None):
         """Reset the environment"""
-        super().reset(seed=seed)  # This properly seeds the environment in Gymnasium
+        super().reset(seed=self.seed)  # This properly seeds the environment in Gymnasium
 
         self.game.reset()
         observation = self._preprocess_observation_game_screen()

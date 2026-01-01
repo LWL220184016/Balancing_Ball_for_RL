@@ -241,10 +241,6 @@ class BalancingBallGame:
 
         rewards, terminated = self.level.action(rewards, terminated)
 
-        for key, reward in rewards.items():
-            if reward > 0:
-                print(f"{key} reward: {rewards}")
-
         return rewards, terminated 
 
     def reward(self):
@@ -341,7 +337,7 @@ class BalancingBallGame:
         #     self.render_fps_timer = current_time
 
         #     total_entities = len(self.players) + len(self.platforms) + len(self.ability_generated_objects)
-        #     print(F"FPS: {int(self.current_render_fps)}, total_entities: {total_entities}")
+        #     print(F"FPS: {int(self.current_render_fps)}, total_steps: {self.steps}")
 
         # 3. 繪製 UI (文字)
         if self.render_mode == "human":

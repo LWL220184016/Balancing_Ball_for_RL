@@ -74,7 +74,7 @@ class PlayerShotHitReward(RewardComponent):
 
                     if player_ct != player.get_collision_type():
                         shotted_player = collision_handler.get_player_from_collision_type(player_ct)
-                        print(f"玩家 {shotted_player.role_id} 使用技能射擊命中了玩家 {player.role_id}")
+                        # print(f"玩家 {shotted_player.role_id} 使用技能射擊命中了玩家 {player.role_id}")
                         shotted_player.add_reward_per_step(self.shooting_hit_reward)
                         player.add_reward_per_step(self.being_hit_penalty)
                         player.decrease_health(1)

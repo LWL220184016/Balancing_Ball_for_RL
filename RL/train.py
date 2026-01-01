@@ -8,6 +8,10 @@ if project_root not in sys.path:
     sys.path.append(project_root)
 
 import ray
+import random       
+import numpy as np  
+import torch        
+
 from ray import tune
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.tune.registry import register_env
@@ -27,6 +31,14 @@ def env_creator(env_config):
         train_cfg=env_config.get("train_cfg")
     )
 
+def set_global_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
 # 註冊環境
 register_env("balancing_ball_v1", env_creator)
 
@@ -40,6 +52,7 @@ def run_training(level: int):
         imported_module = importlib.import_module(module_path)
         train_config = imported_module.train_config
         model_config = imported_module.model_config
+        set_global_seed(train_config.seed)
     except ImportError as e:
         print(f"錯誤：找不到 Level {level} 的配置文件或是路徑錯誤。")
         print(f"嘗試路徑: {module_path}")
@@ -99,16 +112,12 @@ def run_training(level: int):
                 "post_fcnet_hiddens": [256, 256], # 現在 CNN 輸出是 256，對接這裡的 256
                 "post_fcnet_activation": "relu",
             },
-            train_batch_size=10000, 
+            train_batch_size=4000, 
         )
         .update_from_dict({
-            "sgd_minibatch_size": 512,
+            "sgd_minibatch_size": 128,
         })
         .framework("torch")  # 或 "tf2"
-        .env_runners(
-            num_env_runners=8,
-            num_envs_per_env_runner=2, 
-        )
         .multi_agent(
             policies={
                 "main": PolicySpec(
@@ -127,7 +136,12 @@ def run_training(level: int):
         .checkpointing(
             export_native_model_files=True, # 導出模型文件
         )
-        
+        .rollouts(
+            num_rollout_workers=8,       # 對應原本的 num_env_runners
+            num_envs_per_worker=2,       # 對應原本的 num_envs_per_env_runner
+            rollout_fragment_length=250, # 顯式設置，避免自動計算出現奇異值
+            create_env_on_local_worker=False, 
+        )
     )
 
     # 3. 設置 Self-Play Callback (關鍵)
@@ -150,7 +164,7 @@ def run_training(level: int):
     config.callbacks(SelfPlayCallback)
 
     # 4. 開始訓練
-    stop = {"training_iteration": 200}
+    stop = {"training_iteration": 400}
     tune.run(
         "PPO", 
         config=config.to_dict(), 
@@ -163,3 +177,5 @@ def run_training(level: int):
 if __name__ == "__main__":
     level = 4
     run_training(level=level)
+
+    
