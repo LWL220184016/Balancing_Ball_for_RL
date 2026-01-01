@@ -7,7 +7,7 @@ class model_config:
     model_obs_type = "game_screen"
     image_size = (160, 160)
     stack_size = 3
-    channels = 1
+    channels = 3
 
     level=4
     level_config_path=str(pathlib.Path(__file__).parent.resolve()) + f"/level_{level}_default_cfg.json"

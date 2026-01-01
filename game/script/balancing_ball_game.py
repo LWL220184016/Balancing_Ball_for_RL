@@ -305,13 +305,13 @@ class BalancingBallGame:
                         img_to_save = pixel.squeeze() 
 
                         # 轉換為 Image 對象並保存 (mode='L' 表示 8-bit 灰階)
-                        Image.fromarray(img_to_save, mode='L').save(f"capture/frame_{key}_{self.frame_count/60}.png")
+                        Image.fromarray(img_to_save).save(f"capture/frame_{key}_{self.frame_count/60}.png")
                         print(f"圖片已保存為 capture/frame_{self.frame_count/60}.png")
                 else:
                     img_to_save = pixel.squeeze() 
 
                     # 轉換為 Image 對象並保存 (mode='L' 表示 8-bit 灰階)
-                    Image.fromarray(img_to_save, mode='L').save(f"capture/frame_{key}_{self.frame_count/60}.png")
+                    Image.fromarray(img_to_save).save(f"capture/frame_{key}_{self.frame_count/60}.png")
                     print(f"圖片已保存為 capture/frame_{self.frame_count/60}.png")
             self.frame_count += 1
 
@@ -347,7 +347,7 @@ class BalancingBallGame:
         if self.render_mode == "human":
 
             # 清空 UI 層
-            self.mgl.fbo_render_rgb.use()
+            self.mgl.fbo_render_human.use()
             self.mgl.clear(self.BACKGROUND_COLOR_RL, self.BACKGROUND_COLOR)
             poly_verts, circle_batch = self.calculate_verts()
             self._draw_scene_moderngl(poly_verts, circle_batch)
@@ -357,7 +357,7 @@ class BalancingBallGame:
             pygame.display.flip()
 
         # output for RL
-        self.mgl.fbo_render_gray.use()
+        self.mgl.fbo_render_rl.use()
         self.mgl.clear(self.BACKGROUND_COLOR_RL, self.BACKGROUND_COLOR)
         self.screen_data = {}
         for p in self.players:
@@ -384,19 +384,19 @@ class BalancingBallGame:
         if player_role_id:
             for p in self.players:
                 if p.role_id == player_role_id:
-                    p.color = self.self_color_RL
+                    p.color_rl = self.self_color_RL
                     target_digit = p.get_collision_type() % 1000
                 else:
-                    p.color = self.enemy_color_RL
+                    p.color_rl = self.enemy_color_RL
                     
                 if p.get_is_alive(): 
                     all_entities.append(p)
             
             for obj in self.ability_generated_objects:
                 if obj.get_collision_type() % 1000 == target_digit:
-                    obj.color = self.self_color_RL
+                    obj.color_rl = self.self_color_RL
                 else:
-                    obj.color = self.enemy_color_RL
+                    obj.color_rl = self.enemy_color_RL
                 all_entities.append(obj)
                 
         else:
@@ -413,7 +413,7 @@ class BalancingBallGame:
         for entity in all_entities:
             shape = entity.shape.shape
             body = entity.shape.body
-            color_norm = to_color(entity.color) # (r, g, b) 0~1
+            color_norm = to_color(entity.color_rl) if player_role_id else to_color(entity.color)
 
             if isinstance(shape, pymunk.Circle):
                 # 圓形：只需提取位置和半徑

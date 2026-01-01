@@ -39,6 +39,7 @@ class Role(ABC):
         self.shape = shape
         self.space = space
         self.color = color
+        self.color_rl = color
         self.collision_with = []
         self.last_collision_with = -1  # 用於記錄最後一次碰撞的類型，會在 add_collision_with 中更新
         self.health = health  # 初始生命值

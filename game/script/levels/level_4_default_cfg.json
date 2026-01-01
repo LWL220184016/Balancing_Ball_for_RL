@@ -210,8 +210,15 @@
             "fps": 360
         },
         "reward": {
-            "shooting_hit_reward": 1,
-            "being_hit_penalty": -0.3,
+            "shooting_hit_reward": 10,
+            "being_hit_penalty": -10,
+            
+            "speed_reward_threshold": 100,
+            "speed_reward_proportion": 0.0000001,
+
+            "fov_degrees": 120,
+            "max_dist": 500,
+            "face_to_target_reward": 0.001,
             "round_end_reward": 20
         }
     }

@@ -4,7 +4,7 @@ import pygame
 import numpy as np
 
 from script.exceptions import GameClosedException
-from script.renderer import ModernGLRenderer
+from game.script.renderer_gray import ModernGLRenderer
 from zmq_client_server.warning_msg import msg_client, warning_msg_not_expect_type
 
 from typing import TYPE_CHECKING
@@ -78,7 +78,7 @@ class GameClientHuman:
         # msg_client(self.client_id, f"Rendering FOV: {obs}")
     
         self.mgl.clear(self.BACKGROUND_COLOR)
-        self.mgl.fbo_render_gray.use()
+        self.mgl.fbo_render_rl.use()
         poly_verts = obs[0]
         circle_batch = obs[1]
         

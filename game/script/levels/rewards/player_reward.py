@@ -1,4 +1,7 @@
 import collections
+import math
+import pymunk
+from pymunk import Vec2d
 
 from script.game_config import GameConfig
 from levels.rewards.reward_calculator import RewardComponent, terminates_round
@@ -111,6 +114,9 @@ class PlayerOpponentFellReward(RewardComponent):
 class PlayerSpeedReward(RewardComponent):
     """處理玩家速度獎勵"""
 
+    def __init__(self, configs):
+        super().__init__(configs)
+
     def calculate(self, players: list['Player'], **kwargs):
         # 速度獎勵 - 鼓勵保持移動
         for player in players:
@@ -118,7 +124,8 @@ class PlayerSpeedReward(RewardComponent):
                 continue
             vx, vy = player.get_velocity()
             current_speed = abs(vx) + abs(vy)
-            player.add_reward_per_step(min(current_speed * self.speed_reward_proportion, 0.1))  # 限制最大速度獎勵
+            if current_speed > self.speed_reward_threshold:
+                player.add_reward_per_step(current_speed * self.speed_reward_proportion)  # 限制最大速度獎勵
 
 class PlayerCollisionPlayerReward(RewardComponent):
     """處理與玩家碰撞的獎勵/懲罰"""
@@ -152,6 +159,85 @@ class PlayerStayInPlatformCenterReward(RewardComponent):
                 normalized_distance = distance_from_center / reward_width
                 center_reward = self.reward_ball_centered * (1.0 - normalized_distance) # TODO Hard code
             player.add_reward_per_step(center_reward)
+
+class PlayerFaceToTargetReward(RewardComponent):
+    """
+    玩家在一定角度內面對目標的獎勵 (Fov Reward)。
+    範圍：左右 60 度 (總共 120 度)。
+    特點：
+    1. 只要在扇形內獎勵相同 (支持提前量，不強制瞄準中心)。
+    2. 增加距離限制 (太遠瞄準沒意義)。
+    3. (可選) 增加視線檢查 (Raycast)。
+    """
+    
+    def __init__(self, configs):
+        super().__init__(configs)
+        # 將角度轉換爲點積閾值。
+        # cos(60) = 0.5。如果夾角 < 60度，則 dot_product > 0.5
+        half_angle = self.fov_degrees / 2
+        self.min_dot_product = math.cos(math.radians(half_angle)) 
+        self.max_dist_sq = self.max_dist ** 2  # 使用距離平方比較，避免開根號，性能更好
+
+    def calculate(self, game: 'BalancingBallGame', players: list['Player'], **kwargs):
+        space = game.space 
+
+        for player in players:
+            if not player.get_is_alive():
+                continue
+            
+            body = player.shape.body
+            player_facing = Vec2d(1, 0).rotated(body.angle)
+            player_pos = body.position
+            
+            # 獲取自身半徑用於避開射線自檢
+            my_radius = 20.0 # 默認值
+            if hasattr(player, 'shape') and isinstance(player.shape, pymunk.Circle):
+                my_radius = player.shape.radius
+
+            has_valid_target = False
+
+            for other in players:
+                if other is player or not other.get_is_alive():
+                    continue
+                
+                other_body = other.shape.body
+                other_pos = other_body.position
+                to_enemy = other_pos - player_pos
+                
+                # 優化：距離平方檢查
+                dist_sq = to_enemy.get_length_sqrd()
+                if dist_sq > self.max_dist_sq:
+                    continue
+
+                # 注意：這裡一定要先算 normalized，後面計算起點要用
+                to_enemy_normalized = to_enemy.normalized()
+
+                # 角度檢查
+                dot_result = player_facing.dot(to_enemy_normalized)
+
+                if dot_result >= self.min_dot_product:
+                    
+                    # === 修正部分開始 ===
+                    # 計算射線起點：從圓心向目標方向移動 (半徑 + 安全距離)
+                    # 這樣射線起點就在玩家身體外面，不會撞到自己
+                    ray_start = player_pos + to_enemy_normalized * (my_radius + 5.0)
+                    
+                    segment_query = space.segment_query_first(
+                        ray_start,  # 使用新的起點
+                        other_pos, 
+                        1, 
+                        pymunk.ShapeFilter(mask=pymunk.ShapeFilter.ALL_MASKS())
+                    )
+                    # === 修正部分結束 ===
+
+                    # 現在如果 segment_query 為 None，說明中間無障礙物（直接通透）
+                    # 或者如果撞到了東西，檢查撞到的是不是目標
+                    if segment_query is None or segment_query.shape.body == other_body:
+                        has_valid_target = True
+                        break 
+
+            if has_valid_target:
+                player.add_reward_per_step(self.face_to_target_reward)
 
 class PlayerMovementDirectionPenalty(RewardComponent):
     """處理玩家一直向同一個方向移動的懲罰"""

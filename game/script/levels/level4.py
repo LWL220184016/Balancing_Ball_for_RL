@@ -4,11 +4,11 @@ from script.game_config import GameConfig
 
 try:
     from levels.rewards.reward_calculator import RewardCalculator
-    from levels.rewards.player_reward import PlayerShotHitReward
+    from levels.rewards.player_reward import PlayerShotHitReward, PlayerSpeedReward, PlayerFaceToTargetReward
     from levels.levels import Levels
 except ImportError:
     from script.levels.rewards.reward_calculator import RewardCalculator
-    from script.levels.rewards.player_reward import PlayerShotHitReward
+    from script.levels.rewards.player_reward import PlayerShotHitReward, PlayerSpeedReward, PlayerFaceToTargetReward
     from script.levels.levels import Levels
 
 from typing import TYPE_CHECKING
@@ -47,6 +47,8 @@ class Level4(Levels):
                 PlayerShotHitReward(self.level_configs.get("reward")),
             ],
             reward_components=[
+                PlayerSpeedReward(self.level_configs.get("reward")),
+                PlayerFaceToTargetReward(self.level_configs.get("reward")),
                 # 站著不動懲罰
                 # 不開槍懲罰
                 # 躲避子彈獎勵
