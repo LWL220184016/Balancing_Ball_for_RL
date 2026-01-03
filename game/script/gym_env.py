@@ -46,10 +46,9 @@ class BalancingBallEnv(MultiAgentEnv):
         # Initialize game
 
         # Image preprocessing settings
-        self.image_size = model_cfg.image_size if model_cfg.image_size else (0, 0)
+        self.image_size = getattr(model_cfg, 'image_size', (0, 0)) 
 
         self.stack_size = model_cfg.stack_size  # Number of frames to stack
-        self.observation_stack_dict: dict[list, list] = {} # Initialize the stack
         self.render_mode = render_mode
         self.seed = train_cfg.seed
 
@@ -71,54 +70,147 @@ class BalancingBallEnv(MultiAgentEnv):
         for i in range(self.num_players):
             players_role_ids.append(f"RL_player{i}")
 
+        self.agent_ids = players_role_ids.copy()
         self.game.assign_players(players_role_ids)
         
 
         # Action space: continuous - Box space for horizontal force [-1.0, 1.0] for each player
 
         action_space = schema_to_gym_space(GameConfig.ACTION_SPACE_CONFIG)
+        self.action_space = {agent_id: action_space for agent_id in self.agent_ids}
         # self.action_space = spaces.Box(low=model_cfg.action_space_low, high=model_cfg.action_space_high, shape=(model_cfg.action_size,), dtype=np.float32)
+   
+        # 定義圖像空間 (共用)
+        screen_space = spaces.Box(
+            low=0, high=255,
+            shape=(self.image_size[0], self.image_size[1], model_cfg.channels * self.stack_size),
+            dtype=np.uint8,
+        )
+        
+        # 定義向量空間 (共用，假設 obs_size 存在於 cfg)
+        # 如果 model_cfg 沒有 obs_size，你需要手動指定一個數字，例如 10
+        vec_obs_size = getattr(model_cfg, 'state_obs_size', 1) 
+        vector_space = spaces.Box(
+            low=-1.0, high=1.0, 
+            shape=(vec_obs_size,), 
+            dtype=np.float32
+        )
 
         if model_cfg.model_obs_type == "game_screen":
-            # Image observation space with stacked frames
-            observation_space = spaces.Box(
-                low=0, high=255,
-                shape=(self.image_size[0], self.image_size[1], model_cfg.channels * self.stack_size),
-                dtype=np.uint8,
-            )
+            # 純圖像模式 (原有邏輯)
+            self.observation_space = {agent_id: screen_space for agent_id in self.agent_ids}
             self.step = self.step_game_screen
             self.reset = self.reset_game_screen
             
-            self.game.render()
-            obs = self.game._get_observation_game_screen()
-            for key, obs in obs.items():
-                self.observation_stack_dict[key] = []
-                while len(self.observation_stack_dict[key]) < self.stack_size:
-                    self.observation_stack_dict[key].insert(0, obs)  # Pad with current frame at the beginning
-
-            self.agent_ids = [f"RL_player{i}" for i in range(self.num_players)]
-            self.observation_space = {
-                agent_id: observation_space for agent_id in self.agent_ids
-            }
-            self.action_space = {
-                agent_id: action_space for agent_id in self.agent_ids
-            }
-            print("self.observation_space: ", self.observation_space)
-            print("self.action_space: ", self.action_space)
-            
         elif model_cfg.model_obs_type == "state_based":
-            raise ValueError(f"obs_type: {model_cfg.model_obs_type} is out of support")
-
-            obs_size = model_cfg.obs_size
-            self.observation_space = spaces.Box(
-                low=np.full(obs_size, -1.0),
-                high=np.full(obs_size, 1.0),
-                dtype=np.float32
-            )
+            # 純向量模式 (原有邏輯)
+            self.observation_space = {agent_id: vector_space for agent_id in self.agent_ids}
             self.step = self.step_state_based
             self.reset = self.reset_state_based
+
+        elif model_cfg.model_obs_type == "mixed":
+            # [NEW] 混合模式 (Mixed Observation)
+            print("Using Mixed Observation Space (Screen + State)")
+            
+            # 定義 Dict Space
+            mixed_space = spaces.Dict({
+                "screen": screen_space,  # 圖像部分 (Stacked)
+                "state": vector_space    # 向量部分 (Current)
+            })
+            
+            self.observation_space = {agent_id: mixed_space for agent_id in self.agent_ids}
+            
+            # 指向新的 step/reset 方法
+            self.step = self.step_mixed
+            self.reset = self.reset_mixed
+        
         else:
-            raise ValueError(f"obs_type: {model_cfg.model_obs_type} must be 'game_screen' or 'state_based'")
+            raise ValueError(f"Unknown obs_type: {model_cfg.model_obs_type}")
+
+        self.game.render()
+        self.reset()
+        print("self.observation_space: ", self.observation_space)
+
+    def reset_mixed(self, seed=None, options=None):
+        super().reset(seed=self.seed)
+        self.game.reset()
+        
+        # 1. 處理圖像 (初始化 Stack)
+        img_obs = self._preprocess_observation_game_screen()
+        self.observation_stack_dict = {}
+        
+        stacked_img_obs = {}
+        for agent_id, img in img_obs.items():
+            self.observation_stack_dict[agent_id] = []
+            # 填滿 stack
+            for _ in range(self.stack_size):
+                self.observation_stack_dict[agent_id].append(img)
+            
+            # Concatenate
+            stacked_img_obs[agent_id] = np.concatenate(self.observation_stack_dict[agent_id], axis=-1)
+
+        # 2. 處理向量
+        vec_obs = self._preprocess_observation_state_base() # 確保這返回的是 {agent_id: numpy_array}
+
+        # 3. 組合 Dict
+        mixed_obs = {}
+        for agent_id in self.agent_ids:
+            # 容錯處理：如果某個 agent 在 reset 後立刻沒有 obs (通常不會發生)
+            agent_img = stacked_img_obs.get(agent_id)
+            agent_vec = vec_obs.get(agent_id)
+            
+            mixed_obs[agent_id] = {
+                "screen": agent_img,
+                "state": agent_vec
+            }
+
+        info = {}
+        return mixed_obs, info
+
+    def step_mixed(self, action):
+        processed_action = _numpy_to_python(action)
+        step_rewards, terminated = self.game.step(processed_action)
+        
+        # 1. 獲取新數據
+        new_img_obs = self._preprocess_observation_game_screen()
+        new_vec_obs = self._preprocess_observation_state_base()
+        
+        mixed_obs = {}
+        
+        # 2. 更新 Stack 並組合
+        for agent_id in self.agent_ids:
+            # 更新圖像 Stack
+            current_stack = self.observation_stack_dict[agent_id]
+            current_stack.append(new_img_obs[agent_id])
+            current_stack.pop(0) # 移除最舊的
+            stacked_img = np.concatenate(current_stack, axis=-1)
+
+            # 獲取向量
+            vec = new_vec_obs[agent_id]
+
+            mixed_obs[agent_id] = {
+                "screen": stacked_img,
+                "state": vec
+            }
+
+        # 3. 處理 done, reward, info
+        terminateds = {agent_id: terminated for agent_id in self.agent_ids}
+        terminateds["__all__"] = terminated
+        truncateds = {agent_id: False for agent_id in self.agent_ids}
+        truncateds["__all__"] = False
+
+        info = {}
+        for agent_id in self.agent_ids:
+            info[agent_id] = {"step_reward": step_rewards.get(agent_id, 0)}
+        
+        info["__common__"] = {
+            'winner': getattr(self.game.winner, 'role_id', None),
+            'scores': getattr(self.game, 'score', [0])
+        }
+
+        return mixed_obs, step_rewards, terminateds, truncateds, info
+
+# -------------------------------------------------------------------------
 
     def _preprocess_observation_game_screen(self):
         """Process raw game observation for RL training
@@ -201,6 +293,8 @@ class BalancingBallEnv(MultiAgentEnv):
         info = {}
         return stacked_obs, info
 
+# -------------------------------------------------------------------------
+
     def _preprocess_observation_state_base(self):
         """Convert game state to state-based observation for RL agent"""
         obs = self.game._get_observation_state_based()
@@ -244,6 +338,8 @@ class BalancingBallEnv(MultiAgentEnv):
 
         info = {}
         return observation, info
+
+# -------------------------------------------------------------------------
 
     def close(self):
         """Clean up resources"""

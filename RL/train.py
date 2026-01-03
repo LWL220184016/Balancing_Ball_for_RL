@@ -118,6 +118,12 @@ def run_training(level: int):
             "sgd_minibatch_size": 128,
         })
         .framework("torch")  # 或 "tf2"
+        .env_runners(
+            num_env_runners=8,       # 對應原本的 num_env_runners
+            num_envs_per_env_runner=2,       # 對應原本的 num_envs_per_env_runner
+            rollout_fragment_length=250, # 顯式設置，避免自動計算出現奇異值
+            create_env_on_local_worker=False, 
+        )
         .multi_agent(
             policies={
                 "main": PolicySpec(
@@ -136,12 +142,7 @@ def run_training(level: int):
         .checkpointing(
             export_native_model_files=True, # 導出模型文件
         )
-        .rollouts(
-            num_rollout_workers=8,       # 對應原本的 num_env_runners
-            num_envs_per_worker=2,       # 對應原本的 num_envs_per_env_runner
-            rollout_fragment_length=250, # 顯式設置，避免自動計算出現奇異值
-            create_env_on_local_worker=False, 
-        )
+        
     )
 
     # 3. 設置 Self-Play Callback (關鍵)

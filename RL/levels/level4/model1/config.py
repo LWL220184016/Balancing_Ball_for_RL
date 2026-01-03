@@ -4,10 +4,11 @@ import pathlib
 # CnnPolicy 用於圖像輸入 (game_screen)
 
 class model_config:
-    model_obs_type = "game_screen"
+    model_obs_type = "mixed"
     image_size = (160, 160)
     stack_size = 3
     channels = 3
+    state_obs_size = 10
 
     level=4
     level_config_path=str(pathlib.Path(__file__).parent.resolve()) + f"/level_{level}_default_cfg.json"

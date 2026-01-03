@@ -214,7 +214,7 @@
             "being_hit_penalty": -5,
             
             "speed_reward_threshold": 100,
-            "speed_reward_proportion": 0.000001,
+            "speed_reward_proportion": 0.000005,
 
             "fov_degrees": 90,
             "max_dist": 1000,

@@ -44,7 +44,7 @@ class Ability(ABC):
             config_path = os.path.join(dir_path, './abilities_default_cfg.json')
             raise ValueError(f"Default config for ability '{self.ability_name}' not found in {config_path}")
 
-        self.last_used_step = None  # Track the last time the ability was used
+        self.last_used_step = 0  # Track the last time the ability was used
 
     @abstractmethod
     def action(self, action_value, player: 'Player'):
@@ -66,7 +66,7 @@ class Ability(ABC):
     @abstractmethod
     def reset(self):
         """重設此能力的內部狀態，例如冷卻時間。"""
-        self.last_used_step = None
+        self.last_used_step = 0
 
     def _is_pressed(self, kb_list, ms_list, kb_state, ms_state):
         """高效檢查一組按鍵中是否有任何一個被按下"""
@@ -96,7 +96,7 @@ class Ability(ABC):
 
     def check_is_ready(self, current_step: int) -> bool:
         """Check and update action cooldowns"""
-        if self.last_used_step is None or (current_step - self.last_used_step) >= self.cooldown:
+        if current_step - self.last_used_step >= self.cooldown:
             return True
         return False
         

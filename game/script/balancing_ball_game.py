@@ -328,19 +328,19 @@ class BalancingBallGame:
                 self.screen_data[p.role_id] = self.calculate_verts(p.role_id)
             return None
         
-        # self.render_fps_counter += 1
-        # current_time = time.time()
-        # time_diff = current_time - self.render_fps_timer
-        # if time_diff >= 0.1: # 每秒更新一次
-        #     self.current_render_fps = self.render_fps_counter / time_diff
-        #     self.render_fps_counter = 0
-        #     self.render_fps_timer = current_time
-
-        #     total_entities = len(self.players) + len(self.platforms) + len(self.ability_generated_objects)
-        #     print(F"FPS: {int(self.current_render_fps)}, total_steps: {self.steps}")
-
         # 3. 繪製 UI (文字)
         if self.render_mode == "human":
+
+            self.render_fps_counter += 1
+            current_time = time.time()
+            time_diff = current_time - self.render_fps_timer
+            if time_diff >= 0.1: # 每秒更新一次
+                self.current_render_fps = self.render_fps_counter / time_diff
+                self.render_fps_counter = 0
+                self.render_fps_timer = current_time
+
+                # total_entities = len(self.players) + len(self.platforms) + len(self.ability_generated_objects)
+                # print(F"FPS: {int(self.current_render_fps)}, total_steps: {self.steps}")
 
             # 清空 UI 層
             self.mgl.fbo_render_human.use()

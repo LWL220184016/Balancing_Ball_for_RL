@@ -99,17 +99,20 @@ class Role(ABC):
             list: A list representing the normalized state of the role, including position and ability cooldowns
         """
 
+        # 自身坐標
         win_x, win_y = window_size
         pos_x, pos_y = self.get_position()
         norm_x = pos_x / win_x * 2 - 1
         norm_y = pos_y / win_y * 2 - 1
         # ---------------------------------------------
+        # 速度
         vel_x, vel_y = self.get_velocity()
         # 使用 tanh 進行正規化，velocity_scale 是一個超參數，用於調整靈敏度
         norm_vx = np.tanh(vel_x / velocity_scale)
         norm_vy = np.tanh(vel_y / velocity_scale)
 
         # ---------------------------------------------
+        # 是否發生撞擊
         is_colliding = 1.0 if self.get_collision_with() else 0.0
 
         # ---------------------------------------------
