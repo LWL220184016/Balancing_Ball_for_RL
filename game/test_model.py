@@ -33,8 +33,8 @@ ray.init()
 
 # 2. 指定 Checkpoint 的路徑
 # 注意：路徑通常指向名為 "checkpoint_000xxx" 的文件夾
-checkpoint_path1 = "C:/Users/User/ray_results/PPO_2026-01-01_19-42-18/PPO_balancing_ball_v1_ed719_00000_0_2026-01-01_19-42-18/checkpoint_000003"
-checkpoint_path2 = "C:/Users/User/ray_results/PPO_2026-01-01_18-22-05/PPO_balancing_ball_v1_b83ff_00000_0_2026-01-01_18-22-05/checkpoint_000004"
+checkpoint_path1 = "C:/Users/User/ray_results/PPO_2026-01-04_11-35-06/PPO_balancing_ball_v1_5cec0_00000_0_2026-01-04_11-35-06/checkpoint_000039"
+checkpoint_path2 = "C:/Users/User/ray_results/PPO_2026-01-03_23-18-35/PPO_balancing_ball_v1_79041_00000_0_2026-01-03_23-18-35/checkpoint_000009"
 
 # 3. 從 Checkpoint 恢復算法實例
 # 不需要重新定義 config，它會自動從 checkpoint 中讀取
@@ -74,33 +74,33 @@ while not done["__all__"]:
     for agent_id, obs in obs_dict.items():
         # --- Self-play 測試策略選擇邏輯 ---
         # 假設 agent_0 是你要測試的最新模型，agent_1 是對手
-        # if agent_id == "RL_player0":
-        #     policy_id = "main"  # 使用當前最強的 Policy
-        # else:
-        #     policy_id = "main_opponent" # 使用之前的舊版本作為對手，或者 "random"
-            
-        # # 計算動作
-        # action = algo.compute_single_action(
-        #     observation=obs,
-        #     policy_id=policy_id,
-        #     explore=False # 測試時關閉隨機性
-        # )
-        # action_dict[agent_id] = action
-        
         if agent_id == "RL_player0":
-            action = algo1.compute_single_action(
-                observation=obs,
-                policy_id="main",
-                explore=False # 測試時關閉隨機性
-            )
-            action_dict[agent_id] = action
+            policy_id = "main"  # 使用當前最強的 Policy
         else:
-            action = algo2.compute_single_action(
-                observation=obs,
-                policy_id="main",
-                explore=False # 測試時關閉隨機性
-            )
-            action_dict[agent_id] = action
+            policy_id = "main_opponent" # 使用之前的舊版本作為對手，或者 "random"
+            
+        # 計算動作
+        action = algo1.compute_single_action(
+            observation=obs,
+            policy_id=policy_id,
+            explore=False # 測試時關閉隨機性
+        )
+        action_dict[agent_id] = action
+        
+        # if agent_id == "RL_player0":
+        #     action = algo1.compute_single_action(
+        #         observation=obs,
+        #         policy_id="main",
+        #         explore=False # 測試時關閉隨機性
+        #     )
+        #     action_dict[agent_id] = action
+        # else:
+        #     action = algo2.compute_single_action(
+        #         observation=obs,
+        #         policy_id="main",
+        #         explore=False # 測試時關閉隨機性
+        #     )
+        #     action_dict[agent_id] = action
             
         # 計算動作
 

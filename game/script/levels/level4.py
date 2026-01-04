@@ -70,6 +70,10 @@ class Level4(Levels):
         shape state changes in the game
         """
 
+        for obj in self.game.ability_generated_objects:
+            if obj.get_is_on_ground():
+                obj.expired_time = 0
+
         return rewards, terminated
 
     def status_reset_step(self):
@@ -102,6 +106,8 @@ class Level4(Levels):
             norm_vy = np.tanh(self_vel[1] / self.velocity_scale)
 
             is_player_ability_available = (self.game.steps - p.abilities["Shoot"].last_used_step) / p.abilities["Shoot"].cooldown
+            if is_player_ability_available > 1.0:
+                is_player_ability_available = 1.0
 
             for _p in self.players:
                 if _p.role_id == p.role_id:
@@ -144,3 +150,37 @@ class Level4(Levels):
         Reset the level to its initial state.
         """
         super().reset()
+
+    def check_if_game_end(self, alive_count: int):
+        # Check if game should end
+        game = self.game
+        steps = game.steps
+        max_episode_step = game.max_episode_step
+
+        terminated = False
+        winner = None
+        if alive_count <= 1 or steps >= max_episode_step:
+            terminated = True
+            game.game_over = True
+
+            # Determine winner (last player alive or highest score)
+            if alive_count == 1:
+                winner = next(p for p in self.players if p.get_is_alive()) 
+            elif steps == max_episode_step:
+                # Game ended due to max steps, winner is highest score
+                highest_health = 0
+                winner = None
+                for p in self.players:
+                    if p.get_is_alive():
+                        if p.health > highest_health:
+                            winner = p
+                        elif p.health == highest_health:
+                            winner == None
+                
+        if winner != None:
+            # Give bonus to winner
+            winner_reward = 200 * (winner.health / winner.default_health) * ((max_episode_step - steps) / max_episode_step) # 越快擊殺對手以及血量越高獎勵越多 TODO Hard code
+            winner.add_reward_per_step(winner_reward)
+            game.winner_role_id = winner.role_id 
+
+        return terminated

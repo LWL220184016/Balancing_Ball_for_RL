@@ -90,7 +90,7 @@ class BalancingBallGame:
         self.window_x = GameConfig.SCREEN_WIDTH
         self.window_y = GameConfig.SCREEN_HEIGHT
         self.fps = GameConfig.FPS
-        self.collision_handler = CollisionHandler(self.space)
+        self.collision_handler = CollisionHandler(self.space, self)
         self.capture_per_second = capture_per_second
         if capture_per_second:
             self.capture_per_second = capture_per_second * self.fps
@@ -119,7 +119,7 @@ class BalancingBallGame:
         self.end_time = self.start_time
         self.game_over = False
         self.score = {p.role_id: 0 for p in self.players}  # Total Score for each player
-        self.winner = None
+        self.winner_role_id = ""
         self.last_speeds = [0] * self.num_players  # Track last speed for each player
         self.step_rewards = {p.role_id: 0 for p in self.players}  # Rewards obtained in the last step
         self.step_action = None
@@ -198,7 +198,7 @@ class BalancingBallGame:
         self.start_time = time.time()
         self.game_over = False
         self.score = {p.role_id: 0 for p in self.players}
-        self.winner = None
+        self.winner_role_id = ""
         self.last_speeds = [0] * self.num_players
 
     def step(self, pactions: dict):
@@ -255,24 +255,7 @@ class BalancingBallGame:
 
         # 處理玩家與實體的碰撞獎勵，包含每個 Step 的狀態重設
 
-        # Check if game should end
-        terminated = False
-        if alive_count == 0 or (alive_count == 1 and self.num_players > 1) or self.steps >= self.max_episode_step:
-            terminated = True
-            self.game_over = True
-
-            # Determine winner (last player alive or highest score)
-            if alive_count == 1 and self.num_players > 1:
-                self.winner = next(p for p in self.players if p.get_is_alive()) 
-                # Give bonus to winner
-                self.winner.add_reward_per_step(0.5 * self.steps / 100)  # 生存時間越長獎勵越多 TODO Hard code
-                self.score[self.winner.role_id] += self.winner.get_reward_per_step()
-            elif self.steps == self.max_episode_step:
-                # Game ended due to max steps, winner is highest score
-                self.winner = np.argmax(self.score)
-            else:
-                self.winner = None
-
+        terminated = self.level.check_if_game_end(alive_count)
         rewards = {}
         for player in self.players:
             rewards[player.role_id] = player.get_reward_per_step()
@@ -282,7 +265,7 @@ class BalancingBallGame:
             result = {
                 "game_total_duration": f"{time.time() - self.start_time:.2f}",
                 "scores": self.score,
-                "winner": self.winner.role_id,
+                "winner": self.winner_role_id,
                 "steps": self.steps
             }
             self.recorder.add_no_limit(result)
@@ -529,12 +512,12 @@ class BalancingBallGame:
 
         # 6. 處理 Game Over 畫面
         if self.game_over:
-            if self.winner is not None:
-                game_over_text = f"WINNER: Player {self.winner.role_id} - Press R to restart"
+            if self.winner_role_id != "":
+                game_over_text = f"WINNER: Player {self.winner_role_id} - Press R to restart"
             elif self.num_players == 1:
                 game_over_text = "GAME OVER - Press R to restart"
             elif self.steps == self.max_episode_step:
-                game_over_text = f"Time limit reached. Winner by score: Player {self.winner.role_id}"
+                game_over_text = f"Time limit reached. Winner by score: Player {self.winner_role_id}"
             else:
                 game_over_text = "DRAW - Press R to restart"
 

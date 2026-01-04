@@ -42,6 +42,8 @@ class Levels:
         """
         通用設置方法，用於創建和註冊遊戲對象。
         """
+
+        self.fps = GameConfig.FPS
         self.collision_type_player: int = self.collision_type.get("player")
         self.collision_type_platform: int = self.collision_type.get("platform")
 
@@ -120,6 +122,8 @@ class Levels:
         for platform in self.platforms:
             platform.reset()
 
+    def check_if_game_end(self, alive_count):
+        raise NotImplementedError(f"This method '{self.check_if_game_end.__name__}' should be overridden by subclasses.")
 
 class Level1(Levels):
     """
@@ -180,6 +184,29 @@ class Level1(Levels):
         super().reset()
         for platform in self.platforms:
             platform.set_angular_velocity(random.randrange(-1, 2, 2))
+
+    def check_if_game_end(self, alive_count: int):
+        # Check if game should end
+        game = self.game
+        steps = game.steps
+        max_episode_step = game.max_episode_step
+
+        terminated = False
+        winner = None
+        if alive_count == 0 or steps >= max_episode_step:
+            terminated = True
+            game.game_over = True
+            
+            if steps == max_episode_step:
+                # Game ended due to max steps, winner is highest score
+                winner = self.players[0]
+
+        if winner is not None:
+            winner.add_reward_per_step(0.5 * steps / 100)  # 生存時間越長獎勵越多 TODO Hard code
+            game.winner_role_id = winner.role_id
+
+        return terminated
+    
 
 class Level2(Levels):
     """
@@ -246,6 +273,29 @@ class Level2(Levels):
         for platform in self.platforms:
             platform.set_angular_velocity(random.randrange(-1, 2, 2))
         self.last_angular_velocity_change_time = time.time()
+
+    def check_if_game_end(self, alive_count: int):
+        # Check if game should end
+        game = self.game
+        steps = game.steps
+        max_episode_step = game.max_episode_step
+
+        terminated = False
+        winner = None
+        if alive_count == 0 or steps >= max_episode_step:
+            terminated = True
+            game.game_over = True
+            
+            if steps == max_episode_step:
+                # Game ended due to max steps, winner is highest score
+                winner = self.players[0]
+
+        if winner is not None:
+            winner.add_reward_per_step(0.5 * steps / 100)  # 生存時間越長獎勵越多 TODO Hard code
+            game.winner_role_id = winner.role_id
+
+        return terminated
+    
 
 class Level3(Levels):
     """
@@ -317,7 +367,7 @@ class Level3(Levels):
 
         while not player.check_ability_ready("Collision", self.game.get_step()) and not terminated:
             self.status_reset_step()
-            self.space.step(1/self.game.get_fps())
+            self.space.step(1/self.fps)
 
             # Check game state
             self.game.add_step(1)
@@ -397,3 +447,25 @@ class Level3(Levels):
         for rock in self.falling_rocks:
             rock.reset()
 
+    def check_if_game_end(self, alive_count: int):
+        # Check if game should end
+        game = self.game
+        steps = game.steps
+        max_episode_step = game.max_episode_step
+
+        terminated = False
+        winner = None
+        if alive_count == 0 or steps >= max_episode_step:
+            terminated = True
+            game.game_over = True
+            
+            if steps == max_episode_step:
+                # Game ended due to max steps, winner is highest score
+                winner = self.players[0]
+
+        if winner is not None:
+            winner.add_reward_per_step(0.5 * steps / 100)  # 生存時間越長獎勵越多 TODO Hard code
+            game.winner_role_id = winner.role_id
+
+        return terminated
+    

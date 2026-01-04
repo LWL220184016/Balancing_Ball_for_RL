@@ -9,15 +9,20 @@ except ImportError:
     from script.role.player import Player
     from script.role.platform import Platform
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from script.balancing_ball_game import BalancingBallGame
+
 class CollisionHandler:
     """Handles collision detection and response in the game."""
 
-    def __init__(self, space: pymunk.Space):
+    def __init__(self, space: pymunk.Space, game: 'BalancingBallGame'):
         self.space = space
         self.players: dict[int, Player] = {}
         self.platforms: dict[int, Platform] = {}
         self.entities: dict[int, Role] = {}
         self.movable_objects: dict[int, Role] = {}
+        self.game = game
 
         # Set up collision handlers
 
@@ -25,17 +30,21 @@ class CollisionHandler:
         self.movable_objects.update(self.players)
         self.movable_objects.update(self.entities)
 
-        for movable_object_ct in self.movable_objects.keys():
-            for platform_ct in self.platforms.keys():
-                self.space.on_collision(movable_object_ct, platform_ct, post_solve=self.check_is_on_ground)
+        for platform_ct in self.platforms.keys():
+            self.space.on_collision(platform_ct, None, post_solve=self.check_is_on_ground)
 
         for player_ct in self.players.keys():
             self.space.on_collision(player_ct, None, post_solve=self.check_is_collision_player)
 
     def check_is_on_ground(self, arbiter: pymunk.Arbiter, space: pymunk.Space, data):
         """Check if the player ball is on the ground (platform)"""
-        obj = self.movable_objects.get(arbiter.shapes[0].collision_type)
-        obj.set_is_on_ground(True)
+        obj = self.movable_objects.get(arbiter.shapes[1].collision_type, False)
+        if obj:
+            obj.set_is_on_ground(True)
+        else:
+            for obj in self.game.ability_generated_objects:
+                if obj.get_collision_type() == arbiter.shapes[1].collision_type:
+                    obj.set_is_on_ground(True)
 
     def check_is_collision_player(self, arbiter: pymunk.Arbiter, space: pymunk.Space, data):
         """Handle collisions between objects"""

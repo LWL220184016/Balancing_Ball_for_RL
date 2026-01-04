@@ -6,7 +6,7 @@ import pathlib
 class model_config:
     model_obs_type = "mixed"
     image_size = (160, 160)
-    stack_size = 3
+    stack_size = 1
     channels = 3
     state_obs_size = 10
 
@@ -15,7 +15,7 @@ class model_config:
     
 class train_config:
     total_timesteps=5000000
-    max_episode_step=500000  # Maximum steps per episode
+    max_episode_step=50000  # Maximum steps per episode
     save_freq=50000
     eval_freq=10000
     eval_episodes=5
