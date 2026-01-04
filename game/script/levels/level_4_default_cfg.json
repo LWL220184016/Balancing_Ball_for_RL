@@ -175,7 +175,7 @@
             "bullet": {
                 "shape_type": "circle",
                 "size": [
-                    0.01
+                    0.015
                 ],
                 "shape_mass": 0.1,
                 "shape_friction": 0,

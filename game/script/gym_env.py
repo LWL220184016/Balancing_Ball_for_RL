@@ -47,6 +47,7 @@ class BalancingBallEnv(MultiAgentEnv):
 
         # Image preprocessing settings
         self.image_size = getattr(model_cfg, 'image_size', (0, 0)) 
+        self.frame_skipping = getattr(model_cfg, 'frame_skipping', 0) 
 
         self.stack_size = model_cfg.stack_size  # Number of frames to stack
         self.render_mode = render_mode
@@ -169,7 +170,16 @@ class BalancingBallEnv(MultiAgentEnv):
 
     def step_mixed(self, action):
         processed_action = _numpy_to_python(action)
-        step_rewards, terminated = self.game.step(processed_action)
+
+        terminated = False
+        step_rewards = {agent_id: 0.0 for agent_id in self.agent_ids}
+        for n in range(self.frame_skipping):
+            if terminated:
+                break
+
+            _step_rewards, terminated = self.game.step(processed_action)
+            for key, reward in _step_rewards.items():
+                step_rewards[key] += reward
         
         # 1. 獲取新數據
         new_img_obs = self._preprocess_observation_game_screen()
@@ -204,7 +214,7 @@ class BalancingBallEnv(MultiAgentEnv):
             info[agent_id] = {"step_reward": step_rewards.get(agent_id, 0)}
         
         info["__common__"] = {
-            'winner': getattr(self.game.winner, 'role_id', None),
+            'winner': getattr(self.game, "winner_role_id"),
             'scores': getattr(self.game, 'score', [0])
         }
 

@@ -14,7 +14,7 @@ class Turning_topdown_viewing_angle(Ability):
     def action(self, action_value, player: 'Player', current_step: int):
         
         if len(action_value) == 1: 
-            player.shape.body.angle = action_value[0] * math.pi
+            player.shape.body.angular_velocity = action_value[0] * self.speed
         else: 
             x, y = player.get_position()
             

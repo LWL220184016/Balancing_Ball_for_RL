@@ -10,7 +10,7 @@ if project_root not in sys.path:
     sys.path.append(project_root)
 
 level = 4
-# 啟動 Level 子進程
+episode_num = 3
 module_path = f"RL.levels.level{level}.model1.config"
 
 try:
@@ -27,6 +27,13 @@ except AttributeError as e:
 
 env = BalancingBallEnv(render_mode="headless", model_cfg=model_config, train_cfg=train_config)
 
-while True:
-    action = {}
-    env.step(action)
+terminateds = {}
+terminateds["__all__"] = False
+for n in range(episode_num):
+    print(f"episode_num: {n+1}")
+    while not terminateds["__all__"]:
+        action = {'RL_player0': {'Move_topdown_viewing_angle': (0, 0), 'Shoot': 1}}
+        mixed_obs, step_rewards, terminateds, truncateds, info = env.step(action)
+
+    terminateds["__all__"] = False
+    env.reset()

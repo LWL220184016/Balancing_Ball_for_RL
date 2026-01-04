@@ -123,7 +123,7 @@
     },
     "Turning_topdown_viewing_angle": {
         "force": 0,
-        "speed": 0,
+        "speed": 100,
         "cooldown": 0,
         "key": {
             "keyboard": {},

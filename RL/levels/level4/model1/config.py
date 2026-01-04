@@ -10,6 +10,8 @@ class model_config:
     channels = 3
     state_obs_size = 10
 
+    frame_skipping = 4
+
     level=4
     level_config_path=str(pathlib.Path(__file__).parent.resolve()) + f"/level_{level}_default_cfg.json"
     
