@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from script.balancing_ball_game import BalancingBallGame
 
 def get_level(level: int, 
+              sub_level: int = 0,
               game: 'BalancingBallGame' = None,
               collision_type: dict = None, 
               player_configs: dict = None, 
@@ -34,12 +35,12 @@ def get_level(level: int,
     
     if level <= 2:
         if level_config_path is None:
-            level_config_path = os.path.join(dir_path, './level_1_2_default_cfg.json')
-        level_key = f"level1_2"
+            level_config_path = os.path.join(dir_path, './level_1_and_2_default_cfg.json')
+        level_key = f"level1_and_2"
     else:
         if level_config_path is None:
-            level_config_path = os.path.join(dir_path, f'./level_{level}_default_cfg.json')
-        level_key = f"level{level}"
+            level_config_path = os.path.join(dir_path, f'./level_{level}_{sub_level}_default_cfg.json')
+        level_key = f"level{level}_{sub_level}"
     
     print(f"Loading level configurations from {level_config_path}...")
     with open(level_config_path, 'r') as f:
@@ -60,7 +61,7 @@ def get_level(level: int,
         if not environment_configs:
             environment_configs = level_cfg.get("environment_configs", {})
     else:
-        raise ValueError(f"Default config for level {level} not found in {level_config_path}")
+        raise ValueError(f"Default config for level {level}_{sub_level} not found in {level_config_path}")
 
     if not player_configs:
         raise ValueError(f"Invalid player_configs: {player_configs}, must be a non-empty list or dict")
@@ -86,8 +87,8 @@ def get_level(level: int,
     elif level == 2:
         return Level2(game=game, collision_type=collision_type, player_configs=player_configs, level_configs=level_cfg)
     elif level == 3:
-        return Level3(game=game, collision_type=collision_type, player_configs=player_configs, level_configs=level_cfg)
+        return Level3_0(game=game, collision_type=collision_type, player_configs=player_configs, level_configs=level_cfg)
     elif level == 4:
-        return Level4(game=game, collision_type=collision_type, player_configs=player_configs, level_configs=level_cfg)
+        return Level4_0(game=game, collision_type=collision_type, player_configs=player_configs, level_configs=level_cfg)
     else:
         raise ValueError(f"Invalid level number: {level}")

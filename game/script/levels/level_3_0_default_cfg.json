@@ -33,7 +33,7 @@
         "platform": 2000,
         "fallingRock": 3000
     },
-    "level3": {
+    "level3_0": {
         "platform_configs": [
             {
                 "shape_type": "rectangle",

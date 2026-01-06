@@ -10,6 +10,7 @@ class ModernGLRenderer:
         self.obs_width = obs_width
         self.obs_height = obs_height
         self.headless = headless
+        self.proj_matrix = self.get_ortho_matrix(0, width, height, 0)
         
         if headless:
             if sys.platform.startswith('linux'):
@@ -25,10 +26,11 @@ class ModernGLRenderer:
             self.ctx = moderngl.create_context(standalone=False)
             self.fbo_render_human = self.ctx.screen
             self._init_texture_renderer()
+            self._init_line_renderer()
             self.ui_texture = self.ctx.texture((width, height), 4)
 
             # test model 最後 terminated 莫名其妙變回 false 不會結束，
-            # 添加標記或者箭頭顯示角色面對方向
+            # 在觀察控件中添加墻壁的距離
 
         self.fbo_render_rl = self.ctx.simple_framebuffer((obs_width, obs_height), components=3)
         self._build_ctx_program_rgb() 
@@ -37,7 +39,6 @@ class ModernGLRenderer:
         self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
         
         # 預計算投影矩陣
-        self.proj_matrix = self.get_ortho_matrix(0, width, height, 0)
         
         # 初始化兩個專用的批量渲染器 
         self._init_circle_renderer()
@@ -117,6 +118,104 @@ class ModernGLRenderer:
             return
         self.vbo_poly.write(vertices_data)
         self.vao_poly.render(moderngl.TRIANGLES, vertices=vertex_count)
+
+    # ==========================================
+    # ⚡️ Pymunk 線段渲染器 (GPU 旋轉計算)
+    # ==========================================
+    def _init_line_renderer(self):
+        self.line_prog = self.ctx.program(
+            vertex_shader='''
+                #version 330
+                
+                in vec2 in_vert;     // 矩形模版 (0~1, -0.5~0.5)
+                
+                // Instance Data (每條線的數據)
+                in vec2 in_body_pos; // 物體中心世界座標 (Body X, Y)
+                in vec2 in_rot;      // 旋轉向量 (cos, sin)
+                in vec2 in_local_a;  // 線段起點 (相對於物體中心)
+                in vec2 in_local_b;  // 線段終點 (相對於物體中心)
+                in float in_width;   // 線寬
+                in vec3 in_color;    // 顏色
+                
+                uniform mat4 proj;
+                out vec3 v_color;
+                
+                // 2D 向量旋轉函數
+                vec2 rotate_vec(vec2 v, vec2 rot) {
+                    return vec2(
+                        v.x * rot.x - v.y * rot.y,
+                        v.x * rot.y + v.y * rot.x
+                    );
+                }
+
+                void main() {
+                    v_color = in_color;
+                    
+                    // 1. 先將局部座標旋轉，並加上物體中心，轉為世界座標
+                    vec2 world_start = in_body_pos + rotate_vec(in_local_a, in_rot);
+                    vec2 world_end   = in_body_pos + rotate_vec(in_local_b, in_rot);
+                    
+                    // 2. 接下來的邏輯與普通畫線一樣 (計算方向與擴展寬度)
+                    vec2 delta = world_end - world_start;
+                    float len = length(delta);
+                    vec2 normal = (len > 0.0) ? vec2(-delta.y, delta.x) / len : vec2(0.0, 0.0);
+                    
+                    // 計算最終頂點位置
+                    vec2 pos = world_start + (delta * in_vert.x) + (normal * in_width * in_vert.y);
+                    
+                    gl_Position = proj * vec4(pos, 0.0, 1.0);
+                }
+            ''',
+            fragment_shader='''
+                #version 330
+                in vec3 v_color;
+                out vec4 f_color;
+                void main() {
+                    f_color = vec4(v_color, 1.0);
+                }
+            '''
+        )
+        
+        self.line_prog['proj'].write(self.proj_matrix)
+        
+        # 基礎幾何體 (長條矩形)
+        line_quad_verts = np.array([0.0, -0.5, 1.0, -0.5, 0.0, 0.5, 1.0, 0.5], dtype='f4')
+        self.vbo_line_quad = self.ctx.buffer(line_quad_verts.tobytes())
+        
+        # 預分配 Instance Buffer
+        # 格式: [body_x, body_y, rot_x, rot_y, la_x, la_y, lb_x, lb_y, width, r, g, b]
+        # 共 12 個 float
+        self.max_lines = 2000
+        self.vbo_line_instance = self.ctx.buffer(reserve=self.max_lines * 12 * 4)
+        
+        self.vao_line = self.ctx.vertex_array(
+            self.line_prog,
+            [
+                (self.vbo_line_quad, '2f', 'in_vert'),
+                (self.vbo_line_instance, '2f 2f 2f 2f 1f 3f/i', 
+                 'in_body_pos', 'in_rot', 'in_local_a', 'in_local_b', 'in_width', 'in_color')
+            ]
+        )
+
+    def render_pymunk_lines(self, line_data_list):
+        """
+        line_data_list: list of [
+            body_x, body_y,   # 物體中心
+            rot_x, rot_y,     # 旋轉向量 (Body.rotation_vector)
+            local_ax, local_ay, # 線段起點 (相對於中心)
+            local_bx, local_by, # 線段終點 (相對於中心)
+            width, r, g, b
+        ]
+        """
+        if not line_data_list:
+            return
+            
+        data = np.array(line_data_list, dtype='f4')
+        count = len(data)
+        
+        # 寫入 Buffer 並渲染
+        self.vbo_line_instance.write(data.tobytes())
+        self.vao_line.render(moderngl.TRIANGLE_STRIP, instances=count)
 
     def clear(self, color_rl=(0, 0, 0), color_human=None):
         # 處理 RGB 默認值

@@ -48,6 +48,7 @@ class BalancingBallGame:
                  environment_configs: dict = None,
                  level_config_path: str = None,
                  level: int = None,
+                 sub_level: int = 0,
                  capture_per_second: int = None,
                  is_enable_realistic_field_of_view_cropping: bool = False,
                 ):
@@ -80,6 +81,7 @@ class BalancingBallGame:
         self.space = pymunk.Space()
         self.level: Levels = get_level(
             level=level, 
+            sub_level=sub_level,
             game=self,
             collision_type=collision_type, 
             player_configs=player_configs, 
@@ -330,6 +332,7 @@ class BalancingBallGame:
             self.mgl.clear(self.BACKGROUND_COLOR_RL, self.BACKGROUND_COLOR)
             poly_verts, circle_batch = self.calculate_verts()
             self._draw_scene_moderngl(poly_verts, circle_batch)
+            self._draw_player_facing_line()
             self.ui_surface.fill((0,0,0,0)) 
             self._draw_game_info_to_surface(self.ui_surface)
             self.mgl.draw_texture(self.ui_surface)
@@ -468,6 +471,68 @@ class BalancingBallGame:
         # 繪製所有圓形
         if circle_batch:
             self.mgl.render_circles(circle_batch)
+
+    def _draw_player_facing_line(self):
+        render_data = []
+
+        for p in self.players:
+            shape = p.shape.shape # 假設這是 Pymunk 的 Shape 對象
+            body = p.shape.body
+            
+            # 1. 獲取物體中心與旋轉 (通用)
+            bx, by = body.position.x, body.position.y
+            rx, ry = body.rotation_vector.x, body.rotation_vector.y
+            
+            # 2. 根據形狀類型決定局部座標 (Local A -> Local B)
+            if isinstance(shape, pymunk.Circle):
+                # 起點：圓心
+                lax, lay = shape.offset.x, shape.offset.y
+                
+                # --- 修改這裡 ---
+                # 決定你要畫多長：
+                
+                # 方法 A：按比例 (例如：半徑的 2.5 倍長)
+                line_length = shape.radius * 25.0
+                
+                # 方法 B：固定長度 (例如：半徑 + 50 像素)
+                # line_length = shape.radius + 50.0
+                
+                # 設定終點 X (在局部座標向右延伸)
+                lbx = shape.offset.x + line_length
+                lby = shape.offset.y
+                # ----------------
+                
+                width = 2.0
+                
+            elif isinstance(shape, pymunk.Segment):
+                # --- 線段處理 ---
+                # 直接使用線段的兩個端點
+                lax, lay = shape.a.x, shape.a.y
+                lbx, lby = shape.b.x, shape.b.y
+                
+                # 線寬：通常線段形狀本身有半徑(厚度)
+                width = shape.radius * 2 if shape.radius > 0 else 2.0
+            
+            else:
+                # 其他形狀 (如 Poly) 暫時跳過，或默認畫一條短線
+                continue
+
+            # 顏色 (建議使用 0.0 ~ 1.0 的浮點數)
+            r, g, b = 1.0, 1.0, 1.0 
+
+            # 3. 打包數據
+            render_data.append([
+                bx, by,      # Body Pos (世界座標)
+                rx, ry,      # Rotation Vector
+                lax, lay,    # Local Point A (局部座標)
+                lbx, lby,    # Local Point B (局部座標)
+                width,
+                r, g, b
+            ])
+
+        # 一次性渲染
+        if render_data:
+            self.mgl.render_pymunk_lines(render_data)
 
     def _draw_game_info_to_surface(self, target_surface):
         """

@@ -297,7 +297,7 @@ class Level2(Levels):
         return terminated
     
 
-class Level3(Levels):
+class Level3_0(Levels):
     """
     Level 3: Basic setup with a dynamic body and a static kinematic body.
 
