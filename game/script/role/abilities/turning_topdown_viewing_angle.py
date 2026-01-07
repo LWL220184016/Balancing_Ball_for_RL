@@ -33,6 +33,43 @@ class Turning_topdown_viewing_angle(Ability):
         # # 使用 atan2 取得弧度 (y, x)
         # angle = math.atan2(dy, dx)
         return mouse_position
-    
+
+    def bot_action(self, self_role_id: str, players: list['Player'], **kwargs):
+        """
+        返回距離自己最近的敵人的坐標
+        
+        :param self_role_id: 自己的角色 ID
+        :type self_role_id: str
+        :param players: 所有玩家的物件列表 (假設物件有 team_id, hp, role_id 屬性及 get_position() 方法)
+        :type players: list
+        :param kwargs: 其他參數
+        :return: 最近敵人的坐標 (x, y) 或 None (若無敵人)
+        """
+        
+        self_pos = None
+        enemy_pos = []
+        
+        for p in players:
+            if p.role_id == self_role_id:
+                self_pos = p.get_position()
+            else:
+                enemy_pos.append(p.get_position())
+        
+        if self_pos is None:
+            return None
+
+        closest_enemy_pos = None
+        min_distance = float('inf') # 設定為無限大
+
+        for pos in enemy_pos:
+            
+            # 計算距離 (使用歐幾里得距離)
+            distance = math.dist(self_pos, pos)
+
+            if distance < min_distance:
+                min_distance = distance
+                closest_enemy_pos = pos
+        return closest_enemy_pos
+
     def reset(self):
         return super().reset()

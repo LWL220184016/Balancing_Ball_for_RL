@@ -62,6 +62,18 @@ class Ability(ABC):
         子類需要覆寫此方法以實現自定義的輸入邏輯。
         """
         pass
+
+    @abstractmethod
+    def bot_action(self, **kwargs):
+        """
+        提供給 Bot 使用的接口方法，生成動作值 (action_value) 以控制此能力。
+        主要目的在於提供一個合格的訓練假人讓 RL 模型熟悉遊戲環境。
+        函數會返回 action_value 而不是直接呼叫 action 因為 action 需要在遊戲主循環中被呼叫，
+        而 bot_action 只是負責產生 action_value。
+
+        子類需要覆寫此方法以實現自定義的 AI 邏輯。
+        """
+        pass
     
     @abstractmethod
     def reset(self):

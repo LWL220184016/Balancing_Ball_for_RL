@@ -1,7 +1,9 @@
+import random
 import pygame
 import pymunk
 
 from role.abilities.ability import Ability
+from script.game_config import GameConfig
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -19,6 +21,11 @@ class Move_topdown_viewing_angle(Ability):
         self._mouse_left = self.control_keys["mouse"].get("left", [])
         self._mouse_back = self.control_keys["mouse"].get("back", [])
         self._mouse_right = self.control_keys["mouse"].get("right", [])
+
+        self.bot_x_force = 0
+        self.bot_y_force = 0
+        self.reset_bot_xy_force_cooldown = 0.5 * GameConfig.FPS # TODO Hard code
+        self.last_reset_bot_xy_force = -self.reset_bot_xy_force_cooldown
 
     def action(self, action_value: tuple[float, float], player: 'Player', current_step: int):
         if action_value == (0, 0): 
@@ -42,6 +49,15 @@ class Move_topdown_viewing_angle(Ability):
         y_force = -(move_front - move_back)
 
         return x_force, y_force
+    
+    def bot_action(self, current_game_step: int = 0, **kwargs) -> float:
+        # 每隔一段時間重置 bot_x_force
+        if current_game_step - self.last_reset_bot_xy_force >= self.reset_bot_xy_force_cooldown:
+            self.bot_x_force = random.uniform(-1.0, 1.0)
+            self.bot_y_force = random.uniform(-1.0, 1.0)
+            self.last_reset_bot_xy_force = current_game_step
+
+        return self.bot_x_force, self.bot_y_force
     
     def reset(self):
         return super().reset()

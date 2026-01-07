@@ -27,5 +27,8 @@ class Jump(Ability):
 
         return p1_y_force
     
+    def bot_action(self, **kwargs):
+        return 1
+    
     def reset(self):
         return super().reset()

@@ -232,8 +232,9 @@ class BalancingBallGame:
         if pactions:
             for player in self.players:
                 try:
-                    if pactions[player.role_id]:
-                        self.ability_generated_objects.extend(player.perform_action(pactions[player.role_id], self.steps))
+                    if "bot" in player.role_id:
+                        pactions[player.role_id] = player.bot_action(current_game_step=self.steps, players=self.players, self_role_id=player.role_id)
+                    self.ability_generated_objects.extend(player.perform_action(pactions[player.role_id], self.steps))
                 except KeyError:
                     continue
         self.add_step(1)
@@ -635,7 +636,7 @@ class BalancingBallGame:
             force_vector = moving_direction[i]
             player.move(force_vector)
 
-    def run_standalone(self, players_id):
+    def run_standalone(self, players_ids: list[str]):
         """Run the game in standalone mode with keyboard controls"""
         try:
             from human_control import HumanControl
@@ -643,7 +644,7 @@ class BalancingBallGame:
             from script.human_control import HumanControl
             
         self.human_control = HumanControl(self)
-        self.assign_players(player_id_list=[players_id])
+        self.assign_players(player_id_list=players_ids)
 
         self.run = True
         while self.run:

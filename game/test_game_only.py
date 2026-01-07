@@ -17,6 +17,5 @@ game = BalancingBallGame(render_mode="human",
                             sub_level=0,
                             capture_per_second=None
                         )
-
-game.run_standalone("Human_player1")
-
+player_ids = ["Human_player1", "bot_player"]
+game.run_standalone(players_ids=player_ids)

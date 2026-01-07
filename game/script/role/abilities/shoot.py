@@ -66,6 +66,9 @@ class Shoot(Ability):
         if self._is_pressed(self._keyboard_action, self._mouse_action, keyboard_keys, mouse_buttons):
             return 1
         return 0
+
+    def bot_action(self, **kwargs):
+        return 1
     
     def reset(self):
         return super().reset()

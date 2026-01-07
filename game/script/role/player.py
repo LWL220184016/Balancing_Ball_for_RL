@@ -43,6 +43,15 @@ class Player(Role):
         self.set_last_direction(None)
         self.set_direction_count(0)
 
+    def bot_action(self, **kwargs):
+        """Generate a bot action for the player."""
+        action_dict = {}
+        for ability_name, ability_instance in self.abilities.items():
+            action_value = ability_instance.bot_action(**kwargs)
+            if action_value is not None:
+                action_dict[ability_name] = action_value
+        return action_dict
+
     def apply_force_at_world_point(self, force: pymunk.Vec2d, point: tuple[float, float]):
         self.shape.apply_force_at_world_point(force, point)
 
