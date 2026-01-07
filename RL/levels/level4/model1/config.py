@@ -26,6 +26,7 @@ class train_config:
     model_dir="./models/"
     render_mode="headless"  
     seed=31415926
+    num_agents=1
 
     player_role_id = "RL_player"
 

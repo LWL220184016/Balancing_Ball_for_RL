@@ -33,7 +33,7 @@ ray.init()
 
 # 2. 指定 Checkpoint 的路徑
 # 注意：路徑通常指向名為 "checkpoint_000xxx" 的文件夾
-checkpoint_path1 = "C:/Users/User/ray_results/PPO_2026-01-05_15-33-41/PPO_balancing_ball_v1_dba11_00000_0_2026-01-05_15-33-41/checkpoint_000039"
+checkpoint_path1 = "C:/Users/User/ray_results/PPO_2026-01-07_19-43-36/PPO_balancing_ball_v1_1a3b6_00000_0_2026-01-07_19-43-36/checkpoint_000032"
 checkpoint_path2 = "C:/Users/User/ray_results/PPO_2026-01-04_19-19-59/PPO_balancing_ball_v1_4e70b_00000_0_2026-01-04_19-19-59/checkpoint_000024"
 
 # 3. 從 Checkpoint 恢復算法實例

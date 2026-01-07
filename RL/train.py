@@ -70,23 +70,29 @@ def run_training(level: int):
     test_env = BalancingBallEnv(render_mode="headless", model_cfg=model_config, train_cfg=train_config)
     obs_space = test_env.observation_space
     act_space = test_env.action_space
-    player_num = test_env.num_players
+    agent_list = test_env.agent_ids
     test_env.close()
-
-    player_role_id = train_config.player_role_id
-    player_list = []
-    for i in range(player_num):
-        player_list.append(f"{player_role_id}{i}")
 
     def policy_mapping_fn(agent_id, episode, worker, **kwargs):
         # 決定哪個 agent 使用哪個 policy
         # 在 1v1 中，通常 player0 是 main，player1 是 opponent
-        if agent_id == player_list[0]:
+        if agent_id == agent_list[0]:
             return "main"
         else:
             return "main_opponent"
 
     # 2. 配置演算法
+    policies = {
+        "main": PolicySpec(
+            observation_space=obs_space[agent_list[0]],
+            action_space=act_space[agent_list[0]],
+        ),
+    }
+    if len(agent_list) > 1:
+        policies["main_opponent"] = PolicySpec(
+            observation_space=obs_space[agent_list[1]],
+            action_space=act_space[agent_list[1]],
+        )
     config = (
         PPOConfig()
         .environment(
@@ -125,16 +131,7 @@ def run_training(level: int):
             create_env_on_local_worker=False, 
         )
         .multi_agent(
-            policies={
-                "main": PolicySpec(
-                    observation_space=obs_space[player_list[0]],
-                    action_space=act_space[player_list[1]],
-                ),
-                "main_opponent": PolicySpec(
-                    observation_space=obs_space[player_list[0]],
-                    action_space=act_space[player_list[1]],
-                ),
-            },
+            policies=policies,
             policy_mapping_fn=policy_mapping_fn,
             policies_to_train=["main"], # 重要：只訓練 main，對手是固定的
         )
@@ -162,7 +159,10 @@ def run_training(level: int):
                 main_weights = algorithm.get_policy("main").get_weights()
                 algorithm.get_policy("main_opponent").set_weights(main_weights)
 
-    config.callbacks(SelfPlayCallback)
+    # 只有在多人模式下，才掛載 SelfPlayCallback
+    if len(agent_list) > 1:
+        config.callbacks(SelfPlayCallback)
+
 
     # 4. 開始訓練
     stop = {"training_iteration": 400}

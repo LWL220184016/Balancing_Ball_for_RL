@@ -52,6 +52,8 @@ class BalancingBallEnv(MultiAgentEnv):
         self.stack_size = model_cfg.stack_size  # Number of frames to stack
         self.render_mode = render_mode
         self.seed = train_cfg.seed
+        self.num_rl_agents = getattr(train_cfg, 'num_agents', 1)
+        self.player_role_id = getattr(train_cfg, 'player_role_id')
 
         self.game = BalancingBallGame(
             render_mode=render_mode,
@@ -69,10 +71,14 @@ class BalancingBallEnv(MultiAgentEnv):
         self.num_players = self.game.num_players
 
         players_role_ids = []
+        self.agent_ids = []
         for i in range(self.num_players):
-            players_role_ids.append(f"RL_player{i}")
+            if i < self.num_rl_agents:
+                players_role_ids.append(f"{self.player_role_id}{i}")
+                self.agent_ids.append(f"{self.player_role_id}{i}")
+            else:
+                players_role_ids.append(f"bot_player{i}")
 
-        self.agent_ids = players_role_ids.copy()
         self.game.assign_players(players_role_ids)
         
 
@@ -190,6 +196,9 @@ class BalancingBallEnv(MultiAgentEnv):
         
         # 2. 更新 Stack 並組合
         for agent_id in self.agent_ids:
+            if "bot" in agent_id:
+                continue
+
             # 更新圖像 Stack
             current_stack = self.observation_stack_dict[agent_id]
             current_stack.append(new_img_obs[agent_id])

@@ -234,6 +234,8 @@ class BalancingBallGame:
                 try:
                     if "bot" in player.role_id:
                         pactions[player.role_id] = player.bot_action(current_game_step=self.steps, players=self.players, self_role_id=player.role_id)
+                        # continue
+
                     self.ability_generated_objects.extend(player.perform_action(pactions[player.role_id], self.steps))
                 except KeyError:
                     continue
@@ -261,6 +263,9 @@ class BalancingBallGame:
         terminated = self.level.check_if_game_end(alive_count)
         rewards = {}
         for player in self.players:
+            if "bot" in player.role_id:
+                continue
+
             rewards[player.role_id] = player.get_reward_per_step()
             self.score[player.role_id] += rewards[player.role_id]
 
@@ -344,6 +349,9 @@ class BalancingBallGame:
         self.mgl.clear(self.BACKGROUND_COLOR_RL, self.BACKGROUND_COLOR)
         self.screen_data = {}
         for p in self.players:
+            if "bot" in p.role_id:
+                continue
+
             poly_verts, circle_batch = self.calculate_verts(p.role_id)
             self._draw_scene_moderngl(poly_verts, circle_batch)
             self.screen_data[p.role_id] = self.mgl.read_pixels()
@@ -544,7 +552,12 @@ class BalancingBallGame:
         # 1. 準備文字內容
         time_text = f"Time: {self.end_time - self.start_time:.1f}, steps: {self.steps}/{self.max_episode_step}"
         fps_text = f"FPS: {int(self.current_render_fps)}"
-        score_texts = [f"{player.role_id}: {self.score[player.role_id]:.1f} + {self.step_rewards[player.role_id]} Health: {player.get_health():.1f}" for player in self.players]
+        score_texts = []
+        for player in self.players: 
+            if "bot" not in player.role_id: 
+                score_texts.append(f"{player.role_id}: {self.score[player.role_id]:.1f} + {self.step_rewards[player.role_id]} Health: {player.get_health():.1f}")
+            else:
+                score_texts.append(f"{player.role_id}: Health: {player.get_health():.1f}")
 
         # 2. 渲染文字本身
         time_surface = self.font.render(time_text, True, (255, 255, 255))
