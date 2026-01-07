@@ -17,6 +17,7 @@ def start_level(level_id, server_addr, level: int, max_episode_step, level_confi
         max_episode_step=max_episode_step,
         level_config_path=level_config_path,
         level=level,
+        sub_level=0,
         is_enable_realistic_field_of_view_cropping=False,
     )
 

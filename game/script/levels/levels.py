@@ -354,7 +354,7 @@ class Level3_0(Levels):
         )
 
         if len(self.players) != 1 or len(self.falling_rocks) != 1:
-            print(f"\n\033[38;5;196mLevel 3 only supports 1 player and 1 falling rock in RL.196m\033[0m")
+            print(f"\n\033[38;5;196mLevel 3_0 only supports 1 player and 1 falling rock in RL.196m\033[0m")
 
         return players, platforms, [self.falling_rocks], reward_calculator
 

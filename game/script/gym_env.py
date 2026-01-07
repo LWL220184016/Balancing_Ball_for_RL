@@ -61,6 +61,7 @@ class BalancingBallEnv(MultiAgentEnv):
             max_episode_step = train_cfg.max_episode_step,
             level_config_path=model_cfg.level_config_path,
             level = model_cfg.level,
+            sub_level=0, # 實際上應該是期望模型能游玩 level 中的所有 sub_level
             capture_per_second = None,
         )
         self.window_x = GameConfig.SCREEN_WIDTH

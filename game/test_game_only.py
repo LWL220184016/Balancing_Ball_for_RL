@@ -14,6 +14,7 @@ game = BalancingBallGame(render_mode="human",
                             platform_configs=platform_configs,
                             environment_configs=environment_configs,
                             level=4, 
+                            sub_level=0,
                             capture_per_second=None
                         )
 

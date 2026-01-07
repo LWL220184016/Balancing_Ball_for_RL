@@ -64,7 +64,7 @@
         "platform": 2000,
         "bullet": 3000
     },
-    "level4_1": {
+    "level4_0": {
         "platform_configs": [
             {
                 "shape_type": "rectangle",
@@ -214,11 +214,11 @@
             "being_hit_penalty": -5,
             
             "speed_reward_threshold": 100,
-            "speed_reward_proportion": 0.000005,
+            "speed_reward_proportion": 0.000001,
 
             "fov_degrees": 90,
             "max_dist": 1000,
-            "face_to_target_reward": 0.001,
+            "face_to_target_reward": 0.002,
             "round_end_reward": 20
         }
     }

@@ -13,7 +13,8 @@ class model_config:
     frame_skipping = 4
 
     level=4
-    level_config_path=str(pathlib.Path(__file__).parent.resolve()) + f"/level_{level}_default_cfg.json"
+    sub_level=0
+    level_config_path=str(pathlib.Path(__file__).parent.resolve()) + f"/level_{level}_{sub_level}_default_cfg.json"
     
 class train_config:
     total_timesteps=5000000
