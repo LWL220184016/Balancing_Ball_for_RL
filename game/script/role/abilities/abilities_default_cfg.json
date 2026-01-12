@@ -1,6 +1,6 @@
 {
     "Move_horizontal_viewing_angle": {
-        "force": 5000,
+        "force": 4000,
         "speed": 0,
         "cooldown": 0,
         "key": {
@@ -30,7 +30,7 @@
         }
     },
     "Move_topdown_viewing_angle": {
-        "force": 5000,
+        "force": 4000,
         "speed": 0,
         "cooldown": 0,
         "key": {
@@ -123,7 +123,7 @@
     },
     "Turning_topdown_viewing_angle": {
         "force": 0,
-        "speed": 100,
+        "speed": 35,
         "cooldown": 0,
         "key": {
             "keyboard": {},

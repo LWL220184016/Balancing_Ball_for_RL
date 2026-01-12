@@ -47,7 +47,6 @@ class BalancingBallEnv(MultiAgentEnv):
 
         # Image preprocessing settings
         self.image_size = getattr(model_cfg, 'image_size', (0, 0)) 
-        self.frame_skipping = getattr(model_cfg, 'frame_skipping', 0) 
 
         self.stack_size = model_cfg.stack_size  # Number of frames to stack
         self.render_mode = render_mode
@@ -68,6 +67,7 @@ class BalancingBallEnv(MultiAgentEnv):
         )
         self.window_x = GameConfig.SCREEN_WIDTH
         self.window_y = GameConfig.SCREEN_HEIGHT
+        self.frame_skipping = int(GameConfig.SCREEN_HEIGHT / 60)
         self.num_players = self.game.num_players
 
         players_role_ids = []
@@ -85,7 +85,8 @@ class BalancingBallEnv(MultiAgentEnv):
         # Action space: continuous - Box space for horizontal force [-1.0, 1.0] for each player
 
         action_space = schema_to_gym_space(GameConfig.ACTION_SPACE_CONFIG)
-        self.action_space = {agent_id: action_space for agent_id in self.agent_ids}
+        self.action_space = {agent_id: action_space[i] for i, agent_id in enumerate(self.agent_ids)}
+        print("Defined action_space: ", self.action_space)
         # self.action_space = spaces.Box(low=model_cfg.action_space_low, high=model_cfg.action_space_high, shape=(model_cfg.action_size,), dtype=np.float32)
    
         # 定義圖像空間 (共用)
@@ -143,7 +144,7 @@ class BalancingBallEnv(MultiAgentEnv):
         super().reset(seed=self.seed)
         self.game.reset()
         
-        # 1. 處理圖像 (初始化 Stack)
+        # 處理圖像 (初始化 Stack)
         img_obs = self._preprocess_observation_game_screen()
         self.observation_stack_dict = {}
         
@@ -157,10 +158,8 @@ class BalancingBallEnv(MultiAgentEnv):
             # Concatenate
             stacked_img_obs[agent_id] = np.concatenate(self.observation_stack_dict[agent_id], axis=-1)
 
-        # 2. 處理向量
         vec_obs = self._preprocess_observation_state_base() # 確保這返回的是 {agent_id: numpy_array}
 
-        # 3. 組合 Dict
         mixed_obs = {}
         for agent_id in self.agent_ids:
             # 容錯處理：如果某個 agent 在 reset 後立刻沒有 obs (通常不會發生)

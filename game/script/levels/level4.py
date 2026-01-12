@@ -37,6 +37,7 @@ class Level4_0(Levels):
 
         # 測試直綫向正下方跑能達到的最大速度為 2009.5642653447935，但是考慮到對角綫跑能有更長的加速距離，因此設大了一點
         self.velocity_scale = 2100
+        self.ang_vel_scale = None
 
     def setup(self):
 
@@ -58,13 +59,14 @@ class Level4_0(Levels):
                 PlayerShotHitReward(self.level_configs.get("reward")),
             ],
             reward_components=[
-                PlayerSpeedReward(self.level_configs.get("reward")),
                 PlayerFaceToTargetReward(self.level_configs.get("reward")),
                 # 站著不動懲罰
                 # 不開槍懲罰
                 # 躲避子彈獎勵
             ],
         )
+
+        self.ang_vel_scale = players[0].abilities["Turning_topdown_viewing_angle"].speed + 1 # 加 1 避免角色因为撞擊導致角速度超過最大值
 
         if len(self.players) != 2:
             print(f"\n\033[38;5;196mLevel 4 only supports 2 players in RL.196m\033[0m")
@@ -92,24 +94,25 @@ class Level4_0(Levels):
             player.set_collision_with([])
 
     def _get_observation_state_based(self) -> np.ndarray:
-        """
-        Return the current observation without taking a step.
-        This version uses relative positions and velocities for better learning.
-        """
-        
         obs = {}
         for p in self.players:
+            if "bot" in p.role_id:
+                continue
+
             self_body = p.shape.body
-            self_body_rotation_vector = self_body.rotation_vector
-            self_obs_cos = self_body_rotation_vector.x
-            self_obs_sin = self_body_rotation_vector.y
-            self_body_angle = self_body.angle
+            self_body_angle = self_body.angle # 獲取角度用於計算，但不放入 obs
+            
             norm_health = p.health / p.default_health
 
-            self_pos = self_body.position
+            # 相對於車頭朝向的速度 (Local)
             self_vel = self_body.velocity
-            norm_vx = np.tanh(self_vel[0] / self.velocity_scale)
-            norm_vy = np.tanh(self_vel[1] / self.velocity_scale)
+            self_local_vel = self_vel.rotated(-self_body_angle)
+            
+            # Local VX: 前進/後退速度, Local VY: 側移速度
+            norm_surge_vel = np.tanh(self_local_vel[0] / self.velocity_scale)
+            norm_sway_vel = np.tanh(self_local_vel[1] / self.velocity_scale)
+
+            norm_ang_vel = self_body.angular_velocity / self.ang_vel_scale
 
             is_player_ability_available = (self.game.steps - p.abilities["Shoot"].last_used_step) / p.abilities["Shoot"].cooldown
             if is_player_ability_available > 1.0:
@@ -120,29 +123,26 @@ class Level4_0(Levels):
                     continue
 
                 enemy_body = _p.shape.body
-                _relative_pos = enemy_body.position - self_pos
+                _relative_pos = enemy_body.position - self_body.position 
                 _relative_vel = enemy_body.velocity - self_vel
                 
                 relative_pos = _relative_pos.rotated(-self_body_angle)
                 relative_vel = _relative_vel.rotated(-self_body_angle)
-
                 
                 norm_relative_px = relative_pos[0] / self.max_dist
                 norm_relative_py = relative_pos[1] / self.max_dist
                 norm_relative_vx = np.tanh(relative_vel[0] / self.velocity_scale)
                 norm_relative_vy = np.tanh(relative_vel[1] / self.velocity_scale)
 
-                # The observation is the player's own velocity and the relative info to the target.
                 _obs = [
-                    self_obs_cos,
-                    self_obs_sin,
                     norm_health,
-                    norm_vx, 
-                    norm_vy, 
+                    norm_surge_vel, 
+                    norm_sway_vel, 
+                    norm_ang_vel, 
                     is_player_ability_available,
 
                     norm_relative_px,
-                    norm_relative_py,
+                    norm_relative_py, 
                     norm_relative_vx,
                     norm_relative_vy,
                 ]

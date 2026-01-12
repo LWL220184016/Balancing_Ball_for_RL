@@ -237,7 +237,10 @@ class PlayerFaceToTargetReward(RewardComponent):
                         break 
 
             if has_valid_target:
-                player.add_reward_per_step(self.face_to_target_reward)
+                angular_velocity = abs(body.angular_velocity)
+                player.add_reward_per_step(self.face_to_target_reward / angular_velocity if angular_velocity > 1 else self.face_to_target_reward)
+            # else:
+            #     player.add_reward_per_step(-self.face_to_target_reward)
 
 class PlayerMovementDirectionPenalty(RewardComponent):
     """處理玩家一直向同一個方向移動的懲罰"""

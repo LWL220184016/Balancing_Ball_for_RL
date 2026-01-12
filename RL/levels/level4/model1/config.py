@@ -8,9 +8,7 @@ class model_config:
     image_size = (160, 160)
     stack_size = 1
     channels = 3
-    state_obs_size = 10
-
-    frame_skipping = 4
+    state_obs_size = 9
 
     level=4
     sub_level=0

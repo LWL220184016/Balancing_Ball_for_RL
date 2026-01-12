@@ -24,7 +24,7 @@ class Move_topdown_viewing_angle(Ability):
 
         self.bot_x_force = 0
         self.bot_y_force = 0
-        self.reset_bot_xy_force_cooldown = 0.5 * GameConfig.FPS # TODO Hard code
+        self.reset_bot_xy_force_cooldown = 0.1 * GameConfig.FPS # TODO Hard code
         self.last_reset_bot_xy_force = -self.reset_bot_xy_force_cooldown
 
     def action(self, action_value: tuple[float, float], player: 'Player', current_step: int):

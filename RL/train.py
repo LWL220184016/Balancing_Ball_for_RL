@@ -42,9 +42,8 @@ def set_global_seed(seed):
 # 註冊環境
 register_env("balancing_ball_v1", env_creator)
 
-def run_training(level: int):
+def run_training(level: int, checkpoint_path: str = None):
     ray.init()
-
 
     module_path = f"RL.levels.level{level}.model1.config"
 
@@ -115,8 +114,14 @@ def run_training(level: int):
                     [64, [5, 5], 5],   # 20x20 -> 4x4    (20/5=4)
                     [256, [4, 4], 1],  # 4x4 -> 1x1 (這裡將 4x4 的區域捲積成 1x1，輸出 256 個通道)
                 ],
-                "post_fcnet_hiddens": [256, 256], # 現在 CNN 輸出是 256，對接這裡的 256
+                "post_fcnet_hiddens": [512], # 現在 CNN 輸出是 256，對接這裡的 256
                 "post_fcnet_activation": "relu",
+
+                "fcnet_hiddens": [256],    
+                "vf_share_layers": True,   # 強制共享層，防止輸入維度計算錯誤
+                "use_lstm": True, 
+                "lstm_cell_size": 256,      # LSTM 隱藏層大小
+                "max_seq_len": 20,          # 訓練時展開的時間步長 (預設通常是 20)
             },
             train_batch_size=4000, 
         )
@@ -126,8 +131,8 @@ def run_training(level: int):
         .framework("torch")  # 或 "tf2"
         .env_runners(
             num_env_runners=4,       # 對應原本的 num_env_runners
-            num_envs_per_env_runner=1,       # 對應原本的 num_envs_per_env_runner
-            rollout_fragment_length=200, # 顯式設置，避免自動計算出現奇異值
+            num_envs_per_env_runner=2,       # 對應原本的 num_envs_per_env_runner
+            rollout_fragment_length=250, # 顯式設置，避免自動計算出現奇異值
             create_env_on_local_worker=False, 
         )
         .multi_agent(
@@ -166,17 +171,32 @@ def run_training(level: int):
 
     # 4. 開始訓練
     stop = {"training_iteration": 400}
+    
+    print("準備開始訓練...")
+    if checkpoint_path:
+        print(f"將從 Checkpoint 恢復訓練: {checkpoint_path}")
+    else:
+        print("將開始新的訓練 (從頭開始)")
+
     tune.run(
         "PPO", 
         config=config.to_dict(), 
         stop=stop,
-        checkpoint_freq=10,             #  每 10 個 iteration 存一次檔，放這裡才對！
-        checkpoint_at_end=True,         #  結束時存檔，也放這裡
-        # storage_path="./ray_results"  #  順便指定存檔路徑，比較好找
-)
+        checkpoint_freq=10,             
+        checkpoint_at_end=True,         
+        # storage_path="./ray_results", 指定存檔路徑
+        restore=checkpoint_path  
+    )
 
 if __name__ == "__main__":
     level = 4
-    run_training(level=level)
-
     
+    ckpt = None  # 或者填入字串路徑: "/path/to/your/checkpoint_000010"
+    # ckpt = "C:/Users/User/ray_results/PPO_2026-01-08_23-00-51/PPO_balancing_ball_v1_d2d9e_00000_0_2026-01-08_23-00-51/checkpoint_000027"
+
+    if len(sys.argv) > 1:
+        ckpt = sys.argv[1]
+
+    run_training(level=level, checkpoint_path=ckpt)
+
+

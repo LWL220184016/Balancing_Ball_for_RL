@@ -70,17 +70,18 @@ class Levels:
 
         print(f"Created {len(self.players)} players and {len(self.platforms)} platforms.")
 
-        for player in self.players:
+        action_space_config = []
+        for i, player in enumerate(self.players):
             player.add_to_space()
 
+            abilities = player.get_abilities()
+            action_space_config.append({})
+            for key, ability in abilities.items():
+                action_space_config[i][key] = ability.get_action_spec()
+
+        
         for platform in self.platforms:
             platform.add_to_space()
-
-        abilities = player.get_abilities()
-        action_space_config = {}
-        for key, ability in abilities.items():
-            action_space_config[key] = ability.get_action_spec()
-
         
         try:
             GameConfig.PLAYER_NUM = len(self.players)

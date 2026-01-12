@@ -1,32 +1,34 @@
 import gymnasium as gym
 import numpy as np
 
-def schema_to_gym_space(schema: dict):
+def schema_to_gym_space(schemas: dict):
     """
     將 schema 轉換為 gymnasium.spaces.Dict。
     直接使用技能名稱（Top-level key）作為 Gym Space 的 Key。
     """
-    spaces = {}
+    spaces = []
+    for schema in schemas:
+        space_dict = {}
+        for skill_name, config in schema.items():
+            space_type = config.get("type")
 
-    for skill_name, config in schema.items():
-        space_type = config.get("type")
+            if space_type == "box":
+                space_dict[skill_name] = gym.spaces.Box(
+                    low=config["range"][0],
+                    high=config["range"][1],
+                    shape=tuple(config["shape"]),
+                    dtype=np.dtype(config.get("dtype", "float32"))
+                )
+                
+            elif space_type == "discrete":
+                space_dict[skill_name] = gym.spaces.Discrete(n=config["n"])
+                
+            # 如果未來仍有巢狀需求，可在此擴充，目前根據需求僅處理單層
+            else:
+                raise ValueError(f"Unknown space type: {space_type} for skill: {skill_name}")
+        spaces.append(gym.spaces.Dict(space_dict))
 
-        if space_type == "box":
-            spaces[skill_name] = gym.spaces.Box(
-                low=config["range"][0],
-                high=config["range"][1],
-                shape=tuple(config["shape"]),
-                dtype=np.dtype(config.get("dtype", "float32"))
-            )
-            
-        elif space_type == "discrete":
-            spaces[skill_name] = gym.spaces.Discrete(n=config["n"])
-            
-        # 如果未來仍有巢狀需求，可在此擴充，目前根據需求僅處理單層
-        else:
-            raise ValueError(f"Unknown space type: {space_type} for skill: {skill_name}")
-
-    return gym.spaces.Dict(spaces)
+    return spaces
 
 # 測試用例
 if __name__ == "__main__":
